@@ -36,7 +36,7 @@ The service has three layers:
 - **The stream** is one NATS JetStream stream, `EVENTS`, served by a NATS server embedded in the gateway process ([D12](decisions.md)), with file storage on a named volume. Each accepted event is published on `events.<provider>.<event>`, takes the stream sequence as its `seq`, and is on disk before the source answers 202. A repeated delivery ID inside the duplicate window collapses into the first message.
 - **Targets** read the stream. Each target is a plug-in behind one small Go interface, and each pull target reads through its own durable JetStream consumer. The first target is the session server. Temporal comes later. Other targets, such as a file sink or a chat notice, use the same interface.
 
-Sessions keep awrel's model. A session runs a stdio MCP client that holds one WebSocket to the gateway, subscribes per provider, repository, and event with awrel's filters, and receives matching events as channel notifications. The client exposes the same four tools under the same names. The gateway adds a sequence number to each event and a resume cursor to each connection, so a session that reconnects within the retention window gets every event it missed.
+Sessions keep awrel's model. A session runs a stdio MCP client that holds one WebSocket to the gateway, subscribes per provider, repository, and event with awrel's filters plus number and label filters on issue and pull request events ([D13](decisions.md)), and receives matching events as channel notifications. The client exposes the same four tools under the same names. The gateway adds a sequence number to each event and a resume cursor to each connection, so a session that reconnects within the retention window gets every event it missed.
 
 awrel's code doesn't change. It keeps serving until the last session has moved, and then it retires.
 
@@ -130,6 +130,7 @@ These gaps are known and not yet designed. Each goes into the first build that e
 | Appendix A's claims outside its NATS section don't carry proven, existing, new, or unverified labels | A reader can't weigh each claim | Next revision of this design |
 | The NATS server runs inside the gateway process, which is temporary | The queue lives and dies with one process on one host, and no other service can share it | A later decision on clustering or a separate NATS server. The `Target` interface and the stream subjects let that swap happen without changing targets |
 | Step 8's owner is still named the harness configuration owner. No durable role for harness MCP configuration was found among the public role names | A reader can't tell which role edits the MCP config | 8, once that role has a name |
+| The `label` filter takes printable ASCII names, as awrel's `name` filter does | A label with other characters can't be followed | 5, if a repository uses one |
 
 ## Plan
 
@@ -142,7 +143,7 @@ Each step is one pull request of under 400 code lines, unless it says config. [A
 | 2 | Deploy: compose, tunnel route, secrets, second GitHub webhook | GitHub's delivery log shows 202s and the stream grows | Ops |
 | 3 | Read API and `events tail` command on the private network | `event-gateway events tail --after N` prints the missed events | Gateway maintainer |
 | 4 | Grafana route, ported from awrel's semantics | A signed test alert lands with awrel's delivery ID | Gateway maintainer |
-| 5 | Session server: subscriptions, filters, per-client tokens | awrel's filter test cases pass against the gateway | Gateway maintainer |
+| 5 | Session server: subscriptions, filters, per-client tokens | awrel's filter test cases pass against the gateway, and so do the number and label cases | Gateway maintainer |
 | 6 | Resume and replay over the session socket | A client that drops for 10 minutes receives every matching event at least once, in order | Gateway maintainer |
 | 7 | MCP client with awrel's tools and channel notifications | A canary session gets the same events from both relays | Gateway maintainer |
 | 8 | Harness MCP config: canary, then everyone | Every session lists the gateway's tools and none lists awrel's | Harness configuration owner |
