@@ -18,7 +18,7 @@ Each claim here was read from `main` of a public repository on 2026-11-21. Paths
 
 ## awrel today
 
-The read was taken at tbhb-dev/awrel commit `2c2ff52`, which is the merge of the Grafana alerts route (awrel#121). The latest tag is `v0.7.1`. Sessions still run the client at `v0.5.0`.
+The read was taken at tbhb-dev/awrel commit `2c2ff52`, which is the merge of the Grafana alerts route (awrel#121). The latest tag is `v0.7.1`. Sessions run the client at `v0.6.0` or later. Session state files exist on the coordinating Mac, and the state file format arrived in `v0.6.0` (awrel#62).
 
 ### Where it runs
 
