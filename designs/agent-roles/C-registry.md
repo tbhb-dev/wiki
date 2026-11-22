@@ -120,7 +120,7 @@ The registry check is a Bazel test in the private harness configuration reposito
 
 - A kind's `authority` is empty, names a key with no `[record]` table, or names a record whose `who` isn't `operator`.
 - A change adds a kind or a capability, widens a capability's bundle, or gives a kind a `decides`, `merges`, `approves`, or `may_take` value that main lacks, and no `[record]` with `who = "operator"` was added for it.
-- A bundle widens: it carries a field the harness mapping never emits, a hook outside the guard list, a credential scope wider than the Request's area repository, or an allow rule that matches an account deny.
+- A bundle widens: it carries a field the harness mapping never emits, a hook outside the guard list, a credential scope wider than the Request's area repository, an allow entry wider than the base's, or an allow rule that matches an account deny.
 - A kind breaks its limits: a reviewer can't have `merges` or `approves`, an approver can't have `merges`, and exactly one kind has `fallback = true`.
 - Any table names a repository or a host.
 - A bundle field names a value that isn't on the allowed list in [appendix D](D-harnesses.md#what-the-generator-may-emit).

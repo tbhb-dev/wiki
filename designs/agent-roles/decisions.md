@@ -16,15 +16,16 @@ Back to [the design](README.md).
 
 ## Open
 
-### D2. May a launched model run make the approver's read and run the approval command, in place of the approving session?
-
-- **Recommendation:** yes, once step 1's probe shows the approver's definition binds a launched run. A workflow starts the run, never the builder run whose change it approves. Today the approving session makes the read and runs the approval command itself, and the agent account can't run that command.
-- **Why:** you decided a deterministic loop replaces the long-lived coordination session (R24) and accepted a review and merge worker that approves rebuilt replacements without a model read (R25). Tools has that loop's runner in shadow mode, with an approval command setting. The full-diff read that the approving session makes today has no such answer, and moving it changes who holds approval, which is reserved to you.
-- **If yes:** on each green notice, the loop launches the approver role. The run applies today's checks and holds, and the approval command runs at that exact head only on a pass, from an account that may run it, which the change that builds this names. The approving session then stops approving.
-- **If no:** the approving session keeps making the read, and the loop waits on that session for every approval that needs one.
-- **Reversible:** yes. The loop stops launching the role, and the session takes the read again.
+None.
 
 ## Decided
+
+### D2. May a launched model run make the approver's read and run the approval command, in place of the approving session?
+
+- **Decided:** 2026-11-23, by the operator.
+- **Rule:** yes. A launched run of the approver kind may make the approver's read and run the approval command in place of the approving session. One probe run proves it before it replaces the session. The rule that a maker never approves its own change and the provider rules bind the run unchanged, and a workflow starts the run, never the builder run whose change it approves.
+- **Undo:** the loop stops launching the kind, and the session takes the read again.
+- **Record:** the operator's decision of 2026-11-23, R33 in [appendix A](A-evidence.md#operator-and-coordinator-records).
 
 ### D1. Who may add a role for a new repository?
 
@@ -32,12 +33,12 @@ Back to [the design](README.md).
 - **Rule:** no role is assigned to a repository. The registry defines role kinds and their capabilities only, and creating or widening a kind or a capability stays the operator's. An agent looks up the context each task needs, so a new repository needs no new role. Today's per-repository sessions are interim and retire as loops replace them.
 - **Routing:** the Handler field stays Operator or Agent. An agent Request's `area:<repo>` label scopes which repository's context a run loads. Its `cap:<name>` labels, from a short fixed vocabulary, suggest a kind: routing matches them to a kind, the run or router may relabel or reassign, and routing never blocks on them. With no match, a workflow launches the fallback builder kind.
 - **Undo:** the operator decides again.
-- **Record:** the operator's decisions of 2026-11-22, R27 to R30 in [appendix A](A-evidence.md#operator-and-coordinator-records). R30 superseded the assignment half of R27.
+- **Record:** the operator's decisions R27 and R28 of 2026-11-22 and R29 and R30 of 2026-11-23 in [appendix A](A-evidence.md#operator-and-coordinator-records). R30 superseded the assignment half of R27.
 
 ### D8. Where do the roles live?
 
 - **Decided:** 2026-11-23, by the operator.
-- **Rule:** documentation of the role kinds and capabilities is public, in this wiki. The mechanical parts that go straight into harnesses live in the private harness configuration repository: the registry data, generated agent definitions and profiles, allow and deny entries, and hooks. The public page is generated from that registry data, so it can't drift.
+- **Rule:** documentation of the role kinds and capabilities is public, in this wiki. The mechanical parts that go straight into harnesses live in the private harness configuration repository: the registry data, generated agent definitions and profiles, allow and deny entries, and hooks. The operator decided public docs and private mechanics. Generating the public page from that registry data, with a check that fails on drift, is this design's proposal and target design, not built.
 - **Undo:** the operator decides again.
 - **Record:** the operator's decision of 2026-11-23, R32 in [appendix A](A-evidence.md#operator-and-coordinator-records). It settles the design's earlier proposal of a private home.
 
@@ -48,7 +49,7 @@ Back to [the design](README.md).
 - **Why:** an organization issue field limits how many values it allows, so per-repository roles can't each be a value. Capabilities stay few, and no label names a handler.
 - **Replaces:** R20's form, the Handler field alone with one value per agent role, and the label forms that followed it the same day (D1). The two-value field that the operator requests draft in wiki#76 describes stays.
 - **Undo:** the operator decides again.
-- **Record:** the operator's decisions of 2026-11-22, R16, R20, and R27 to R30 in [appendix A](A-evidence.md#operator-and-coordinator-records).
+- **Record:** the operator's decisions R16, R20, R27, and R28 of 2026-11-22 and R29 and R30 of 2026-11-23 in [appendix A](A-evidence.md#operator-and-coordinator-records).
 
 ### D6. Who approves Normal Changes?
 

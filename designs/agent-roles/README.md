@@ -5,8 +5,8 @@ description: One registry of tbhb-dev's agent roles, their authority today, and 
 tags: [agent-roles, authority, launcher, harness, design]
 status: draft
 owner: Harness configuration owner
-updated: "2026-11-22"
-decisions_open: 1
+updated: "2026-11-23"
+decisions_open: 0
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
@@ -17,13 +17,13 @@ decisions_open: 1
 
 | Status | Owner | Updated | Needs from the operator |
 | --- | --- | --- | --- |
-| Draft | Harness configuration owner | 2026-11-22 | 1 open decision in [decisions.md](decisions.md), about 3 minutes |
+| Draft | Harness configuration owner | 2026-11-23 | Nothing. All decisions are recorded in [decisions.md](decisions.md) |
 
 ## Summary
 
 tbhb-dev's roles live in many places today: decision records, the launcher's code, a review-launcher file, a standup participants file, rulesets, and the habits of long-running sessions. Each copy drifts on its own, and none of them is a definition a workflow can launch.
 
-This design writes today's roles into one machine-readable registry and widens no one's authority. The registry holds role kinds and their capabilities, and nothing per repository. It generates the `area:` and `cap:` labels on agent Requests, the review-launcher check, the standup participants, and one launch definition per kind for each harness, and CODEOWNERS stays checked as is.
+This design writes today's roles into one machine-readable registry and widens no one's authority. The registry holds role kinds and their capabilities, and nothing per repository. It generates the `area:` and `cap:` labels on agent Requests, the standup participants, and one launch definition per kind for each harness, and the review-launcher list and CODEOWNERS are checked against it.
 
 For the operator, the change is that a role kind becomes a file that can be read and reviewed. A workflow can then launch a run of that kind for each Request, with the context of the repository the Request names, which is the sessionless direction the operator set.
 
@@ -119,7 +119,7 @@ Recommended first piece: step 1. It is small and read-only, and its answers deci
 
 ## Appendices
 
-- [Decisions](decisions.md): 1 open, then the decided record.
+- [Decisions](decisions.md): none open, then the decided record.
 - [A. Evidence](A-evidence.md): every source, labeled existing, new, or unverified.
 - [B. Alternatives considered](B-alternatives.md): the registry's home and format, and per-harness options not taken.
 - [C. Registry](C-registry.md): schema, today's entries, and the checks.
