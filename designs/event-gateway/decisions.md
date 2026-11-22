@@ -26,7 +26,7 @@ None.
 - **Rule:** NATS with JetStream, embedded in the gateway process for now. One file-backed stream, `EVENTS`, on subjects `events.<provider>.<event>`, replaces the SQLite log, and durable consumers replace its cursor table ([appendix C](C-protocol.md#stream-configuration)).
 - **Why:** a maintained queue replaces a homegrown log, cursor table, and sweep.
 - **Undo:** two-way door. The `Target` interface and the stream subjects let a separate NATS server replace the embedded one without changing targets.
-- **Record:** `Needs tbhb/Decisions/2026-11-22-temporal-event-driven-workflows.md`, its update of 2026-11-22 at about 16:1xZ. The update's exact heading is unverified: that folder wasn't readable from the session that wrote this revision.
+- **Record:** `Needs tbhb/Decisions/2026-11-22-temporal-event-driven-workflows.md`, the bullet "Decision (tbhb, coord pane, 2026-11-22 ~16:1xZ)" under the heading "Update 2026-11-22 04:42 UTC (coord): awrel in-house is the event gateway".
 
 ### D11. How does a client send a subscription set larger than one frame?
 
