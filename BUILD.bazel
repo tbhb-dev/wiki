@@ -102,6 +102,7 @@ repo_layout_test(
         "LICENSES",
         "drafts",
         "models",
+        "runbooks",
     ],
 )
 
