@@ -21,6 +21,7 @@ Back to [the design](README.md).
 - **Recommendation:** yes, as a standing authorization limited to the standard owner entry in [appendix C](C-registry.md#todays-entries). Any role with authority beyond that entry still comes to you.
 - **Why:** the constitution reserves adding a role, and new repositories arrive often. Today a new repository's owner is named by the coordinator's reversible call or at your ask (appendix A, R14), and the registry would turn each coordinator call into an ask. The constitution asks for a standing authorization when an ask recurs.
 - **If yes:** the registry check accepts a new owner entry that matches the standard template, with the coordinator's record. Any other new role or widened line needs your record.
+- **What the registry generates for a new owner entry:** a `role:<name>` label for agent Requests, not a Handler field value. The Handler organization issue field limits how many values it allows, so it stays at Operator and Agent, and per-repository owner roles can't become values of it.
 - **If no:** every new repository's owner entry waits on an Operator Request before the repository gets reviews or standup slots.
 - **Reversible:** yes. You withdraw the authorization, and later owner entries come to you again. Entries already added stay until you remove them.
 
@@ -34,12 +35,14 @@ Back to [the design](README.md).
 
 ## Decided
 
-### D7. Which form does the Handler field take?
+### D7. How does a Request name the role that handles it?
 
 - **Decided:** 2026-11-22, by the operator.
-- **Rule:** Requests are told apart by the Handler organization issue field alone, with Operator plus one option per agent role and no role label. Every handler uses the same template, lifecycle, and command-line interface. The records role owns the option list, and the admin role adds the options. This supersedes the earlier mechanics of a two-value field with a role label, which the operator requests draft in wiki#76 still describes.
+- **Rule:** the Handler organization issue field keeps two values, Operator and Agent. An agent Request carries one `role:<name>` label naming the role that handles it, and the label set is generated from the registry, one label per role. Every handler uses the same template, lifecycle, and command-line interface.
+- **Why:** this follows from the operator's feedback on D1. An organization issue field limits how many values it allows, so per-repository owner roles can't each be a value.
+- **Departs from:** R20's form, the Handler field alone with one value per agent role and no role label. The two-value field that the operator requests draft in wiki#76 describes stays, and the role label it lacks is added.
 - **Undo:** the operator decides again.
-- **Record:** the operator's decisions of 2026-11-22, R16 and R20 in [appendix A](A-evidence.md#operator-and-coordinator-records).
+- **Record:** the operator's decisions of 2026-11-22, R16 and R20 in [appendix A](A-evidence.md#operator-and-coordinator-records), with the form set by the operator's feedback on D1 in this design's pull request.
 
 ### D6. Who approves Normal Changes?
 

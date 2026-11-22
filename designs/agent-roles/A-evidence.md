@@ -36,7 +36,7 @@ Every read here was taken on 2026-11-22. A claim marked existing was read from t
 
 - **Existing.** `.github/CODEOWNERS` is one owner-less `*` line. `.github/rulesets/main.json` requires no approving review and no code owner review.
 - **Existing.** `models/README.md` sets the review pair by the model that wrote the diff, and Sonnet as the default Claude session model.
-- **Existing.** [wiki#76](https://github.com/tbhb-dev/wiki/pull/76), open at `b890ae1`, describes a Handler field with two values, Operator and Agent. D7 in [decisions.md](decisions.md) supersedes it.
+- **Existing.** [wiki#76](https://github.com/tbhb-dev/wiki/pull/76), open at `b890ae1`, describes a Handler field with two values, Operator and Agent. D7 in [decisions.md](decisions.md) keeps that field and adds a `role:<name>` label on agent Requests.
 - **Existing.** `designs/event-gateway/README.md` lists, as known debt, that no durable role name exists for harness configuration. This design names that role the harness configuration owner.
 
 ### rules, at `dda445c`
@@ -107,7 +107,7 @@ These records sit in the operator's private decision notes, which aren't a repos
 | R17 | 2026-11-22 | Operator | Who approves Normal Changes |
 | R18 | 2026-11-22 | Operator | Authors allowed for decision auto-merge are listed in CODEOWNERS |
 | R19 | 2026-11-22 | Operator | Asks between roles move onto Requests, routed by event to a run |
-| R20 | 2026-11-22 | Operator | Handler field alone, Operator plus one option per agent role |
+| R20 | 2026-11-22 | Operator | Handler field alone, Operator plus one value per agent role. After the operator's feedback on D1 of this design, the design keeps the field at Operator and Agent and adds `role:<name>` labels, because the field limits its values |
 | R21 | 2026-11-22 | Operator | This design, its owner, and what the registry feeds |
 | R22 | 2026-11-22 | Operator, with the coordinator's reading | No limit of one pull request in review per repository. That review launchers start pairs for every green head at once is the coordinator's reading |
 | R23 | 2026-11-22 | Coordinator's calls | Reviews post on GitHub through the reviews App, as `COMMENT` only for now |

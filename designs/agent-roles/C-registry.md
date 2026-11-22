@@ -33,7 +33,7 @@ decides = ["own-work", "two-way-doors-in-scope", "deploy-own-services"]
 merges = "own-per-ruleset"      # none | own-per-ruleset
 approves = "none"               # none | approval-rules | normal-changes-across-roles
 never = ["approve-own-change", "pick-own-reviewer", "decide-other-owners-area"]
-requests = { handler = true, events = ["issues", "issue_comment"] }
+requests = { role_label = true, events = ["issues", "issue_comment"] }   # role_label: gets a role:<name> label for agent Requests
 standup = true
 authority = ["R9", "R10", "R11", "R26"]   # each value must resolve to an entry under [record]
 
@@ -66,14 +66,14 @@ These are the entries the first registry pull request writes. Each line cites th
 | Entry | Kind | Scope | Decides | Merges | Approves | Requests | Authority |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | operator | operator | `*` | Reserved matters | Any | Any | Handler: Operator | R0 |
-| coordinator | coordinator | `*`, for priorities | Priorities, cross-role questions, its own workings, Connect grants | None outside its own work | `normal-changes-across-roles` | Handler option | R0, R2, R7, R8, R10, R17 |
-| approver | approver | `*` | Whether a green head meets the checks | None | `approval-rules` | Green notice; later a Handler option | R1, R2, R9 |
+| coordinator | coordinator | `*`, for priorities | Priorities, cross-role questions, its own workings, Connect grants | None outside its own work | `normal-changes-across-roles` | Agent Request with `role:coordinator` | R0, R2, R7, R8, R10, R17 |
+| approver | approver | `*` | Whether a green head meets the checks | None | `approval-rules` | Green notice; later an agent Request with `role:approver` | R1, R2, R9 |
 | review-launcher | review-launcher | Repositories on its list, never its own | Which reviewer pair runs | None | None | Review requests, later `pull_request` events | R22, R23, tools `launcher.py` |
-| `<repo>`-owner, one per repository | owner | Its repositories | Own work, two-way doors in scope, its deploys until the deploy runner works | Own, as the repository's ruleset allows | None | Handler option | R9, R10, R11, R26 |
-| ops-owner | owner | Hosts, runners, the deploy runner, inventory, and the private operations repository | Same as an owner. Its runs may use the ops account, whose two playbook capabilities belong to the account, not the role | Own, as the repository's ruleset allows | None | Handler option | R10, and a decision record of the harness configuration repository |
-| harness-configuration-owner | owner | The private harness configuration repository, the registry, and account harness settings | Same as an owner | Own, as the repository's ruleset allows | None | Handler option | R10, R21 |
-| records-owner | owner | The private IT service management records repository and the Handler option list | Same as an owner | Own, as the repository's ruleset allows. The records App merges decision records on CI alone | None | Handler option | R16, R18, R20 |
-| admin | admin | Organization settings, consoles, credential issuing | How to carry out admin steps others decided | None | None | Handler option | R5, R6, R7, R20 |
+| `<repo>`-owner, one per repository | owner | Its repositories | Own work, two-way doors in scope, its deploys until the deploy runner works | Own, as the repository's ruleset allows | None | Agent Request with its `role:` label | R9, R10, R11, R26 |
+| ops-owner | owner | Hosts, runners, the deploy runner, inventory, and the private operations repository | Same as an owner. Its runs may use the ops account, whose two playbook capabilities belong to the account, not the role | Own, as the repository's ruleset allows | None | Agent Request with `role:ops-owner` | R10, and a decision record of the harness configuration repository |
+| harness-configuration-owner | owner | The private harness configuration repository, the registry, and account harness settings | Same as an owner | Own, as the repository's ruleset allows | None | Agent Request with `role:harness-configuration-owner` | R10, R21 |
+| records-owner | owner | The private IT service management records repository and the Requests that carry the role labels | Same as an owner | Own, as the repository's ruleset allows. The records App merges decision records on CI alone | None | Agent Request with `role:records-owner` | R16, R18 |
+| admin | admin | Organization settings, consoles, credential issuing | How to carry out admin steps others decided | None | None | Agent Request with `role:admin` | R5, R6, R7 |
 
 The standard owner entry is the `<repo>`-owner row with nothing added. D1 in [decisions.md](decisions.md) asks whether the coordinator may add one for each new repository without a Request.
 
@@ -102,7 +102,7 @@ The registry check is a Bazel test in the private harness configuration reposito
 
 The generators each carry their own check, run in CI where the output lives:
 
-- **Handler options:** read the live organization issue field with a read-only call and compare it with Operator plus the roles where `requests.handler` is true.
+- **Role labels:** read the labels in each repository that takes Requests with a read-only call, and compare them with one `role:<name>` label per role where `requests.role_label` is true. The same check confirms the Handler field still holds exactly Operator and Agent.
 - **CODEOWNERS:** compare each repository's file with the baseline's owner-less `*`, plus the records repository's allowed-author lines.
 - **Review-launcher scopes:** compare the launcher's built-in list with the review-launcher entries, and the state-directory file with the generated one.
 - **Standup participants:** compare the participants file with the roles where `standup` is true.
@@ -113,4 +113,4 @@ The generators each carry their own check, run in CI where the output lives:
 1. A role's owner, or the coordinator for a new owner role, opens a pull request on the registry with its record.
 2. The registry check runs. A widened line without an operator record fails.
 3. Two reviewer families review it, under that repository's review policy.
-4. On merge, the generators write their outputs. The admin role applies Handler options, the deployer installs harness definitions, and tools releases a launcher whose built-in list matches.
+4. On merge, the generators write their outputs. The label sync creates the role labels, the deployer installs harness definitions, and tools releases a launcher whose built-in list matches.
