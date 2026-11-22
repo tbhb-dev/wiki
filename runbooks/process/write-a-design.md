@@ -30,7 +30,7 @@ Run it when someone asks for a design, or when a change is large enough that a p
 
 1. The design owner takes the request and writes a brief: the question, the audience, the decisions the operator will make, and the files to read.
 
-2. The design owner launches the author on a planning-and-design model from the roster, such as Opus 5.5 or Fable 5.2, at medium effort. The example uses Opus 5.5.
+2. The design owner launches the author on a planning-and-design model from the roster, such as Opus 5.5 or Fable 5.2, at medium effort. The example uses Opus 5.5. While the roster's Antigravity trial runs, it sends new design work to Antigravity first, so check the roster before launching.
 
    ```sh
    agent exec --harness claude --model claude-opus-5-5 --effort medium
@@ -40,13 +40,13 @@ Run it when someone asks for a design, or when a change is large enough that a p
 
 3. The author runs the repository gates and opens a pull request with the design.
 
-4. The design owner sends the head to the reviewer role. Two reviewers read the whole design against [designs/REVIEW.md](../../designs/REVIEW.md). They come from Codex at `gpt-6.1-sol` on high effort, or Antigravity `gemini-4-argon-high`, under the review-pair rule in the roster. A reviewer reports findings as BLOCK or TECH-DEBT, and the verdict covers only the head it read.
+4. The design owner sends the head to the reviewer role. Two reviewers read the whole design against [designs/REVIEW.md](../../designs/REVIEW.md). The pair follows the author under the roster's review-pair rule. A design from a Claude or Codex session gets Codex `gpt-6.1-sol` and Antigravity `gemini-4-argon-high`. A design with any Antigravity-written part gets Codex and a Claude review run on Sonnet. A reviewer reports findings as blocking or non-blocking, and the verdict covers only the head it read.
 
-5. The author fixes each BLOCK and pushes a new head, which voids the earlier verdicts. The reviewers read the new head.
+5. The author fixes each blocking finding and pushes a new head, which voids the earlier verdicts. The reviewers read the new head.
 
-6. When both reviews carry no BLOCK, the design owner moves the open decisions to the operator, each with a recommendation. The operator answers each one.
+6. When both reviews carry no blocking finding, the design owner moves the open decisions to the operator, each with a recommendation. The operator answers each one.
 
-7. The author moves each answered item to `## Decided` in the existing design pull request and pushes a new head. The reviewers read that head again.
+7. The author moves each answered item to `## Decided` in the existing design pull request and updates `decisions_open` in the README and `Open decisions: N` in the PR body to match `decisions.md`, and pushes a new head. The reviewers read that head again.
 
 8. The merger merges the pull request on a green `conclusion` at the exact head, after both reviewers clear that head.
 
@@ -56,7 +56,7 @@ Run it when someone asks for a design, or when a change is large enough that a p
 
 | Outcome | Meaning | Next |
 | --- | --- | --- |
-| A reviewer reports a BLOCK | The design has a defect the operator shouldn't see. | Step 5. |
+| A reviewer reports a blocking finding | The design has a defect the operator shouldn't see. | Step 5. |
 | Both reviews carry only TECH-DEBT | The design is sound. | Step 6, and file the debt. |
 | The operator declines a recommendation | The decision goes the other way. | Step 7 with the operator's answer, then the new head's reviews. |
 | The reviewers disagree | One found what the other missed. | The heavier review applies. Step 5. |
