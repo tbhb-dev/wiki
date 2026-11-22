@@ -90,14 +90,16 @@ Each client gets its own bearer token rather than one shared token. The gateway 
 
 ### Migration off awrel
 
-1. **Run alongside.** Add a second GitHub webhook that points at the gateway, and a second Grafana contact point. awrel keeps its webhook and is unchanged, so both systems receive the same events. Record the time this starts as T0. The gateway's earliest stored event is T0.
-2. **Move one session.** The harness configuration owner adds the gateway's MCP entry for one canary session. awrel's saved subscriptions are bound to its endpoint and are not transferred. The session reconnects to the gateway's MCP server and sends its subscriptions in the hello, as a session re-subscribes after any restart today. Compare its events with awrel's for a few days.
+1. **Run alongside.** Add a second GitHub webhook that points at the gateway, and a second Grafana contact point. awrel keeps its webhook and is unchanged, so both systems receive the same events. The gateway records T0 for each source in its own store: when that source's webhook was added, which is GitHub at step 2 of the build and Grafana at step 4 ([D-pieces](D-pieces.md)). Its earliest stored event for a source is that source's T0.
+2. **Move one session.** The harness configuration owner adds the gateway's MCP entry for one canary session. awrel keeps each session's subscriptions in a file at `$XDG_STATE_HOME/awrel/sessions/<sha256 of the session key>.json` (default `~/.local/state/awrel/sessions/`), JSON with `version`, `endpoint`, and `subscriptions` (`internal/persist/persist.go` in the awrel repository). awrel's own client reloads that file on restart, but only when `endpoint` matches, and the gateway client starts with no state file. So the swap converts it: on first start, if its own state file for the session is missing and awrel's exists, the gateway client imports the `subscriptions` list once, ignoring `endpoint`, and writes its own state file. Its first hello then carries the full subscription set. Compare its events with awrel's for a few days.
 3. **Move all sessions.** Swap the awrel entry for the gateway entry everywhere, one session at a time, each with the same reconnect. Rollback means a session reconnects to awrel, which kept receiving throughout.
 4. **Soak.** Wait one week with no session on awrel and match gateway log counts against GitHub's delivery log.
 5. **Cut the webhooks over.** Remove awrel's webhook and contact point only after every session has moved. Rollback is to add them back, since awrel's code and deploy are unchanged.
 6. **Retire awrel.** Stop its deploy, mark the repository archived with a pointer to the gateway, and revoke its secrets.
 
-A session's first connect to the gateway replays stored events that match its subscriptions, from T0 and within the retention window, and then goes live. So no event received after T0 is lost for a session that moves within the retention window. Events before T0 were delivered by awrel as before.
+An imported session's first hello sends `resume_after` set to the T0 marker the gateway holds for the sources it subscribes to. Since `resume_after` is one `seq`, the client sends the lowest marker, which is GitHub's. The gateway replays matching events from there within the retention window, and then goes live. So no event received after T0 is lost for a session that moves within the retention window. Events before T0 were delivered by awrel as before. A session with no prior state, brand new and with nothing to import, sends no `resume_after` and gets no replay. It is live-only from its first hello.
+
+The replay can repeat events awrel already delivered during the parallel run. That is expected under at-least-once delivery, and clients already drop repeated `delivery` IDs within their window. At first start the delivery ID set is empty, so duplicates are possible and acceptable.
 
 ## Risks and unknowns
 

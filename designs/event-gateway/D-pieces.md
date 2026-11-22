@@ -39,7 +39,7 @@ Before step 1, the event gateway owner creates tbhb-dev/event-gateway:
 | 4. Grafana | ~250 | `POST /webhooks/grafana` with awrel's checks, allowlist, and IDs. Second contact point in Grafana | 1 |
 | 5. Session server | ~380 | `/connect`, `gateway.v1`, subscription validation ported from awrel's rules, fan-out | 3 |
 | 6. Resume | ~250 | chunked `hello`, replay, `caught_up`, `gap` | 5 |
-| 7. MCP client | ~390 | `event-gateway mcp`, awrel's tools, channel notifications, state file with `seq` | 6 |
+| 7. MCP client | ~390 | `event-gateway mcp`, awrel's tools, channel notifications, state file with `seq`, one-time import of awrel's session file | 6 |
 | 8. Harness config | Config | Gateway MCP entry for a canary, then everyone | 7 |
 | 9. Retention and redelivery | ~300 | Retention sweep. A loop that lists failed GitHub deliveries since the last good one and asks GitHub to redeliver them | 2, D3, D4 |
 | 10. Retire awrel | Config | Remove awrel's webhook and contact point, stop its deploy, archive with a pointer | 8 plus one week |
@@ -59,7 +59,7 @@ Step 1 depends on nothing but the repository. After step 2 deploys it, it keeps 
 
 ### Step 8 rollout
 
-The harness configuration owner adds the gateway entry under a new server name for one canary session, beside awrel's entry. awrel's subscriptions are not transferred. Each session reconnects to the gateway and sends its subscriptions in the hello, and its first connect replays stored events from T0, the gateway's earliest stored event, within the retention window. After a few days of matching events, the owner moves every session within that window. A rollback means a session reconnects to awrel, which kept receiving. Prompts that name awrel's tools need the new server name. The change lists them in its description.
+The harness configuration owner adds the gateway entry under a new server name for one canary session, beside awrel's entry. The gateway client imports awrel's per-session subscription file on first start, so the first hello carries the full set, and it sends `resume_after` set to the gateway's T0 marker, so the first connect replays stored events from T0 within the retention window. The gateway records T0 per source when that source's webhook is added, GitHub at step 2 and Grafana at step 4. After a few days of matching events, the owner moves every session within that window. A rollback means a session reconnects to awrel, which kept receiving. Prompts that name awrel's tools need the new server name. The change lists them in its description.
 
 ## Temporal outline
 
