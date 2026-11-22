@@ -24,7 +24,7 @@ The event gateway is a new public project, tbhb-dev/event-gateway, which the ope
 
 It replaces awrel. awrel runs on a hosted edge platform, keeps no events, and drops every event a session misses while disconnected. The gateway runs on an owned host, commits each event to its log before it acknowledges the event, and lets a session resume from its last sequence number.
 
-The first piece is the ingest: one Go service that verifies GitHub webhooks and commits them to the log. With a second webhook it runs beside awrel, and the switch loses no events.
+The first piece is the ingest: one Go service that verifies GitHub webhooks and commits them to the log. With a second webhook it runs beside awrel, and the migration below gives each session a defined replay boundary.
 
 ## Proposal
 
@@ -90,14 +90,14 @@ Each client gets its own bearer token rather than one shared token. The gateway 
 
 ### Migration off awrel
 
-1. **Run alongside.** Add a second GitHub webhook that points at the gateway, and a second Grafana contact point. awrel keeps its webhook, so both systems receive every event and nothing switches yet.
-2. **Move one session.** The harness configuration owner adds the gateway's MCP entry for one canary session. Compare its events with awrel's for a few days.
-3. **Move all sessions.** Swap the awrel entry for the gateway entry everywhere. Rollback is the reverse swap, and awrel is still receiving every event.
+1. **Run alongside.** Add a second GitHub webhook that points at the gateway, and a second Grafana contact point. awrel keeps its webhook and is unchanged, so both systems receive the same events. Record the time this starts as T0. The gateway's earliest stored event is T0.
+2. **Move one session.** The harness configuration owner adds the gateway's MCP entry for one canary session. awrel's saved subscriptions are bound to its endpoint and are not transferred. The session reconnects to the gateway's MCP server and sends its subscriptions in the hello, as a session re-subscribes after any restart today. Compare its events with awrel's for a few days.
+3. **Move all sessions.** Swap the awrel entry for the gateway entry everywhere, one session at a time, each with the same reconnect. Rollback means a session reconnects to awrel, which kept receiving throughout.
 4. **Soak.** Wait one week with no session on awrel and match gateway log counts against GitHub's delivery log.
-5. **Cut the webhooks over.** Remove awrel's webhook and contact point. Rollback is to add them back, since awrel's code and deploy are unchanged.
+5. **Cut the webhooks over.** Remove awrel's webhook and contact point only after every session has moved. Rollback is to add them back, since awrel's code and deploy are unchanged.
 6. **Retire awrel.** Stop its deploy, mark the repository archived with a pointer to the gateway, and revoke its secrets.
 
-No events go missing because the two systems overlap. Every event reaches both from step 1 until step 5, and the gateway's log covers any session that reconnects in between.
+A session's first connect to the gateway replays stored events that match its subscriptions, from T0 and within the retention window, and then goes live. So no event received after T0 is lost for a session that moves within the retention window. Events before T0 were delivered by awrel as before.
 
 ## Risks and unknowns
 
@@ -110,6 +110,7 @@ No events go missing because the two systems overlap. Every event reaches both f
 | cloudflared needs `runc` rather than a sandboxed runtime | The sidecar runs with weaker isolation | Same accepted debt as github-metrics, and the service itself stays sandboxed | github-metrics `deploy/compose.yaml` |
 | The launcher refuses some non-interactive callers | A Temporal worker can't launch reviewer runs | tools piece in the Temporal phase | tools `docs/reference/alpha/agent-configuration.md` (appendix A) |
 | Grafana retry and repeat behavior | An alert lost while the gateway is down | Grafana's repeat interval sends firing alerts again. Unverified | Unverified |
+| A session moves later than the retention window after T0 | It can miss events between T0 and its connect | Move every session within the retention window | New |
 
 ## Known debt
 
@@ -117,7 +118,6 @@ These gaps are known and not yet designed. Each goes into the first build that e
 
 | Debt | Where it bites | First step that answers it |
 | --- | --- | --- |
-| The step 8 config swap doesn't say how a session's awrel subscriptions move into the gateway client's state, or where replay starts for a session that has no `seq` yet | A swapped session starts with no subscriptions, or replays from the wrong point | 7 and 8 |
 | Exiting on stdin close may not end awrel's orphan processes after an `/mcp` reconnect | Orphan clients keep sockets and tokens open | 7, with a test that reproduces the orphan |
 | The organization webhook's event list must include `check_run` and `check_suite`, and the action types the filters accept for them aren't listed | A subscription on those events never matches | 2 and 5 |
 | Appendix A reads awrel at a commit after `v0.7.1`, while sessions run the client at `v0.5.0` | Behavior described in appendix A may not be what sessions run today | 5, by pinning the filter tests to the version sessions run |

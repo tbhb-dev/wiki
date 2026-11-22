@@ -59,7 +59,7 @@ Step 1 depends on nothing but the repository. After step 2 deploys it, it keeps 
 
 ### Step 8 rollout
 
-The harness configuration owner adds the gateway entry under a new server name for one canary session, beside awrel's entry. After a few days of matching events, the owner swaps every session's entry. A rollback restores awrel's entry. Prompts that name awrel's tools need the new server name. The change lists them in its description.
+The harness configuration owner adds the gateway entry under a new server name for one canary session, beside awrel's entry. awrel's subscriptions are not transferred. Each session reconnects to the gateway and sends its subscriptions in the hello, and its first connect replays stored events from T0, the gateway's earliest stored event, within the retention window. After a few days of matching events, the owner moves every session within that window. A rollback means a session reconnects to awrel, which kept receiving. Prompts that name awrel's tools need the new server name. The change lists them in its description.
 
 ## Temporal outline
 
