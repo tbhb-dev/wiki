@@ -16,7 +16,7 @@ decisions_open: 0
 
 | Status | Owner | Updated | Needs from the operator |
 | --- | --- | --- | --- |
-| Draft | Service-management maintainer | 2026-11-22 | Five questions at the end of the operator-requests appendix, about 5 minutes |
+| Draft | Service-management maintainer | 2026-11-22 | Nothing. The operator answered the five questions in the operator-requests appendix |
 
 ## Summary
 
@@ -34,7 +34,7 @@ A plugin of the shared command-line tool opens, updates, and closes the records.
 
 Operator Requests are the first part written up. A Request that only the operator can act on says why, shows the exact command, and waits. The operator runs it from their own terminal, and the result returns as one comment from their own login. [Operator requests](operator-requests.md) gives the states, the commands, the workflow side, and the threats.
 
-The record kinds, their schema variants, and the decision records are built in the private repository today and move into this folder as further appendices.
+The record kinds, their schema variants, and the decision records are built in the private repository today. Public-safe appendices describing them will be written here later.
 
 ## Risks and unknowns
 
@@ -49,7 +49,7 @@ The record kinds, their schema variants, and the decision records are built in t
 | --- | --- | --- | --- |
 | 1 | The record schema variants and templates | Their pull requests merge with green checks | Service-management maintainer |
 | 2 | The operator commands | `request run`, `approve`, `deny`, and `comment` each post their comment in a test run | Service-management maintainer |
-| 3 | The remaining design appendices | Each is merged here and the private copies are removed | Service-management maintainer |
+| 3 | The remaining design appendices, newly written as public-safe material | Each is merged here | Service-management maintainer |
 
 ## Appendices
 

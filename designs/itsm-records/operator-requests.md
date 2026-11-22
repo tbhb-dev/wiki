@@ -34,19 +34,19 @@ A Request has one state at a time, shown by a label and moved by the workflow, n
 
 | State | Meaning | Entered by | Left by |
 | --- | --- | --- | --- |
-| open | Filed and checked by the content rules | The open command | The first slash comment, or the author closing it |
-| waiting on operator | Ready for the operator to act | The workflow, after the content check passes | `/approve`, `/deny`, `/complete`, or a plain comment |
-| waiting on author | The operator asked for more information | `request comment` | The author edits the body or replies |
+| open | Filed, or edited by the agent account, and waiting for the content check | The open command, or an edit by the agent account | The workflow, when the content check passes, or the author closing it |
+| waiting on operator | Ready for the operator to act | The workflow, after the content check passes | `/approve`, `/deny`, `/start`, or a plain comment |
+| waiting on author | The operator asked for more information | `request comment` | The author edits the body, which returns it to open |
 | approved | The operator said yes to an approval Request | `/approve` | The workflow closing it |
 | denied | The operator said no, for either kind | `/deny` | The workflow closing it |
-| running | The operator started a command Request | `request run`, before it executes | `/complete` |
+| running | The operator started a command Request | The workflow, on the `/start` comment that `request run` posts before it executes | `/complete` |
 | complete | The command finished with exit code zero | `/complete` with status success | The workflow closing it |
-| failed | The command exited nonzero or stopped partway | `/complete` with status failure | The author opening a new Request, or the operator running again |
+| failed | The command exited nonzero or stopped partway | `/complete` with status failure | The author opening a new Request, or `/start` from a new `request run` |
 | closed | Final, with a recorded outcome | The workflow | Nothing |
 
-Approved, denied, and complete all close the issue with their outcome as the close reason. Failed stays open until a new attempt or an explicit close, so a half-run command is never hidden.
+Approved, denied, and complete all close the issue with their outcome as the close reason. Failed stays open until a new attempt or an explicit close, so a half-run command is never hidden. The operator decided this (Q2).
 
-Only the operator's login can send `/approve`, `/deny`, or `/complete`. The author, which is an agent account, can edit its own Request body, which sends it back to waiting on operator after the content check. Any other commenter's slash line is ignored and logged.
+Only the operator's login can send `/approve`, `/deny`, `/start`, or `/complete`. The author, which is an agent account, can edit its own Request body, which sends it back to open for the content check and then to waiting on operator. The operator decided this (Q1). Any other commenter's slash line is ignored and logged.
 
 ## The operator's commands
 
@@ -66,14 +66,15 @@ A reader who finds a Request in a notification gets the number from the link. Th
 `request run <n>` executes text that came from an issue, on the operator's machine. That is the largest risk in this design, so the command stops at each check below before it runs anything, and each stop prints the reason.
 
 1. **Fetch.** It reads the issue and its edit history through the API, with the operator's login.
-2. **Eligibility.** The Handler must be Operator, the kind must be command, and the state must be waiting on operator.
-3. **Integrity.** The body must not have been edited after it was opened by anyone but the agent account. The edit history gives the editor of each revision, and the command compares the final text with the text the agent account last wrote. A single edit by another account, or an edit after the operator's last look, refuses the run.
-4. **Shape.** The body must hold exactly one command, and that command must be one line. The CUE variant checks this when the Request is opened, and `run` checks it again against the same pattern so a hand-edited body never passes.
-5. **Show and confirm.** It prints the Request's title, the stated reason, where to run it, the six one-line fields, and the exact command. It asks `y/N` and treats anything but `y` as no.
-6. **Execute.** It records the start time, runs the one script with the operator's environment, and captures the exit code, the duration, and the last lines of output.
-7. **Report.** It posts a `/complete` comment with the exit code, the duration, and a short tail of the output.
+2. **Eligibility.** The Handler must be Operator, the kind must be command, and the state must be waiting on operator, or failed for a retry.
+3. **Integrity.** The body must not have been edited after it was opened by anyone but the agent account. The issue's creator must also be the agent account. The edit history gives the editor of each revision, and the command compares the final text with the text the agent account last wrote. A single edit by another account, or an edit after the operator's last look, refuses the run.
+4. **Script hash.** The Request's metadata records the SHA-256 hash of the script file, taken when the Request opened. `run` hashes the local script file and refuses on a mismatch, so a file changed after opening never runs. The operator decided this (Q4).
+5. **Shape.** The body must hold exactly one command, and that command must be one line. The CUE variant checks this when the Request is opened, and `run` checks it again against the same pattern so a hand-edited body never passes.
+6. **Show and confirm.** It prints the Request's title, the stated reason, where to run it, the six one-line fields, and the exact command. It asks `y/N` and treats anything but `y` as no.
+7. **Execute.** It records the start time, runs the one script with the operator's environment, and captures the exit code, the duration, and the last lines of output.
+8. **Report.** Before it executes, it posts a `/start` comment, and after it ends it posts a `/complete` comment with the exit code, the duration, and a short tail of the output.
 
-Before posting, the command redacts anything that looks like a secret. A match is replaced with a marker, and the comment says that a line was removed. The output tail is capped at a few lines and a few hundred characters, so a script can't flood the issue. Full output stays on the operator's machine.
+Before posting, the command redacts anything that looks like a secret. The operator decided that the comment carries a capped, redacted tail, and logged best-effort redaction as a known risk (Q3). A match is replaced with a marker, and the comment says that a line was removed. The output tail is capped at a few lines and a few hundred characters, so a script can't flood the issue. Full output stays on the operator's machine.
 
 If the script exits nonzero, the comment says failure and the Request moves to failed. If the command is interrupted before the script ends, `run` still posts `/complete` with status failure and the partial tail, so the issue never sits in running with nobody watching. If the post itself fails, for example when the network is down, `run` prints the exact comment it would have posted and exits nonzero, and the operator can post it again with the plain GitHub CLI.
 
@@ -81,12 +82,13 @@ A second `request run` on the same Request is allowed only from failed. Running 
 
 ## The workflow side
 
-The private repository's workflow reads issue comments. It acts only when the commenter's login equals the operator's login, which is held in the repository's records configuration and changed only by a reviewed change. Comments from any other account, including an agent account, can't change a state.
+The private repository's workflow reads issue comments. It acts only when the commenter's login equals the operator's login, which is held in the repository's records configuration and changed only by a reviewed change. Comments from any other account, including an agent account, can't change a state. The one other trigger is an edit by the agent account, which returns the Request to open for the content check. The operator decided that the login lives in a code-owned repository configuration file (Q5).
 
 | Comment | Workflow does |
 | --- | --- |
 | `/approve` | Checks the Request is waiting on operator and an approval Request, labels it approved, closes it as completed |
 | `/deny` | Checks the state, labels it denied, closes it as not planned |
+| `/start` | Checks the state is waiting on operator, or failed for a retry, and labels it running |
 | `/complete` | Checks the state is running, reads the status, labels complete or failed, closes it when complete |
 | plain comment from the operator | Moves waiting on operator to waiting on author, and does not close |
 
@@ -112,7 +114,7 @@ The body has these sections, in this order, each one line or one short list:
 | Why not an agent | The reason no agent account can run it | 15 words |
 | Command | One fenced `bash` block holding the one command line | 1 line |
 
-The whole body is capped at 100 words. Where to run it, here or in the operator's own terminal, is metadata and not a section. Pasted output never goes in the body. It goes in a comment, which the note variant caps.
+The whole body is capped at 80 words, and its metadata records the script's SHA-256 hash. Where to run it, here or in the operator's own terminal, is metadata and not a section. Pasted output never goes in the body. It goes in a comment, which the note variant caps.
 
 Section keys, caps, and the command pattern come from a CUE variant. The kernel normalizes the Markdown into blocks and metrics, and the variant constrains them. A body that omits a section, adds an extra block, writes a second command, or names a path outside the script directory is refused with the section and rule named. The variant also requires Handler Operator and kind command as literals, so a body can't pass without them.
 
@@ -130,13 +132,13 @@ The script itself is reviewed before the Request opens. The Request names it, an
 | Operator login compromised | Everything above | Outside this design: the operator's account controls | Existing |
 | An agent files Operator Requests to avoid doing work | Operator time spent | The required reason, and reviewers who refuse a reason an agent could meet | New |
 
-Under the rule that guardrails come later when the system is in use, these are deferred: a second reviewer for the script before it opens a Request, a signed hash of the body shown at confirm and checked by the workflow, retention limits on the completion comments, and a dashboard of long-waiting Requests. Each is recorded as debt when the system goes live.
+These guardrails are deferred and logged as debt: a second reviewer for the script before it opens a Request, a signed hash of the whole body shown at confirm and checked by the workflow, retention limits on the completion comments, and a dashboard of long-waiting Requests.
 
 ## Plan
 
 | Step | What lands | Done when | Owner |
 | --- | --- | --- | --- |
-| 1 | The command-request CUE variant and its fixtures | A test refuses each hole in the shape and passes a good body | Records role |
+| 1 | The command-request CUE variant and its fixtures, including the script hash field | A test refuses each hole in the shape and passes a good body | Records role |
 | 2 | The workflow's slash-comment handling and state labels | A test run shows an operator comment moves state and another account's comment doesn't | Records role |
 | 3 | `request approve`, `deny`, and `comment` | Each posts the right comment against a stub and refuses a wrong state | Records role |
 | 4 | `request run` with every check | A test per refusal, and one run end to end against a stub issue | Records role |
@@ -144,7 +146,7 @@ Under the rule that guardrails come later when the system is in use, these are d
 
 ## Questions for the operator
 
-Each question can be answered in one line, such as `Q1: yes`.
+The operator answered all five as recommended. Each answer sits under its question, and the text above already follows them.
 
 ### Q1. May the agent account edit a Request body after opening?
 
@@ -153,6 +155,7 @@ Each question can be answered in one line, such as `Q1: yes`.
 - **If yes:** The integrity check allows edits by the agent account only.
 - **If no:** The agent opens a new Request for each fix, and the old one closes as superseded.
 - **Reversible:** Yes, by a change to the check.
+- **Answer:** Q1: yes. The agent account may edit a Request body after opening, and `run` shows the final text at confirm.
 
 ### Q2. Should the workflow close a failed Request on its own?
 
@@ -161,6 +164,7 @@ Each question can be answered in one line, such as `Q1: yes`.
 - **If yes:** Failed closes with a failure label, and a retry needs a new Request.
 - **If no:** The operator or the owning role closes it after reading the tail.
 - **Reversible:** Yes.
+- **Answer:** Q2: no. A failed run doesn't close its Request on its own.
 
 ### Q3. Is a redacted tail of the output enough, or should the comment carry only status?
 
@@ -169,6 +173,7 @@ Each question can be answered in one line, such as `Q1: yes`.
 - **If yes:** Redaction is best effort and a known risk, logged as debt.
 - **If no:** The comment holds the exit code and duration only, and the operator pastes anything else by hand.
 - **Reversible:** Yes, and a leaked line can be edited out of the comment.
+- **Answer:** Q3: yes. The completion comment carries a capped, redacted output tail, and the risk is low because the records repository is private.
 
 ### Q4. Should `run` refuse when the script file differs from the one named at opening?
 
@@ -177,6 +182,7 @@ Each question can be answered in one line, such as `Q1: yes`.
 - **If yes:** The opener records a hash, and `run` refuses on a mismatch.
 - **If no:** The operator relies on reading the script at confirm.
 - **Reversible:** Yes. This costs one metadata field and one comparison.
+- **Answer:** Q4: yes. The Request records the script's hash and `run` refuses on a mismatch.
 
 ### Q5. Does the operator's login belong in repository configuration or in an organization-level setting?
 
@@ -185,3 +191,4 @@ Each question can be answered in one line, such as `Q1: yes`.
 - **If yes:** The file is a code-owned path.
 - **If no:** An organization variable holds it, which needs the admin role to change.
 - **Reversible:** Yes.
+- **Answer:** Q5: yes. The operator's login lives in a code-owned repository configuration file.
