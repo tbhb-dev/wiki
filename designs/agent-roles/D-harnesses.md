@@ -69,8 +69,8 @@ The design therefore delivers definitions at user level, as `<role>.md` in the `
 
 ```markdown
 ---
-name: review-launcher
-description: Launches reviewer pairs for green heads on its repositories.
+name: reviewer
+description: Launches reviewer pairs for green heads, with the context of the area repository.
 model: sonnet
 effort: medium
 disallowedTools: Edit, Write
@@ -79,10 +79,10 @@ hooks:
     - matcher: Bash
       hooks:
         - type: command
-          command: tbhbdev alpha hook guard-role --role review-launcher
+          command: tbhbdev alpha hook guard-role --role reviewer
 ---
 
-You are the review launcher role. ...
+You are the reviewer kind. ...
 ```
 
 The `guard-role` hook is planned. It denies `git push`, `tbhbdev alpha merge`, and the approval command for this role, which a `disallowedTools` entry can't do without removing Bash.
@@ -101,6 +101,20 @@ The `guard-role` hook is planned. It denies `git push`, `tbhbdev alpha merge`, a
 - **Fields** include `tools`, `model` (`inherit`, `flash`, or `pro`), `mainAgent`, `subagent`, `commandExecutionPolicy` (`off`, `auto`, `eager`, or `sandbox`), `mcpServers`, `skills`, `plugins`, `rules`, `agents`, `hooks`, `hidden`, `inheritMcp`, and `excludeDefaultComponents`.
 - **Combination with settings:** subagents inherit their parent's safety configuration. Whether a main-thread custom agent's `commandExecutionPolicy` or `tools` can loosen a settings deny, and how either interacts with the launcher's `--dangerously-skip-permissions`, are unverified. Until step 1 settles them, the renderer emits only `tools`, `model`, and guard `hooks`, and Antigravity roles stay on review and plan-mode work, as the roster already keeps them.
 
+## Capability bundles per harness
+
+A capability bundle has five fields, and the launcher composes the kind's base with the injected capabilities into one definition per run. The composition is new, from the operator's direction (R31). Each field keeps the limits above: deny rules add and a definition can't lift them, an allow never lifts an account deny, and no emitted field widens authority.
+
+| Bundle field | Claude Code | Codex | Antigravity |
+| --- | --- | --- | --- |
+| Allow rules | `tools` in the run's definition, and `permissions.allow` in the run's generated settings. Allow rules have no effect under `bypassPermissions` | Not emitted, because a Codex rule that allows skips approval | `tools` in the run's definition |
+| Deny rules | `permissions.deny` in the run's generated settings for command patterns, and `disallowedTools` for whole tools | Forbid rules in the run's `<role>.rules` file | Not emitted until step 1 shows how Antigravity combines them |
+| Hooks | Frontmatter `hooks`, from the guard list. Whether they bind under the launcher is unverified | Unverified whether a profile file can carry `[hooks]`, so not emitted yet | Frontmatter `hooks`, from the guard list |
+| Credentials | Not in the definition. The launcher mints them per run, scoped to the area repository and the capability, as it scopes the build run's token today | Same | Same |
+| Context fragments | Appended to the definition's body, the system prompt | Appended to `developer_instructions` in the run's profile file | Appended to the definition's body |
+
+A credential scope never widens authority. It narrows what the account could reach to the one repository and the actions the capability names.
+
 ## What the generator may emit
 
 The rule is that no emitted field widens authority. `skills` and `maxTurns` add context or a turn limit and grant nothing, so they are emitted. The excluded fields are the ones that can widen, plus a few the launcher or the records already cover.
@@ -115,8 +129,8 @@ The rule is that no emitted field widens authority. `skills` and `maxTurns` add 
 
 | Flag today | What it does today | With a role |
 | --- | --- | --- |
-| `--profile build\|review` | Sets checkout, credentials, and permission mode | Defaults from the role's `launch.profile`. A review launcher's runs are always `review` |
-| `--role` | Recorded. `reviewer` triggers the review-launcher check | Names the registry entry. The check reads the launching role's `review-launcher` entry instead of a pane title |
+| `--profile build\|review` | Sets checkout, credentials, and permission mode | Defaults from the kind's `launch.profile`. Reviewer runs are always `review` |
+| `--role` | Recorded. `reviewer` triggers the review-launcher check | Names the kind. The review check reads the kind instead of a pane title |
 | `--class`, `--variant` | Recorded labels | Unchanged. Workflows may set them for telemetry |
 | `--harness`, `--model`, `--effort` | Required or defaulted per run | Default from the role. A caller's value still wins, and the run records both |
 | `--claude-profile`, `--account`, `--ops` | Pick the Claude account and the host account | Unchanged. The registry doesn't hold credentials |

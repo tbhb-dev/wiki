@@ -36,7 +36,7 @@ Every read here was taken on 2026-11-22. A claim marked existing was read from t
 
 - **Existing.** `.github/CODEOWNERS` is one owner-less `*` line. `.github/rulesets/main.json` requires no approving review and no code owner review.
 - **Existing.** `models/README.md` sets the review pair by the model that wrote the diff, and Sonnet as the default Claude session model.
-- **Existing.** [wiki#76](https://github.com/tbhb-dev/wiki/pull/76), open at `b890ae1`, describes a Handler field with two values, Operator and Agent. D7 in [decisions.md](decisions.md) keeps that field and adds a `role:<name>` label on agent Requests.
+- **Existing.** [wiki#76](https://github.com/tbhb-dev/wiki/pull/76), open at `b890ae1`, describes a Handler field with two values, Operator and Agent. D7 in [decisions.md](decisions.md) keeps that field and adds `area:` and `cap:` labels on agent Requests.
 - **Existing.** `designs/event-gateway/README.md` lists, as known debt, that no durable role name exists for harness configuration. This design names that role the harness configuration owner.
 
 ### rules, at `dda445c`
@@ -107,13 +107,18 @@ These records sit in the operator's private decision notes, which aren't a repos
 | R17 | 2026-11-22 | Operator | Who approves Normal Changes |
 | R18 | 2026-11-22 | Operator | Authors allowed for decision auto-merge are listed in CODEOWNERS |
 | R19 | 2026-11-22 | Operator | Asks between roles move onto Requests, routed by event to a run |
-| R20 | 2026-11-22 | Operator | Handler field alone, Operator plus one value per agent role. After the operator's feedback on D1 of this design, the design keeps the field at Operator and Agent and adds `role:<name>` labels, because the field limits its values |
+| R20 | 2026-11-22 | Operator | Handler field alone, Operator plus one value per agent role. Replaced the same day, because the field limits its values: the design keeps the field at Operator and Agent and routes by labels (R27 to R29) |
 | R21 | 2026-11-22 | Operator | This design, its owner, and what the registry feeds |
 | R22 | 2026-11-22 | Operator, with the coordinator's reading | No limit of one pull request in review per repository. That review launchers start pairs for every green head at once is the coordinator's reading |
 | R23 | 2026-11-22 | Coordinator's calls | Reviews post on GitHub through the reviews App, as `COMMENT` only for now |
 | R24 | 2026-11-08 | Operator | A deterministic loop that spawns independent agents per event replaces the long-lived coordination session |
 | R25 | 2026-11-12 | Operator | Answers on the review and merge worker: it runs as a service account with no harness, and it may approve, with no model read, a rebuilt replacement whose tree equals an approved one |
 | R26 | 2026-11-06 | Operator | The wiki repositories merge on green, without an approval |
+| R27 | 2026-11-22 | Operator | Roles split into kinds and assignments, answering D1. Creating or widening a kind stays the operator's. Its assignment half was superseded by R30 |
+| R28 | 2026-11-22 | Operator | Request labels name the capabilities a Request needs, from a fixed vocabulary, and the registry lists each kind's capabilities. This replaces kind labels |
+| R29 | 2026-11-22 | Operator | Capability labels are suggestions. The handler or router may relabel or reassign, and no check refuses a Request over them beyond vocabulary membership. Its fallback to the area's owner became the builder kind under R30 |
+| R30 | 2026-11-22 | Operator | No per-repository owners in the target design. The registry defines kinds and capabilities only, `area:<repo>` scopes the context a run loads, routing matches suggested capabilities to a kind, and today's per-repository sessions are interim |
+| R31 | 2026-11-22 | Operator's direction | A capability is composed run configuration: tool allow and deny entries, hooks, task-scoped credentials, and context fragments. A kind is a base plus the capabilities it may take. Granting one to a kind stays the operator's, and injecting an allowed one is routine |
 
 ### Two records that conflict
 

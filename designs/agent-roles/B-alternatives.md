@@ -20,7 +20,7 @@ Back to [the design](README.md).
 | --- | --- |
 | One file in the public rules repository, synced to every repository by the baseline | Entries name private repositories and host classes, which can't appear in a public repository. Every repository would also carry every role, though each needs only its own outputs |
 | A public core in rules plus a private overlay | Workable, and the baseline already has visibility variants. It splits one entry across two repositories and two reviews, and a public core holds little once private scopes leave it. Kept as the fallback |
-| The private IT service management records repository, beside the Requests whose role labels it feeds | The role label set is one output of five. The other four, launch definitions above all, are harness configuration, which the operator gave to the harness configuration owner |
+| The private IT service management records repository, beside the Requests whose `area:` and `cap:` labels it feeds | The Request label set is one output of five. The other four, launch definitions above all, are harness configuration, which the operator gave to the harness configuration owner |
 | The private harness configuration repository | Taken. It already holds account routing and harness settings, and the operator made its owner this design's owner |
 
 ## Registry format
@@ -47,6 +47,10 @@ Back to [the design](README.md).
 | Custom agent files as the main thread | No documented flag starts a session as a custom agent |
 | `model_instructions_file` | It replaces Codex's built-in instructions, not adds to them |
 | A prepended block in the brief only | It carries instructions but no model, features, or rules. It stays the fallback if profile files fail step 1 |
+
+## Per-repository owner assignments
+
+An earlier form of the answer to D1 kept owner assignments per repository, recorded by the coordinator. The operator superseded it (R30): an agent looks up the context each task needs, so ownership adds nothing for agents, and assignments would grow with every repository.
 
 ## Keeping sessions as the unit
 
