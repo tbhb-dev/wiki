@@ -18,7 +18,7 @@ This is a draft. Nothing here is built yet, and each claim is labeled new, exist
 
 A Request is an issue that asks someone for a decision, an action, access, or information. Most Requests go to an agent role. A Request goes to the operator only when no agent account can do the thing, and its body says why.
 
-The operator answers from their own terminal with four commands: `request run`, `request approve`, `request deny`, and `request comment`. Each posts one comment from the operator's own GitHub login, and a workflow in the private repository reacts only to slash comments from that login. Nobody runs a command for the operator inline in a chat.
+The operator answers from their own terminal with four commands: `request run`, `request approve`, `request deny`, and `request comment`. Each posts a comment from the operator's own GitHub login (`run` posts two, one before and one after the script), and a workflow in the private repository reacts only to slash comments from that login. Nobody runs a command for the operator inline in a chat.
 
 ## Kinds of Request
 
@@ -35,8 +35,8 @@ A Request has one state at a time, shown by a label and moved by the workflow, n
 | State | Meaning | Entered by | Left by |
 | --- | --- | --- | --- |
 | open | Filed, or edited while open or waiting on author, and waiting for the content check | The open command, or an edit by the agent account in open or waiting on author | The workflow, when the content check passes, or the author closing it |
-| waiting on operator | Ready for the operator to act | The workflow, after the content check passes | `/approve`, `/deny`, `/start`, or a plain comment |
-| waiting on author | The operator asked for more information | `request comment` | The author edits the body, which returns it to open (the only edit that changes a state) |
+| waiting on operator | Ready for the operator to act | The workflow, after the content check passes | `/approve`, `/deny`, `/start`, a plain comment, or an author edit, which returns it to open |
+| waiting on author | The operator asked for more information | `request comment` | The author edits the body, which returns it to open |
 | approved | The operator said yes to an approval Request | `/approve` | The workflow closing it |
 | denied | The operator said no, for either kind | `/deny` | The workflow closing it |
 | running | The operator started a command Request | The workflow, on the `/start` comment that `request run` posts before it executes | `/complete` |
@@ -70,7 +70,7 @@ A reader who finds a Request in a notification gets the number from the link. Th
 3. **Integrity.** The body must not have been edited after it was opened by anyone but the agent account. The issue's creator must also be the agent account. The edit history gives the editor of each revision, and the command compares the final text with the text the agent account last wrote. A single edit by another account, or an edit after the operator's last look, refuses the run.
 4. **Script hash.** The Request's metadata records the SHA-256 hash of the script file, taken when the Request opened. `run` reads the script file once into memory, hashes those bytes, refuses on a mismatch, and later executes those same bytes, so a file replaced after the check never runs. It reads the hash from the first revision of the body, not the latest, so an edit can't swap the script and its hash together. The operator decided this (Q4).
 5. **Shape.** The body must hold exactly one command, and that command must be one line. The CUE variant checks this when the Request is opened, and `run` checks it again against the same pattern so a hand-edited body never passes.
-6. **Show and confirm.** It prints the Request's title, the stated reason, where to run it, the six one-line fields, and the exact command. It asks `y/N` and treats anything but `y` as no.
+6. **Show and confirm.** It prints the Request's title, the stated reason, where to run it, the six one-line fields, and the exact command, then the full text of the verified script bytes held in memory. It asks `y/N` and treats anything but `y` as no.
 7. **Execute.** It records the start time, runs the one script with the operator's environment, and captures the exit code, the duration, and the last lines of output.
 8. **Report.** Before it executes, it posts a `/start` comment, and after it ends it posts a `/complete` comment with the exit code, the duration, and a short tail of the output.
 
@@ -87,7 +87,7 @@ The private repository's workflow reads issue comments. It acts only when the co
 | Comment | Workflow does |
 | --- | --- |
 | `/approve` | Checks the Request is waiting on operator and an approval Request, labels it approved, closes it as completed |
-| `/deny` | Checks the state, labels it denied, closes it as not planned |
+| `/deny` | Checks the state is waiting on operator, labels it denied, closes it as not planned |
 | `/start` | Checks the state is waiting on operator, or failed for a retry, and labels it running |
 | `/complete` | Checks the state is running, reads only the first line for the status (the output tail below it is never parsed), labels complete or failed, closes it when complete |
 | plain comment from the operator | Moves waiting on operator to waiting on author, and does not close |
