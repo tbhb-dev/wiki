@@ -97,7 +97,7 @@ The registry check is a Bazel test in the private harness configuration reposito
 - An entry's `authority` is empty, or names a key with no `[record]` table.
 - An entry breaks its kind's limits. A review launcher can't have `merges` or `approves`. An approver can't have `merges`. Only the operator can have `"*"` for merges.
 - A change gives any entry a `decides`, `merges`, or `approves` value that main lacks, or adds an entry, and no `[record]` with `who = "operator"` was added for it. Under D1, a standard owner entry with a coordinator record passes.
-- A `guardrails` field names a value that isn't on the narrowing list in [appendix D](D-harnesses.md#what-the-generator-may-emit).
+- A `guardrails` field names a value that isn't on the allowed list in [appendix D](D-harnesses.md#what-the-generator-may-emit).
 - A role names a host instead of a host class.
 
 The generators each carry their own check, run in CI where the output lives:

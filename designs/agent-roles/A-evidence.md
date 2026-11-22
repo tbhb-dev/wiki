@@ -28,7 +28,6 @@ Every read here was taken on 2026-11-22. A claim marked existing was read from t
 - **Existing.** `src/tbhbdev/alpha/agent/decisions/policy.py`: a full-access Claude run's generated settings are `{"disableAllHooks": true, "sandbox": {"enabled": false}}`.
 - **Existing.** `src/tbhbdev/alpha/agent/decisions/argv.py`: a Claude run gets `--model`, `--effort`, `--permission-mode` (`bypassPermissions` for unsandboxed runs, otherwise `auto` for build and `dontAsk` for review), `--settings <generated>`, `--setting-sources user`, and `--strict-mcp-config`. A Codex run gets `codex exec --strict-config -C <worktree>`, its project marked untrusted, and `-m` and `-c model_reasoning_effort` overrides. An Antigravity run gets `--model`, `--dangerously-skip-permissions` when unsandboxed, and `--mode plan` for review.
 - **Existing.** `docs/reference/alpha/loop-configuration.md`: `tbhbdev alpha loop` takes an `approval_command`, spawn caps, and per-rule modes `off`, `shadow`, or `on`. The runner rejects every `on` mode, and the command exits 1 because live intake isn't wired, so it executes no approval today.
-- **Existing.** A search of `src/` for code that copies Codex rules files into a run's `CODEX_HOME` found none.
 - **Existing.** `src/tbhbdev/alpha/agent/model.py` defines run kinds `exec` and `start`. Only `exec` has a command-line verb. What starts a `start` run is unverified.
 - **Existing.** `docs/reference/alpha/no-self-approval.md`: approval comes only from `tbhb-approve REPO N SHA`, which a guard denies when the caller's ledger lists that pull request. Review runs post a `COMMENT`. The guard is not a security boundary.
 - **Existing.** `docs/reference/alpha/review-drafts.md`: a review draft can't hold `APPROVE`, so a reviewer's GO is a `COMMENT`.
@@ -51,7 +50,7 @@ The repository is private, so this design names it by role and gives no paths fr
 - **Existing.** Its account routing file grants the ops account two playbook capabilities, a check and an apply, with conditions. The agent account holds no capability and is the routing default. A decision record holds the operator's answer granting the two and holding a third.
 - **Existing.** A decision record lets the automated review approve one class of permission change to that repository without the operator, while a wider class still goes to the operator. Those review classes belong to that repository's review policy and are unrelated to the launcher's `--class` label.
 - **Existing.** A decision record says each Codex run has a private `CODEX_HOME` holding only its sign-in file. A rules file copied into `$CODEX_HOME/rules/` refused a forced push in a live run on codex-cli 0.166.0.
-- **Existing.** The agent account's Claude Code settings deny bare `gh` commands, forced pushes, skipped hooks, and the approval command, among others. The repository's README says no host uses its configuration yet, so whether these denies are live on every agent host is unverified.
+- **Existing.** The agent account's Claude Code settings carry deny rules, the approval command among them. The design relies on no account deny it hasn't verified on the host that runs the role.
 
 ## Harness documentation
 
@@ -107,9 +106,9 @@ These records sit in the operator's private decision notes, which aren't a repos
 | R16 | 2026-11-22 | Operator, mechanics proposed by the coordinator | Requests split by who picks them up, operator or agent |
 | R17 | 2026-11-22 | Operator | Who approves Normal Changes |
 | R18 | 2026-11-22 | Operator | Authors allowed for decision auto-merge are listed in CODEOWNERS |
-| R19 | 2026-11-23 (UTC) | Operator | Asks between roles move onto Requests, routed by event to a run |
-| R20 | 2026-11-23 (UTC) | Operator | Handler field alone, Operator plus one option per agent role |
-| R21 | 2026-11-23 (UTC) | Operator | This design, its owner, and what the registry feeds |
+| R19 | 2026-11-22 | Operator | Asks between roles move onto Requests, routed by event to a run |
+| R20 | 2026-11-22 | Operator | Handler field alone, Operator plus one option per agent role |
+| R21 | 2026-11-22 | Operator | This design, its owner, and what the registry feeds |
 | R22 | 2026-11-22 | Operator, with the coordinator's reading | No limit of one pull request in review per repository. That review launchers start pairs for every green head at once is the coordinator's reading |
 | R23 | 2026-11-22 | Coordinator's calls | Reviews post on GitHub through the reviews App, as `COMMENT` only for now |
 | R24 | 2026-11-08 | Operator | A deterministic loop that spawns independent agents per event replaces the long-lived coordination session |

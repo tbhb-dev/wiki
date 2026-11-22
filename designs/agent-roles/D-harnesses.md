@@ -91,7 +91,7 @@ The `guard-role` hook is planned. It denies `git push`, `tbhbdev alpha merge`, a
 
 - **No definition for the main thread.** `codex agents` only browses sessions. Custom agent files exist in the `.codex/agents/` folder of the home directory or of a project, with `name`, `description`, `developer_instructions`, and model settings. They serve only subagents a session spawns, and no documented flag starts a session as one.
 - **The role's launch is a config profile.** The renderer writes `<role>.config.toml` with `developer_instructions`, `model`, `model_reasoning_effort`, and `features.*` switches that turn off tools the role doesn't use. The deployer writes it to a root-owned path, and the launcher copies it into the run's private `CODEX_HOME`, failing closed on a missing or mismatched file, and passes `-p <role>`. `model_instructions_file` replaces the built-in instructions, so it isn't used. A project `.codex/config.toml` can't select a profile, and the launcher marks the run's project untrusted anyway.
-- **Guardrails are rules files.** A decision record of the harness configuration repository has each run get the account's rules as a copy in its `CODEX_HOME/rules/`, and a live probe showed such a copy binds a run. A search of tools at `b8172690` found no code that makes the copy yet, so the floor isn't in runs today (appendix A). The role adds its own `<role>.rules` beside it, so role rules add to the floor and can't remove it.
+- **Guardrails are rules files.** A decision record of the harness configuration repository has each run get the account's rules as a copy in its `CODEX_HOME/rules/`, and a live probe showed such a copy binds a run. The design doesn't rely on that floor until a check on the run host verifies it. The role adds its own `<role>.rules` beside it, so role rules add to the floor and can't remove it.
 - **Agent files can't loosen.** `sandbox_mode`, `approval_policy`, `model_provider`, and `mcp_servers` in an agent file don't override the parent, and subagents inherit the parent's sandbox and approval.
 - **Unverified:** whether the launcher's `-c` overrides beat a profile file's values. The launcher passes `-m` and `-c model_reasoning_effort` today, so step 1 tests the precedence before step 7 drops them. Also unverified: whether a profile file can carry `[hooks]`, and whether `multi_agent_v2 = false` limits custom agents on 0.171.0.
 
@@ -102,6 +102,8 @@ The `guard-role` hook is planned. It denies `git push`, `tbhbdev alpha merge`, a
 - **Combination with settings:** subagents inherit their parent's safety configuration. Whether a main-thread custom agent's `commandExecutionPolicy` or `tools` can loosen a settings deny, and how either interacts with the launcher's `--dangerously-skip-permissions`, are unverified. Until step 1 settles them, the renderer emits only `tools`, `model`, and guard `hooks`, and Antigravity roles stay on review and plan-mode work, as the roster already keeps them.
 
 ## What the generator may emit
+
+The rule is that no emitted field widens authority. `skills` and `maxTurns` add context or a turn limit and grant nothing, so they are emitted. The excluded fields are the ones that can widen, plus a few the launcher or the records already cover.
 
 | Harness | Emitted | Never emitted |
 | --- | --- | --- |

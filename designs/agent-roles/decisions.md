@@ -24,11 +24,11 @@ Back to [the design](README.md).
 - **If no:** every new repository's owner entry waits on an Operator Request before the repository gets reviews or standup slots.
 - **Reversible:** yes. You withdraw the authorization, and later owner entries come to you again. Entries already added stay until you remove them.
 
-### D2. May a launched model run make the approver's read, with the loop running the approval command on its verdict?
+### D2. May a launched model run make the approver's read and run the approval command, in place of the approving session?
 
-- **Recommendation:** yes, once step 1's probe shows the approver's definition binds a launched run. A workflow starts the run, never the owner, and the approval command keeps running from the loop's own account, never the agent account.
+- **Recommendation:** yes, once step 1's probe shows the approver's definition binds a launched run. A workflow starts the run, never the owner. Today the approving session makes the read and runs the approval command itself, and the agent account can't run that command.
 - **Why:** you decided a deterministic loop replaces the long-lived coordination session (R24) and accepted a review and merge worker that approves rebuilt replacements without a model read (R25). Tools has that loop's runner in shadow mode, with an approval command setting. The full-diff read that the approving session makes today has no such answer, and moving it changes who holds approval, which is reserved to you.
-- **If yes:** on each green notice, the loop launches the approver role. The run applies today's checks and holds and returns a verdict, and the loop runs the approval command at that exact head only on a pass.
+- **If yes:** on each green notice, the loop launches the approver role. The run applies today's checks and holds, and the approval command runs at that exact head only on a pass, from an account that may run it, which the change that builds this names. The approving session then stops approving.
 - **If no:** the approving session keeps making the read, and the loop waits on that session for every approval that needs one.
 - **Reversible:** yes. The loop stops launching the role, and the session takes the read again.
 
@@ -36,10 +36,10 @@ Back to [the design](README.md).
 
 ### D7. Which form does the Handler field take?
 
-- **Decided:** 2026-11-23 (UTC), by the operator.
+- **Decided:** 2026-11-22, by the operator.
 - **Rule:** Requests are told apart by the Handler organization issue field alone, with Operator plus one option per agent role and no role label. Every handler uses the same template, lifecycle, and command-line interface. The records role owns the option list, and the admin role adds the options. This supersedes the earlier mechanics of a two-value field with a role label, which the operator requests draft in wiki#76 still describes.
 - **Undo:** the operator decides again.
-- **Record:** the operator's decisions of 2026-11-22 and 2026-11-23, R16 and R20 in [appendix A](A-evidence.md#operator-and-coordinator-records).
+- **Record:** the operator's decisions of 2026-11-22, R16 and R20 in [appendix A](A-evidence.md#operator-and-coordinator-records).
 
 ### D6. Who approves Normal Changes?
 
@@ -57,7 +57,7 @@ Back to [the design](README.md).
 
 ### D4. Who owns this design?
 
-- **Decided:** 2026-11-23 (UTC), by the operator.
+- **Decided:** 2026-11-22, by the operator.
 - **Rule:** the harness configuration owner owns this design and the registry. It is written in the public wiki, reviewed, and read by the operator before merge.
 - **Undo:** the operator names another owner.
 - **Record:** R21 in appendix A.
