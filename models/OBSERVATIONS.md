@@ -35,7 +35,7 @@ This file backs the recommendations in [README.md](README.md). Each line is one 
 - Failed at writing a design draft from a nested folder of CSV results. Headless runs ended within seconds with no output on all three tries, because headless mode auto-denied the shell command that read the inputs.
 - Succeeded at the same draft once the inputs were flat files in one folder. The figures it quoted were accurate against the source results, and one run is the whole test.
 - Mixed on labelling evidence in that draft. Its prose was dense, and it labelled some inferred claims as measured, so check each label against the data.
-- Failed at second-family review of scorer and launcher code. Across three consecutive review rounds, it gave a go verdict while a Codex review reproduced a blocking defect each time, and it reported only minor issues. Pair a Codex review with a second Codex review for that code, and keep it for prose and design review. The sample is three rounds.
+- Failed at second-family review of scorer and launcher code. In four of seven paired review rounds on three PRs, it gave a go while a Codex review reproduced one to three blocking defects. In two rounds both blocked and in one both gave a go. Pair a Codex review with a second Codex review for that code, and keep it for prose and design review. The sample is seven rounds.
 
 ## Antigravity `gemini-4-neon-high`
 
