@@ -32,9 +32,10 @@ The operator's records behind D1 to D5 are private notes. Each entry below cites
 ### D4. How do the writing rules stay in one place?
 
 - **Decided:** 2026-11-22, by the operator through coordination.
-- **Rule:** the schema variant is the only source for rules about text shape. Text-shape rules that CUE can't express stay in a short named kernel list (links-only sections, note flooding, a cited Request approved, a retrospective RFC that exists), and each reports through the same refusal format. Rules that need live data or issue relations also stay in that list. Hints sit as data in the schema, a generator prints the guide, and a refusal gives the section, the rule, the limit, the actual value, and the hint.
-- **Undo:** replace the generator with hand-written guides. Two-way door.
-- **Record:** the operator's writing-guide plan, relayed by coordination.
+- **Amended:** 2026-11-22 by coord (the kernel-checked exceptions), after review found CUE can't express links-only content.
+- **Rule:** the schema variant is the only source for the text-shape rules that CUE can express. Text-shape rules that CUE can't express stay in a short named kernel list (links-only sections, note flooding, a cited Request approved, a retrospective RFC that exists), and each reports through the same refusal format. Rules that need live data or issue relations also stay in that list. Hints sit as data in the schema, a generator prints the guide, and a refusal gives the section, the rule, the limit, the actual value, and the hint.
+- **Undo:** replace the generator with hand-written guides, and move each named kernel check into the schema or drop it. Two-way door.
+- **Record:** the operator's writing-guide plan, relayed by coordination. The amendment is recorded in coordination's Decisions.
 
 ### D3. Which taxonomy applies?
 
