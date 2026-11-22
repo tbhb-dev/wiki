@@ -23,7 +23,7 @@ This file backs the recommendations in [README.md](README.md). Each line is one 
 ## Codex `gpt-6.1-sol`
 
 - Succeeded at second-family code review, finding blocking security issues in two PRs that the first-family review alone stated less strongly.
-- Failed at reviewing a change that tests symlink and patch-export safety. The provider's content filter refused the review four times, so a Claude review run replaced it. The owner of that change reported this.
+- Failed at reviewing a change that tests symlink and patch-export safety. The provider's content filter refused it four times, so a Claude review run replaced it.
 
 ## Antigravity `gemini-4-argon-high`
 
@@ -38,9 +38,7 @@ This file backs the recommendations in [README.md](README.md). Each line is one 
 
 ## Antigravity `gemini-4-neon-high`
 
-Each line is the owner's report of one build run, and every run was a single sample. No run could push, so each commit reached the repository as a patch that the owner replayed.
-
-- Succeeded at splitting an oversized prose draft into two files. Every moved line reappeared, and both files came in under the size limit. It dropped ten section anchors without leaving compatibility anchors, and it added a `tags:` field that the sibling appendices lack. No link to the dropped anchors existed.
-- Mixed at building a scheduled settings job. It finished in about 15 minutes, and its summary said under 400 code lines. The PR measured 411, partly because of the owner's own additions. It missed home-directory template placeholders in two settings sources, so the job would have written them verbatim, and the owner added a guard.
-- Mixed at a narrow config fix. It went beyond the brief and moved an allowlist into the generated top-level config after reading the scanner's source. Its gate passed, and the wider change is under review, so whether it is right is unverified.
-- Succeeded at adding a metric gauge to a receiver, with table tests and a catalog row. It finished, the run reported its tests passing, and it followed the brief. The diff isn't reviewed yet.
+- Succeeded at splitting an oversized prose draft, with every moved line intact and both files under the size limit. It dropped ten section anchors and added a `tags:` field that sibling files lack. Single run, and its commit couldn't push.
+- Mixed at building a scheduled settings job. Its size claim of under 400 code lines measured 411 in the PR, partly from the owner's additions, and it missed home-directory template placeholders. Single run.
+- Mixed at a narrow config fix. It moved an allowlist beyond the brief and its gate passed, but whether the wider change is right is unverified. Single run.
+- Succeeded at adding a metric gauge to a receiver with table tests and a catalog row, and the run reported its tests passing. The diff is unreviewed. Single run.

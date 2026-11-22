@@ -17,7 +17,7 @@ This page says which models tbhb-dev runs and what each suits. Read it before pi
 - Antigravity runs top-level on the lab hosts. Its runs can't push, because the lab hosts hold no write credential. The owner's session replays a run's commit on its own branch through its own gate, then reviews and commits it.
 - During the Antigravity trial, new design and build work goes to Antigravity first, then Codex. Jobs that need shell commands or research go to Codex for now, because headless Antigravity auto-denies shell commands. Claude takes only coordination, review, and work that neither can do. The trial overrides the planning-and-design and Codex-builds lines preceding it. Each owner records the quality of a task in [OBSERVATIONS.md](OBSERVATIONS.md).
 - Some builds go to Antigravity `gemini-4-neon-high`, and hard builds to the same model at extra-high effort. Codex stays a builder too. Neon's observations are in [OBSERVATIONS.md](OBSERVATIONS.md), and how well it builds is unverified.
-- Only the coordinating session runs on Fable 5.2. Design sessions run on Opus 5.5. Every other session and every subagent runs on Sonnet. Sonnet is also the default model for new Claude Code sessions, as a backstop when a launch names no model.
+- For sessions, the coordinating session runs on Fable 5.2 and design sessions run on Opus 5.5, which narrows the Opus-or-Fable choice in the planning ruling. Every other session and every subagent runs on Sonnet, except the Haiku jobs in the Models table.
 - Any API spend needs @tbhb's approval first.
 
 ## Models
@@ -32,9 +32,9 @@ This page says which models tbhb-dev runs and what each suits. Read it before pi
 | Coordination sessions | Claude Code on Fable 5.2 for the coordinating session only, and Opus 5.5 for design sessions. Sonnet for every other session and every subagent. Codex and Antigravity are unverified for this job | Sonnet for planning or design inside the session |
 | First-pass triage | Haiku, and a person or Sonnet confirms its result. Antigravity `gemini-4-argon-high` first while it has quota, unverified | Haiku deciding whether a change is on main from commit subjects alone |
 
-Claude models share one subscription's quota, and Codex runs on its own subscription. Neither bills per token, and how Antigravity bills is unverified. The Claude Ultra plans have a weekly window and a separate weekly Fable window, and no 5-hour window. Antigravity's 5-hour window has been the binding limit for builds, and when it runs low, new Antigravity builds wait and Codex builds. Codex has a weekly window. No one has verified the exact quota for each model.
+Claude models share one subscription's quota, and Codex runs on its own subscription. Neither bills per token, and how Antigravity bills is unverified. The Claude Ultra plans have a weekly window and a separate weekly Fable window, and no 5-hour window. Antigravity's 5-hour window has been the binding limit for builds, and when it runs low, new Antigravity builds wait and Codex builds. Codex has a weekly window. These window claims come from the owners' reports and are unverified, as is the exact quota for each model.
 
-Antigravity also offers Gemini 4 Carbon (low, medium, and high), Gemini 4 Hydrogen (low through extra high), and two Orchestrator keys. They're available but untested, so their fit is unverified. `gemini-4-argon-high` stays the recommended Antigravity model until observations say otherwise.
+Antigravity also offers Gemini 4 Carbon (low, medium, and high), Gemini 4 Hydrogen (low through extra high), and two Orchestrator keys. They're available but untested, so their fit is unverified. `gemini-4-argon-high` stays the recommended Antigravity model for review and read-only work until observations say otherwise.
 
 ## Routing by quota
 
