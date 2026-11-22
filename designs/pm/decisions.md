@@ -20,6 +20,8 @@ None.
 
 ## Decided
 
+The operator's records behind D1 to D5 are private notes. Each entry below names its record by title and gives the date, the rule, and the undo path, so a reviewer can judge it without the note. The design relies on D1 to D4 as requirements. D5 only places the design.
+
 ### D5. Where do the pm and IT service management designs go?
 
 - **Decided:** 2026-11-22, by the operator.
@@ -30,7 +32,7 @@ None.
 ### D4. How do the writing rules stay in one place?
 
 - **Decided:** 2026-11-22, by the operator through coordination.
-- **Rule:** the schema variant is the only source. Hints sit as data in the schema, a generator prints the guide, and a refusal gives the section, the rule, the limit, the actual value, and the hint.
+- **Rule:** the schema variant is the only source for rules about text shape. Rules that need live data or issue relations stay in the kernel and appear in a listed set. Hints sit as data in the schema, a generator prints the guide, and a refusal gives the section, the rule, the limit, the actual value, and the hint.
 - **Undo:** replace the generator with hand-written guides. Two-way door.
 - **Record:** the operator's writing-guide plan, relayed by coordination.
 

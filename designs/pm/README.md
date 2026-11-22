@@ -51,7 +51,7 @@ Each issue template starts with the title line. The kernel takes it as the issue
 
 ### Writing guides
 
-The schema is the only home for a rule, and the generator builds each guide from it. `tbhbdev pm guide <type>` prints the sections in order and marks which ones need text. It also lists caps, metadata rules, and a hint for each section, then shows a rendered example. Reviewers read the same guide. A refusal uses the guide's wording, which lets a drafter fix the text in one pass.
+The schema is the only home for a rule about text shape, and the generator builds each guide from it. `tbhbdev pm guide <type>` prints the sections in order and marks which ones need text. It also lists caps, metadata rules, and a hint for each section, then shows a rendered example. Reviewers read the same guide. A refusal uses the guide's wording, which lets a drafter fix the text in one pass.
 
 ### Taxonomy
 
@@ -63,7 +63,7 @@ The schema is the only home for a rule, and the generator builds each guide from
 
 ### Routing
 
-An issue goes in the repository responsible for the work, or in its private twin when the text needs private detail. The scan picks the twin. Larger units go in the central work repository, and a bug or task links to its parent as a sub-issue. The org Project gathers every item, and only people with access to a private repository see its items.
+An issue goes in the repository responsible for the work, or in its private twin when the text needs private detail. The private-detail scan picks the twin before any write. Larger units go in the central work repository, and a Defect or Chore links to its parent as a sub-issue. The org Project gathers every item, and only people with access to a private repository see its items.
 
 ## Risks and unknowns
 

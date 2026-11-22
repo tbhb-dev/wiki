@@ -16,11 +16,13 @@ Back to [the design](README.md).
 
 ## Routing order for create
 
-1. A bug or task goes in the repository responsible for the work, or in its private twin when the text needs private detail.
-2. An Initiative or Epic goes in the central work repository.
-3. A bug or task without a responsible repository gets a refusal, and the caller names a parent in the central work repository.
+1. The kernel scans the exact rendered text before it creates anything. A secret finding refuses the write. The kernel doesn't reroute it to a twin.
+2. A private-detail finding (a private repository name, a host, or an internal path) picks the private twin. No finding picks the public repository.
+3. A Defect, Chore, Feature, or Spike goes in the responsible repository, or in its private twin when step 2 picked it.
+4. An Initiative or Epic goes in the central work repository.
+5. A work item without a responsible repository gets a refusal, and the caller names a parent in the central work repository.
 
-The kernel creates the issue in the responsible repository first, then in the twin if the scan requires it, then the work item. A sub-issue link ties a bug or task to its parent and keeps a private parent hidden from a public child.
+The kernel creates the issue in the chosen repository, then the work item. A sub-issue link ties a work item to its parent and keeps a private parent hidden from a public child.
 
 ## One home per fact
 
@@ -35,7 +37,7 @@ The kernel creates the issue in the responsible repository first, then in the tw
 
 ## Scan before every write
 
-Every write goes through the gitleaks scan on the exact rendered text. A finding refuses the write and shows the finding. The kernel doesn't reword text to pass. The twin choice uses the same scan.
+Every write goes through the gitleaks scan on the exact rendered text. The scan has two rule classes. Secret rules refuse the write and show the finding. Private-detail rules choose the twin before any write. The kernel doesn't reword text to pass.
 
 ## Public logs
 
