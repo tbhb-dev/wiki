@@ -34,9 +34,9 @@ A Request has one state at a time, shown by a label and moved by the workflow, n
 
 | State | Meaning | Entered by | Left by |
 | --- | --- | --- | --- |
-| open | Filed, or edited by the agent account, and waiting for the content check | The open command, or an edit by the agent account | The workflow, when the content check passes, or the author closing it |
+| open | Filed, or edited while open or waiting on author, and waiting for the content check | The open command, or an edit by the agent account in open or waiting on author | The workflow, when the content check passes, or the author closing it |
 | waiting on operator | Ready for the operator to act | The workflow, after the content check passes | `/approve`, `/deny`, `/start`, or a plain comment |
-| waiting on author | The operator asked for more information | `request comment` | The author edits the body, which returns it to open |
+| waiting on author | The operator asked for more information | `request comment` | The author edits the body, which returns it to open (the only edit that changes a state) |
 | approved | The operator said yes to an approval Request | `/approve` | The workflow closing it |
 | denied | The operator said no, for either kind | `/deny` | The workflow closing it |
 | running | The operator started a command Request | The workflow, on the `/start` comment that `request run` posts before it executes | `/complete` |
@@ -46,7 +46,7 @@ A Request has one state at a time, shown by a label and moved by the workflow, n
 
 Approved, denied, and complete all close the issue with their outcome as the close reason. Failed stays open until a new attempt or an explicit close, so a half-run command is never hidden. The operator decided this (Q2).
 
-Only the operator's login can send `/approve`, `/deny`, `/start`, or `/complete`. The author, which is an agent account, can edit its own Request body, which sends it back to open for the content check and then to waiting on operator. The operator decided this (Q1). Any other commenter's slash line is ignored and logged.
+Only the operator's login can send `/approve`, `/deny`, `/start`, or `/complete`. The author, which is an agent account, can edit its own Request body while the Request is open, waiting on operator, or waiting on author. The edit sends it back to open for the content check and then to waiting on operator. An edit in running, failed, approved, denied, complete, or closed changes no state, and `run` refuses a body that changed after the operator's last look. The operator decided this (Q1). Any other commenter's slash line is ignored and logged.
 
 ## The operator's commands
 
@@ -68,7 +68,7 @@ A reader who finds a Request in a notification gets the number from the link. Th
 1. **Fetch.** It reads the issue and its edit history through the API, with the operator's login.
 2. **Eligibility.** The Handler must be Operator, the kind must be command, and the state must be waiting on operator, or failed for a retry.
 3. **Integrity.** The body must not have been edited after it was opened by anyone but the agent account. The issue's creator must also be the agent account. The edit history gives the editor of each revision, and the command compares the final text with the text the agent account last wrote. A single edit by another account, or an edit after the operator's last look, refuses the run.
-4. **Script hash.** The Request's metadata records the SHA-256 hash of the script file, taken when the Request opened. `run` hashes the local script file and refuses on a mismatch, so a file changed after opening never runs. The operator decided this (Q4).
+4. **Script hash.** The Request's metadata records the SHA-256 hash of the script file, taken when the Request opened. `run` reads the script file once into memory, hashes those bytes, refuses on a mismatch, and later executes those same bytes, so a file replaced after the check never runs. It reads the hash from the first revision of the body, not the latest, so an edit can't swap the script and its hash together. The operator decided this (Q4).
 5. **Shape.** The body must hold exactly one command, and that command must be one line. The CUE variant checks this when the Request is opened, and `run` checks it again against the same pattern so a hand-edited body never passes.
 6. **Show and confirm.** It prints the Request's title, the stated reason, where to run it, the six one-line fields, and the exact command. It asks `y/N` and treats anything but `y` as no.
 7. **Execute.** It records the start time, runs the one script with the operator's environment, and captures the exit code, the duration, and the last lines of output.
@@ -82,14 +82,14 @@ A second `request run` on the same Request is allowed only from failed. Running 
 
 ## The workflow side
 
-The private repository's workflow reads issue comments. It acts only when the commenter's login equals the operator's login, which is held in the repository's records configuration and changed only by a reviewed change. Comments from any other account, including an agent account, can't change a state. The one other trigger is an edit by the agent account, which returns the Request to open for the content check. The operator decided that the login lives in a code-owned repository configuration file (Q5).
+The private repository's workflow reads issue comments. It acts only when the commenter's login equals the operator's login, which is held in the repository's records configuration and changed only by a reviewed change. Comments from any other account, including an agent account, can't change a state. The one other trigger is an edit by the agent account in open, waiting on operator, or waiting on author, which returns the Request to open for the content check. The workflow ignores edits in every other state. The operator decided that the login lives in a code-owned repository configuration file (Q5).
 
 | Comment | Workflow does |
 | --- | --- |
 | `/approve` | Checks the Request is waiting on operator and an approval Request, labels it approved, closes it as completed |
 | `/deny` | Checks the state, labels it denied, closes it as not planned |
 | `/start` | Checks the state is waiting on operator, or failed for a retry, and labels it running |
-| `/complete` | Checks the state is running, reads the status, labels complete or failed, closes it when complete |
+| `/complete` | Checks the state is running, reads only the first line for the status (the output tail below it is never parsed), labels complete or failed, closes it when complete |
 | plain comment from the operator | Moves waiting on operator to waiting on author, and does not close |
 
 The workflow edits only labels and the open or closed state, never the issue body. It uses the API only, runs no code from the issue, and takes its token from the records application the repository already uses.
