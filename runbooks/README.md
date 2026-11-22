@@ -31,7 +31,7 @@ This repository is public, so a runbook starts here. A runbook that needs privat
 
 ## Upkeep
 
-Check a runbook against the host or tool it describes before relying on it. Whoever changes the hosts or tools fixes the runbook in the same change, or marks it stale by setting `last_verified` to `never`.
+Check a runbook against the host or tool it describes before relying on it. Whoever changes the hosts or tools fixes the runbook in the same change, or adds a line above Purpose that says the page is stale.
 
 ## Planned checks
 

@@ -17,6 +17,9 @@ updated: "<YYYY-MM-DD>"
 last_verified: "<YYYY-MM-DD, or never>"   # the last date someone ran it against the live host or tool; never means nobody has
 ---
 
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Copyright Tony Burns -->
+
 # <Title>
 
 ## Purpose
@@ -66,7 +69,7 @@ The public page says that a private appendix exists, in one line under Related:
 - A private appendix holds the host-specific details for this procedure.
 ```
 
-The public page never names the private repository, a private host, a tailnet detail, a public IP address, or a secret. Steps that need a private value say what the value is, such as "the host's address", and the appendix gives it.
+The public page never names the private repository, a private host, a tailnet detail, a public IP address, an internal URL, or a secret. Steps that need a private value say what the value is, such as "the host's address", and the appendix gives it.
 
 ## Process runbooks
 

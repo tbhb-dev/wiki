@@ -168,6 +168,6 @@ d2_diagrams(
 
 ### Planned wiring
 
-The `d2_diagrams` call needs the `tbhb_rules_d2` module dependency in the repository's `MODULE.bazel`, which this repository doesn't have yet. The change that adds it also settles a `.gitattributes` entry that commits renders byte for byte, an exclusion of renders from the whitespace hooks, and where the call goes: one call in `designs/BUILD.bazel` covers every design, while a build file in each design folder splits them.
+The `d2_diagrams` call needs the `tbhb_rules_d2` module dependency in the repository's `MODULE.bazel`, which this repository doesn't have yet. The change that adds it also settles a `.gitattributes` entry that commits renders byte for byte, an exclusion of renders from the whitespace hooks, and where the call goes: one call in `designs/BUILD.bazel` covers every design, while a build file in each design folder splits them. Either way, the change confirms that the root lint gates still read the moved files.
 
 tbhb-dev/rules plans a check that fails a design README with a heading containing `Decisions`, `Open questions`, `Decided`, or `Already decided`, or with an image that doesn't come from a `.d2` source tracked in the same folder. That check isn't written yet.
