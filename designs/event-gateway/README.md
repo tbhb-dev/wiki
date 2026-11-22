@@ -70,7 +70,11 @@ Every source produces the same envelope. It extends awrel's `event` message, so 
 
 ### Targets
 
-A target implements `Name()` and `Deliver(ctx, Event) error`. A pull target, such as Temporal, gets a goroutine that reads a durable JetStream pull consumer named after the target instance and filtered to the subjects its rules name. It acknowledges each event after `Deliver` succeeds and asks JetStream to redeliver it with backoff on a transient failure, without limit. A permanent failure parks the event on a separate `PARKED` stream and the target moves on, so one poison event can't stall it. JetStream keeps each consumer's position, so the gateway keeps no cursor table. The session server opens one ordered consumer per socket, which serves both the resume read and the live events after it. Adding a target type means adding one package and one config block. Adding a route to an existing type is config and a restart ([appendix C](C-protocol.md#routing-rules)).
+A target implements `Name()` and `Deliver(ctx, Event) error`. A pull target, such as Temporal, gets a goroutine that reads a durable JetStream pull consumer named after the target instance and filtered to the subjects its rules name. It acknowledges each event after `Deliver` succeeds and asks JetStream to redeliver it with backoff on a transient failure, without limit.
+
+A permanent failure parks the event on a separate `PARKED` stream and the target moves on, so one poison event can't stall it. JetStream keeps each consumer's position, so the gateway keeps no cursor table. The session server opens one ordered consumer per socket, which serves both the resume read and the live events after it.
+
+Adding a target type means adding one package and one config block. Adding a route to an existing type is config and a restart ([appendix C](C-protocol.md#routing-rules)).
 
 ### Sessions
 
@@ -114,7 +118,7 @@ The replay can repeat events awrel already delivered during the parallel run. Th
 | The launcher refuses some non-interactive callers | A Temporal worker can't launch reviewer runs | tools piece in the Temporal phase | tools `docs/reference/alpha/agent-configuration.md` (appendix A) |
 | Grafana retry and repeat behavior | An alert lost while the gateway is down | Grafana's repeat interval sends firing alerts again. Unverified | Unverified |
 | A session moves later than the retention window after T0 | It can miss events between T0 and its connect | Move every session within the retention window | New |
-| The embedded server's memory and disk use | The gateway process grows or the volume fills, and ingest fails | Set JetStream's memory and store limits in the server options, and alert on volume use. Unset limits default to 75% of system memory and the free disk. The duplicate window keeps every message ID of the last 7 days in memory | nats-server source (appendix A). Use under load is unverified |
+| The embedded server's memory and disk use | The gateway process grows or the volume fills, and ingest fails | Set JetStream's memory and store limits in the server options, and alert on volume use. Unset limits default to 75% of system memory and 75% of the free disk. The duplicate window keeps every message ID of the last 7 days in memory | nats-server source (appendix A). Use under load is unverified |
 | One stream on one host | Losing the volume loses every retained event, and a stream fault stops all ingest | Accepted for now ([D12](decisions.md)). GitHub redelivery recovers webhooks, not events already stored | New |
 | A workflow writes to GitHub and a rule matches its own write | A workflow starts itself again and again | One-shot workflow IDs with `reject_duplicate` stop repeats on one head. A `sender` filter is debt | New |
 | The Temporal server or its database is down | The Temporal target holds back and its pending count grows, while sessions keep working | Retry without limit, and alert on pending age. Events wait up to 7 days | New |
@@ -170,7 +174,7 @@ The Temporal piece adds routing rules, a target that maps them to start, signal,
 
 ## Appendices
 
-- [Decisions](decisions.md): 2 open, then the decided record.
+- [Decisions](decisions.md): 0 open, then the decided record.
 - [A. Evidence](A-evidence.md): awrel today, the github-metrics receiver, the launcher, the `nats-server` embedding, the Temporal SDK and server.
 - [B. Earlier designs](B-earlier-designs.md): what older designs offer, and the constraints this design drops.
 - [C. Protocol](C-protocol.md): envelope, session protocol, read API, target interface, routing rules, Temporal target, parking, internal publish, stream configuration.
