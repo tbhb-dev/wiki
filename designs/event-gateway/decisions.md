@@ -16,9 +16,39 @@ Back to [the design](README.md).
 
 ## Open
 
-None.
+### D16. May workflows, agent runs, and sm publish events into the gateway?
+
+- **Recommendation:** yes, through an authenticated publish endpoint on the private network only, under its own `internal` provider, with a cause chain capped at depth 8 ([appendix C](C-protocol.md#internal-publish)).
+- **Why:** workflows chain when one workflow's result is another's trigger, and today the only path in is a GitHub side effect. The endpoint loosens a trust boundary: until now every stored event came from a provider whose signature the gateway checked.
+- **If yes:** step 11e builds the endpoint, a separate file of publish tokens, and the depth check. ops issues one publish token per caller, such as the Temporal worker.
+- **If no:** workflows chain only through GitHub, by writing an issue, comment, or label that a rule matches. That works now and needs no new code, but each hop costs a GitHub write and leaves loop protection to rule filters.
+- **Reversible:** yes. Remove the publish token file and the endpoint answers 401. Events already stored expire with `MaxAge`.
+
+### D17. May the gateway hold a credential that reads org Project fields, so rules can match a Request's Handler?
+
+- **Recommendation:** no. Rules match labels, which every issue event already carries, and sm mirrors whatever a route needs onto a label it owns, such as `role:<name>`.
+- **Why:** Handler is an org Project field in the pm design, not an issue label or body field. Issue events don't carry Project field values, so matching on Handler needs the `projects_v2_item` event and a read of the field through GitHub's API, which needs a grant that the redelivery App of [D4](#d4-may-the-gateway-hold-a-github-credential-to-request-redelivery-of-failed-webhooks) doesn't have.
+- **If yes:** the redelivery App, or a second App, gains read access to org Projects, the org webhook adds `projects_v2_item`, and a new enrichment step, estimated at 150 lines, reads the field before rules run. Rules gain a `project_field` filter.
+- **If no:** a route on Handler waits until sm mirrors Handler onto a label. Routes on `role:<name>` labels work with the label filter of [D13](#d13-how-do-subscriptions-follow-one-issue-pull-request-or-label) as it is.
+- **Reversible:** yes. Uninstall the App or remove its permission.
 
 ## Decided
+
+### D15. How does the Temporal target deliver an event, and what does it do with one it can't deliver?
+
+- **Decided:** 2026-11-22, by the gateway maintainer, as a reversible call.
+- **Rule:** the Temporal target passes a reference, never the payload: the envelope without `payload`, plus the fields rules read. A workflow reads the full event through the read API by `seq` within retention. Idempotency comes from the workflow ID and its reuse policy, and from the workflow dropping a repeated `delivery`, not from Temporal's request ID. A transient error retries with backoff without limit. A permanent error parks the event on a `PARKED` stream with 30-day retention, and the target moves on ([appendix C](C-protocol.md#temporal-target)).
+- **Why:** a GitHub body can exceed Temporal's 2 MiB default blob limit, and the Go SDK's `SignalWithStartWorkflow` sets a random request ID that a caller can't choose ([appendix A](A-evidence.md#temporal)). A poison event must not stop a target forever, and a Temporal outage must not park every event.
+- **Undo:** two-way door until step 11b ships. After it, changing the signal argument means a versioned signal name, since workflows decode it.
+- **Record:** the pull request that adds this decision.
+
+### D14. How do events route to targets?
+
+- **Decided:** 2026-11-22, by the gateway maintainer, as a reversible call.
+- **Rule:** routes are config. Each target instance has a name, a type, and a list of rules. A rule is a match, written with the subscription filter fields and checked by the same filter code the session server uses, and an action for that target type. One event can match rules in any number of targets and any number of rules in one target. A new route on an existing target type and existing filter fields needs config and a gateway restart, and no code ([appendix C](C-protocol.md#routing-rules)).
+- **Why:** one matching code path keeps session and target behavior the same, and adding a route stays an ops change rather than a gateway release.
+- **Undo:** two-way door. Rules are config, and the filter package stays shared.
+- **Record:** the pull request that adds this decision.
 
 ### D13. How do subscriptions follow one issue, pull request, or label?
 

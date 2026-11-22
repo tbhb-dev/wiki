@@ -9,13 +9,13 @@ parent: README.md
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
-<!-- cspell:ignore jetstream -->
+<!-- cspell:ignore jetstream dynamicconfig signalwithstartworkflow signalworkflow workflowservice -->
 
 # Appendix A. Evidence
 
 Back to [the design](README.md).
 
-Each claim here was read from `main` of a public repository on 2026-11-21, except the NATS section, read on 2026-11-22. Paths are relative to that repository.
+Each claim here was read from `main` of a public repository on 2026-11-21, except the NATS and Temporal sections, read on 2026-11-22. Paths are relative to that repository.
 
 ## awrel today
 
@@ -121,4 +121,22 @@ Read on 2026-11-22 from shallow clones of nats-io/nats-server at `a0385c9` on `m
 - **Unverified.** What an ordered consumer does when `OptStartSeq` is below the stream's first sequence. The design doesn't rely on it, since the server compares `resume_after + 1` with `FirstSeq` itself.
 - **Unverified.** How a durable pull consumer behind the window moves when `MaxAge` deletes its next messages. The runner detects the jump in sequence either way.
 - **Unverified.** That every field named here exists in the release the gateway pins, since the read was of `main`, not of `v2.15.3`.
+- **Existing.** A consumer's `DeliverPolicy` takes `DeliverAllPolicy`, `DeliverNewPolicy`, and `DeliverByStartTimePolicy` with `OptStartTime`, a consumer has `MaxDeliver` and `BackOff`, and a message has `Term` and `TermWithReason` (nats.go `jetstream/consumer_config.go` and `jetstream/message.go`).
+- **Existing.** The server refuses an update to an existing consumer that changes its deliver policy, start sequence, start time, or ack policy, and doesn't list `FilterSubjects` among the fields it refuses (`checkNewConsumerConfig` in `server/consumer.go`). **Unverified:** where a durable consumer's position lands after its subjects widen. The routing design doesn't rely on it, since a new rule that needs a backfill gets a new consumer.
 - **New.** The `EVENTS` stream, its subjects, the 7-day `MaxAge` and duplicate window, `SyncAlways`, the 6 MiB `MaxPayload`, and the body-hash header ([appendix C](C-protocol.md#stream-configuration)).
+
+## Temporal
+
+Read on 2026-11-22 from shallow clones of temporalio/sdk-go at `2650b5c` on `main`, temporalio/api at `f46ce49` on `main`, and two files of temporalio/temporal at `32ef011` on `main`: `common/dynamicconfig/constants.go` and `service/history/api/signalwithstartworkflow/signal_with_start_workflow.go`, with `service/history/api/signalworkflow/api.go`. The latest releases are sdk-go `v1.51.0` and temporal `v1.32.2`, and only the dynamic config file was read at `v1.32.2`. Temporal's documentation site wasn't read. Nothing was run, so no claim is proven. Labels follow the NATS section.
+
+- **Existing.** `client.Dial(client.Options)` makes a client, and `Options` has `HostPort`, `Namespace`, `Credentials`, `Identity`, `DataConverter`, and `ConnectionOptions` with a `TLS` field. `client.NewAPIKeyStaticCredentials` and `client.NewMTLSCredentials` build credentials (sdk-go `client/client.go`, `internal/client.go`). The namespace defaults to `default`.
+- **Existing.** The client has `ExecuteWorkflow(ctx, StartWorkflowOptions, workflow, args...)`, `SignalWorkflow(ctx, workflowID, runID, signalName, arg)`, and `SignalWithStartWorkflow(ctx, workflowID, signalName, signalArg, StartWorkflowOptions, workflow, workflowArgs...)`. Its comment says it signals a running workflow, or starts it and sends the signal in one transaction when it isn't running (sdk-go `client/client.go`).
+- **Existing.** `StartWorkflowOptions` has `ID`, `TaskQueue` (required), `WorkflowIDReusePolicy`, `WorkflowIDConflictPolicy`, `WorkflowExecutionErrorWhenAlreadyStarted`, `RetryPolicy`, and the three timeouts. The reuse policy defaults to allow duplicate, including in `SignalWithStartWorkflow` (sdk-go `internal/client.go`).
+- **Existing.** The reuse policies are `ALLOW_DUPLICATE`, `ALLOW_DUPLICATE_FAILED_ONLY`, `REJECT_DUPLICATE`, and the deprecated `TERMINATE_IF_RUNNING`. The conflict policies are `FAIL`, `USE_EXISTING`, and `TERMINATE_EXISTING` (api `temporal/api/enums/v1/workflow.proto`). The signal-with-start request carries both, with conflict policy `USE_EXISTING` by default, and has a `request_id` field (api `temporal/api/workflowservice/v1/request_response.proto`).
+- **Existing.** The Go SDK's `SignalWithStartWorkflow` fills `request_id` with a fresh UUID, unless a Nexus operation's request ID is in the context under a key of the SDK's `internal` package, which other modules can't import. `SignalWorkflow` does the same. A caller can't set either request ID through the public client, short of calling the raw `WorkflowService()` client (sdk-go `internal/internal_workflow_client.go`).
+- **Existing on `main`, not in `v1.32.2`.** The server dedupes a signal-with-start retry whose request ID the current run already handled, under the dynamic config `history.enableSignalWithStartRequestIdDeduplication`, on by default, and only within the current run, since signal request IDs don't survive continue-as-new. The setting is absent from `v1.32.2`'s `constants.go`. A plain signal with a request ID the run has seen is dropped (`signalworkflow/api.go` on `main`).
+- **Existing.** `UpdateWorkflowOptions` has `UpdateID`, unique per namespace, workflow ID, and run ID, and `WaitForStage`, which must be set (sdk-go `internal/internal_workflow_client.go`).
+- **Existing.** The server's default per-event blob limit is 2 MiB (`limit.blobSize.error`), with a warning at 512 KiB (`limit.blobSize.warn`), both per namespace, in `main` and `v1.32.2`. On `main`, the history limits are 50 MiB and 51,200 events, and a workflow may hold 2,000 pending signals (`constants.go`). The Go SDK's gRPC client allows messages up to 128 MiB by default (sdk-go `internal/grpc_dialer.go`), so the server's blob limit is the one that bites.
+- **Unverified.** Which error type the server returns when a start or a signal-with-start meets a closed workflow under `REJECT_DUPLICATE`. Step 11b tests it against a dev server.
+- **Unverified.** That the sdk-go fields named here exist in `v1.51.0`, since the read was of `main`.
+- **New.** The `temporal` target, its rule actions, the reference argument, the error classes, and the `PARKED` stream ([appendix C](C-protocol.md#temporal-target)).
