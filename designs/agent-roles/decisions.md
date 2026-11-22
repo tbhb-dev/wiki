@@ -34,6 +34,13 @@ Back to [the design](README.md).
 - **Undo:** the operator decides again.
 - **Record:** the operator's decisions of 2026-11-22, R27 to R30 in [appendix A](A-evidence.md#operator-and-coordinator-records). R30 superseded the assignment half of R27.
 
+### D8. Where do the roles live?
+
+- **Decided:** 2026-11-23, by the operator.
+- **Rule:** documentation of the role kinds and capabilities is public, in this wiki. The mechanical parts that go straight into harnesses live in the private harness configuration repository: the registry data, generated agent definitions and profiles, allow and deny entries, and hooks. The public page is generated from that registry data, so it can't drift.
+- **Undo:** the operator decides again.
+- **Record:** the operator's decision of 2026-11-23, R32 in [appendix A](A-evidence.md#operator-and-coordinator-records). It settles the design's earlier proposal of a private home.
+
 ### D7. How does a Request reach the role that handles it?
 
 - **Decided:** 2026-11-22, by the operator.

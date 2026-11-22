@@ -24,7 +24,7 @@ The operator is not a kind. The operator holds every authority, and the registry
 
 ## Schema
 
-One file, `roles/registry.toml`, in the private harness configuration repository.
+One file, `roles/registry.toml`, in the private harness configuration repository, beside the mechanical parts that go into harnesses: generated agent definitions and profiles, allow and deny entries, and hooks (D8). In the target design, the public kinds-and-capabilities page in this wiki is generated from it, carrying names, kinds, the capability vocabulary, and descriptions only, never allow or deny entries, hooks, credential scopes, or paths, and a check fails when the page differs from the registry.
 
 ```toml
 schema_version = 1

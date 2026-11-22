@@ -19,9 +19,8 @@ Back to [the design](README.md).
 | Option | Why not |
 | --- | --- |
 | One file in the public rules repository, synced to every repository by the baseline | The registry feeds harness configuration, which the operator gave to the harness configuration owner, and every repository would carry a file only the launcher reads |
-| A public core in rules plus a private overlay | Workable, and the baseline already has visibility variants. It splits one file across two repositories and two reviews for no gain. Kept as the fallback |
 | The private IT service management records repository, beside the Requests whose `area:` and `cap:` labels it feeds | The Request label set is one output of five. The other four, launch definitions above all, are harness configuration, which the operator gave to the harness configuration owner |
-| The private harness configuration repository | Taken. It already holds account routing and harness settings, and the operator made its owner this design's owner |
+| The private harness configuration repository for the registry data and harness parts, with a public page generated from it | Taken, by the operator's decision (D8) |
 
 ## Registry format
 

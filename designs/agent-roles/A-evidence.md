@@ -119,6 +119,7 @@ These records sit in the operator's private decision notes, which aren't a repos
 | R29 | 2026-11-23 | Operator | Capability labels are suggestions. The handler or router may relabel or reassign, and no check refuses a Request over them beyond vocabulary membership. Its fallback to the area's owner became the builder kind under R30 |
 | R30 | 2026-11-23 | Operator | No per-repository owners in the target design. The registry defines kinds and capabilities only, `area:<repo>` scopes the context a run loads, routing matches suggested capabilities to a kind, and today's per-repository sessions are interim |
 | R31 | 2026-11-23 | Operator's direction | A capability is composed run configuration: tool allow and deny entries, hooks, task-scoped credentials, and context fragments. A kind is a base plus the capabilities it may take. Granting one to a kind stays the operator's, and injecting an allowed one is routine |
+| R32 | 2026-11-23 | Operator | Documentation of role kinds and capabilities is public. The registry data and what goes into harnesses live in the private harness configuration repository |
 
 ### Two records that conflict
 
