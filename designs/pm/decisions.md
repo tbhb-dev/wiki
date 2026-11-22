@@ -20,7 +20,7 @@ None.
 
 ## Decided
 
-The operator's records behind D1 to D5 are private notes. Each entry below names its record by title and gives the date, the rule, and the undo path, so a reviewer can judge it without the note. The design relies on D1 to D4 as requirements. D5 only places the design.
+The operator's records behind D1 to D5 are private notes. Each entry below cites its record by title, with the date, the rule, and the undo path, so a reviewer can judge it without the note. The design relies on D1 to D4 as requirements. D5 only places the design.
 
 ### D5. Where do the pm and IT service management designs go?
 
