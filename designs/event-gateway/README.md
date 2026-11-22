@@ -16,7 +16,7 @@ decisions_open: 0
 
 | Status | Owner | Updated | Needs from the operator |
 | --- | --- | --- | --- |
-| Draft | Gateway maintainer | 2026-11-22 | None. All decisions are recorded in [decisions.md](decisions.md) |
+| Draft | Gateway maintainer | 2026-11-22 | 0 open decisions in [decisions.md](decisions.md) |
 
 ## Summary
 
@@ -34,7 +34,7 @@ The service has three layers:
 
 - **Sources** take inbound requests. GitHub comes first, then Grafana. Each source verifies a Hash-based Message Authentication Code (HMAC) over the raw body before it parses anything, then normalizes the request into one event envelope.
 - **The stream** is one NATS JetStream stream, `EVENTS`, served by a NATS server embedded in the gateway process ([D12](decisions.md)), with file storage on a named volume. Each accepted event is published on `events.<provider>.<event>`, takes the stream sequence as its `seq`, and is on disk before the source answers 202. A repeated delivery ID inside the duplicate window collapses into the first message.
-- **Targets** read the stream. Each target is a plug-in behind one small Go interface, and each pull target reads through its own durable JetStream consumer. The first target is the session server. Temporal comes later. Other targets, such as a file sink or a chat notice, use the same interface.
+- **Targets** read the stream. Each target is a plug-in behind one small Go interface, and each pull target reads through its own durable JetStream consumer. Routing rules in config decide which events reach which target and what each does with them ([D14](decisions.md#d14-how-do-events-route-to-targets)). The first target is the session server. Temporal comes later. Other targets, such as a file sink, a chat notice, or a second Temporal cluster, use the same interface.
 
 Sessions keep awrel's model. A session runs a stdio MCP client that holds one WebSocket to the gateway, subscribes per provider, repository, and event with awrel's filters plus number and label filters on issue and pull request events ([D13](decisions.md)), and receives matching events as channel notifications. The client exposes the same four tools under the same names. The gateway adds a sequence number to each event and a resume cursor to each connection, so a session that reconnects within the retention window gets every event it missed.
 
@@ -49,7 +49,7 @@ Every source produces the same envelope. It extends awrel's `event` message, so 
 | Field | Meaning |
 | --- | --- |
 | `seq` | The `EVENTS` stream sequence, assigned when the publish is stored |
-| `provider` | `github` or `grafana`, set by the route and never read from the body |
+| `provider` | `github` or `grafana`, set by the route and never read from the body. `internal` is reserved for events published from inside, which [D16](decisions.md#d16-may-workflows-agent-runs-and-sm-publish-events-into-the-gateway) defers |
 | `event` | GitHub's event name, or `alert.firing` and `alert.resolved` |
 | `delivery` | GitHub's delivery ID, or a deterministic hash for Grafana, as awrel does |
 | `scope` | `owner/repo` for GitHub, `kind/id` for alerts. awrel calls this `repository` |
@@ -64,13 +64,13 @@ Every source produces the same envelope. It extends awrel's `event` message, so 
 | GitHub webhook while the gateway is down | Recoverable | GitHub records the failed delivery. A later piece requests redelivery ([D4](decisions.md)). Until then, redelivery is manual |
 | Grafana alert, after 202 | Durable | Same commit rule. Grafana's own retry behavior is unverified |
 | Session delivery | Kept for replay within retention | At least once. The client resumes from its last `seq` and drops repeated `delivery` IDs |
-| Temporal delivery | Durable | At least once from a durable pull consumer. The workflow ID and request ID make it idempotent |
+| Temporal delivery | Durable | At least once from a durable pull consumer, passing a reference to the event rather than its payload. The workflow ID with its reuse policy, and the workflow's check of `delivery`, make a repeat harmless. An event that can't be delivered parks ([D15](decisions.md#d15-how-does-the-temporal-target-deliver-an-event-and-what-does-it-do-with-one-it-cant-deliver)) |
 | Pings, echoes, and status notices | Best-effort | Never stored |
 | Events older than retention | Gone | The stream's `MaxAge` deletes each whole message at 7 days, whatever any consumer's position ([D3](decisions.md)) |
 
 ### Targets
 
-A target implements `Name()` and `Deliver(ctx, Event) error`. A pull target, such as Temporal, gets a goroutine that reads a durable JetStream pull consumer named after the target, acknowledges each event after `Deliver` succeeds, and asks JetStream to redeliver it with backoff on failure. JetStream keeps each consumer's position, so the gateway keeps no cursor table. The session server opens one ordered consumer per socket, which serves both the resume read and the live events after it. Adding a target means adding one package and one config block.
+A target implements `Name()` and `Deliver(ctx, Event) error`. A pull target, such as Temporal, gets a goroutine that reads a durable JetStream pull consumer named after the target instance and filtered to the subjects its rules name. It acknowledges each event after `Deliver` succeeds and asks JetStream to redeliver it with backoff on a transient failure, without limit. A permanent failure parks the event on a separate `PARKED` stream and the target moves on, so one poison event can't stall it. JetStream keeps each consumer's position, so the gateway keeps no cursor table. The session server opens one ordered consumer per socket, which serves both the resume read and the live events after it. Adding a target type means adding one package and one config block. Adding a route to an existing type is config and a restart ([appendix C](C-protocol.md#routing-rules)).
 
 ### Sessions
 
@@ -116,6 +116,10 @@ The replay can repeat events awrel already delivered during the parallel run. Th
 | A session moves later than the retention window after T0 | It can miss events between T0 and its connect | Move every session within the retention window | New |
 | The embedded server's memory and disk use | The gateway process grows or the volume fills, and ingest fails | Set JetStream's memory and store limits in the server options, and alert on volume use. Unset limits default to 75% of system memory and the free disk. The duplicate window keeps every message ID of the last 7 days in memory | nats-server source (appendix A). Use under load is unverified |
 | One stream on one host | Losing the volume loses every retained event, and a stream fault stops all ingest | Accepted for now ([D12](decisions.md)). GitHub redelivery recovers webhooks, not events already stored | New |
+| A workflow writes to GitHub and a rule matches its own write | A workflow starts itself again and again | One-shot workflow IDs with `reject_duplicate` stop repeats on one head. A `sender` filter is debt | New |
+| The Temporal server or its database is down | The Temporal target holds back and its pending count grows, while sessions keep working | Retry without limit, and alert on pending age. Events wait up to 7 days | New |
+| A workflow author skips the `delivery` check | A repeated signal does the work twice | The worker code's helper, and one-shot IDs for work that mustn't repeat | New |
+| A bad rule or template ships | Every matching event parks | Alert on the first park, and `parked retry` within 7 days | New |
 | NATS server upgrades change JetStream behavior | A dependency bump changes storage, dedupe, or sync behavior | Pin the `nats-server` and `nats.go` versions, and run the ingest, dedupe, and replay tests on every bump | New |
 
 ## Known debt
@@ -127,21 +131,27 @@ These gaps are known and not yet designed. Each goes into the first build that e
 | Exiting on stdin close may not end awrel's orphan processes after an `/mcp` reconnect | Orphan clients keep sockets and tokens open | 7, with a test that reproduces the orphan |
 | The organization webhook's event list must include `check_run` and `check_suite`, and the action types the filters accept for them aren't listed | A subscription on those events never matches | 2 and 5 |
 | Appendix A reads awrel at a commit after `v0.7.1`, while sessions run the client at `v0.6.0` or later | Behavior described in appendix A may not be what sessions run today | 5, by pinning the filter tests to the version sessions run |
-| Appendix A's claims outside its NATS section don't carry proven, existing, new, or unverified labels | A reader can't weigh each claim | Next revision of this design |
+| Appendix A's claims outside its NATS and Temporal sections don't carry proven, existing, new, or unverified labels | A reader can't weigh each claim | Next revision of this design |
 | The NATS server runs inside the gateway process, which is temporary | The queue lives and dies with one process on one host, and no other service can share it | A later decision on clustering or a separate NATS server. The `Target` interface and the stream subjects let that swap happen without changing targets |
 | Step 8's owner is still named the harness configuration owner. No durable role for harness MCP configuration was found among the public role names | A reader can't tell which role edits the MCP config | 8, once that role has a name |
 | The `label` filter takes printable ASCII names, as awrel's `name` filter does | A label with other characters can't be followed | 5, if a repository uses one |
+| Rules reload only on restart | A route change restarts the gateway, which drops session sockets until clients reconnect | A later step, once routes change often |
+| The Temporal target has no update or update-with-start action | A workflow that needs a reply to the event can't get one from the gateway | 11b, if a workflow needs it |
+| No `sender` filter on rules or subscriptions | Loops through GitHub writes rely on workflow IDs alone | 11a, if a loop shows up |
+| Internal publish isn't built | Workflows chain only through GitHub writes | [D16](decisions.md#d16-may-workflows-agent-runs-and-sm-publish-events-into-the-gateway), a later build step |
+| Workflow ID templates read a fixed field list | A route that needs another payload field needs code | 11a, per field |
+| Routing on sm's Handler field | A Request routes only on labels | [D17](decisions.md#d17-may-the-gateway-hold-a-credential-that-reads-org-project-fields-so-rules-can-match-a-requests-handler) |
 
 ## Plan
 
-Each step is one pull request of under 400 code lines, unless it says config. [Appendix D](D-pieces.md) has the detail and the size estimates.
+Each step is one pull request of under 400 code lines, unless it says config or lies outside the gateway. [Appendix D](D-pieces.md) has the detail and the size estimates.
 
 | Step | What lands | Done when | Owner |
 | --- | --- | --- | --- |
 | 0 | Repository: public, Apache-2.0, rules baseline, CI, rulesets | `bazelisk test //...` passes on `main` and the rulesets match awrel's | Gateway maintainer |
 | 1 | Ingest: GitHub route, HMAC, envelope, embedded JetStream stream with `MaxAge`, dedupe, telemetry | A signed test delivery returns 202 and appears in the stream once, even when sent twice | Gateway maintainer |
 | 2 | Deploy: compose, tunnel route, secrets, second GitHub webhook | GitHub's delivery log shows 202s and the stream grows | Ops |
-| 3 | Read API and `events tail` command on the private network | `event-gateway events tail --after N` prints the missed events | Gateway maintainer |
+| 3 | Read API, one event by `seq`, and `events tail` command on the private network | `event-gateway events tail --after N` prints the missed events | Gateway maintainer |
 | 4 | Grafana route, ported from awrel's semantics | A signed test alert lands with awrel's delivery ID | Gateway maintainer |
 | 5 | Session server: subscriptions, filters, per-client tokens | awrel's filter test cases pass against the gateway, and so do the number and label cases | Gateway maintainer |
 | 6 | Resume and replay over the session socket | A client that drops for 10 minutes receives every matching event at least once, in order | Gateway maintainer |
@@ -149,16 +159,19 @@ Each step is one pull request of under 400 code lines, unless it says config. [A
 | 8 | Harness MCP config: canary, then everyone | Every session lists the gateway's tools and none lists awrel's | Harness configuration owner |
 | 9 | Redelivery of failed GitHub deliveries | A forced outage heals with no manual redelivery | Gateway maintainer, ops for the credential |
 | 10 | Cut awrel's webhooks and retire it | awrel's webhook is gone and the gateway is the only receiver | Ops, awrel owner |
-| 11 | Temporal target, outlined only | A routed event starts or signals a workflow | Gateway maintainer, ops, tools |
+| 11a | Routing rules for every pull target | One event reaches two targets through two rules, set by config alone | Gateway maintainer |
+| 11b | Temporal target | A routed event starts or signals a workflow, and a repeat changes nothing | Gateway maintainer, ops |
+| 11c | Parking | A poison event parks and the next event delivers | Gateway maintainer |
+| 11d | Worker, outside the gateway | A workflow reads its event by `seq` and launches a run | Worker owner, tools |
 
 Recommended first piece: step 1. It's small, needs nothing else from the gateway, and once step 2 deploys it, it keeps a durable record of every webhook. awrel has never kept that record. Step 3 then gives any consumer a way to catch up on events, before the session server exists.
 
-The Temporal piece adds one target that maps routing rules to `SignalWithStart` calls, plus a worker that calls `tbhbdev alpha agent exec`. Temporal itself, its database, and its deploy belong to ops. The launcher's handling of non-interactive callers belongs to tools. [Appendix D](D-pieces.md#temporal-outline) outlines it.
+The Temporal piece adds routing rules, a target that maps them to start, signal, and `SignalWithStart` calls, parking, and a worker that calls `tbhbdev alpha agent exec`. Temporal itself, its database, and its deploy belong to ops. The launcher's handling of non-interactive callers belongs to tools. [Appendix D](D-pieces.md#temporal-outline) outlines it.
 
 ## Appendices
 
-- [Decisions](decisions.md): none open, then the decided record.
-- [A. Evidence](A-evidence.md): awrel today, the github-metrics receiver, the launcher, the `nats-server` embedding.
+- [Decisions](decisions.md): 2 open, then the decided record.
+- [A. Evidence](A-evidence.md): awrel today, the github-metrics receiver, the launcher, the `nats-server` embedding, the Temporal SDK and server.
 - [B. Earlier designs](B-earlier-designs.md): what older designs offer, and the constraints this design drops.
-- [C. Protocol](C-protocol.md): envelope, session protocol, target interface, stream configuration.
+- [C. Protocol](C-protocol.md): envelope, session protocol, read API, target interface, routing rules, Temporal target, parking, internal publish, stream configuration.
 - [D. Pieces](D-pieces.md): each step in detail, day-one repository contents, Temporal outline.

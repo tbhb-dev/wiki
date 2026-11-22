@@ -14,7 +14,7 @@ parent: README.md
 
 Back to [the design](README.md).
 
-Line counts are estimates of Go code, not counting tests. Each step is one pull request.
+Line counts are estimates of Go code, not counting tests. No size here is measured, since no step is built. Each step is one pull request.
 
 ## Day one in the new repository
 
@@ -35,7 +35,7 @@ Before step 1, the gateway maintainer creates tbhb-dev/event-gateway:
 | --- | --- | --- | --- |
 | 1. Ingest | ~350 | `cmd/event-gateway serve`, `POST /webhooks/github`, HMAC check, envelope, embedded NATS server with no listener, the `EVENTS` stream config with `MaxAge` and the duplicate window, publish with message ID and body-hash check, `/healthz`, OTLP setup. Tests: a repeat inside the window, a 409 on a changed body, and expiry under a short `MaxAge`. A measurement of publish latency with `SyncAlways` | 0, D3, D12 |
 | 2. Deploy | Config | Compose file with the service, built on the host from a pinned commit, and a `cloudflared` sidecar, tunnel route for the webhook paths only, secrets as files, named volume, collector network, second GitHub webhook | 1, D2, D5, D6 |
-| 3. Read API | ~200 | `GET /v1/events?after=N` through an ordered consumer, with the subscription filter, bearer tokens, `event-gateway events tail` | 1 |
+| 3. Read API | ~240 | `GET /v1/events?after=N` through an ordered consumer, with the subscription filter, bearer tokens, `event-gateway events tail`, and `GET /v1/events/{seq}` for one full event, about 40 of the lines | 1 |
 | 4. Grafana | ~250 | `POST /webhooks/grafana` with awrel's checks, allowlist, and IDs. Second contact point in Grafana | 1 |
 | 5. Session server | ~380 | `/connect`, `gateway.v1`, subscription validation ported from awrel's rules plus the `number` and `label` filters ([D13](decisions.md)), one ordered consumer per socket | 3 |
 | 6. Resume | ~200 | chunked `hello`, consumer start at `resume_after + 1` or T0, `caught_up`, `gap` from the stream's first sequence. Smaller than before, since one consumer carries replay and live events | 5 |
@@ -43,7 +43,10 @@ Before step 1, the gateway maintainer creates tbhb-dev/event-gateway:
 | 8. Harness config | Config | Gateway MCP entry for a canary, then everyone | 7 |
 | 9. Redelivery | ~220 | A loop that lists failed GitHub deliveries since the last good one and asks GitHub to redeliver them. Retention moved to step 1 as stream config | 2, D4 |
 | 10. Retire awrel | Config | Remove awrel's webhook and contact point, stop its deploy, archive with a pointer | 8 plus one week |
-| 11. Temporal | Several | See the outline below | Temporal deployed |
+| 11a. Rule engine | ~250 | Target instances and rules from config ([D14](decisions.md#d14-how-do-events-route-to-targets)), rule validation on the shared filter package, workflow ID templates and their field extractor, `FilterSubjects` and `start` on each durable consumer, and the possible-gap check. Tests: fan-out to two targets, a rule on a truncated event, a template with a missing field, an owner wildcard | 5 |
+| 11b. Temporal target | ~280 | The `temporal` type: connection from config, `start`, `signal`, and `signal_with_start`, the reference argument, reuse and conflict policies, and error classes ([D15](decisions.md#d15-how-does-the-temporal-target-deliver-an-event-and-what-does-it-do-with-one-it-cant-deliver)). Tests against Temporal's dev server for each action, a repeat under each reuse policy, and an outage | 3, 11a, Temporal deployed |
+| 11c. Parking | ~150 | `ErrPermanent`, panic recovery, the `PARKED` stream, `event-gateway parked list` and `retry`, the park metric and alert | 11a |
+| 11d. Worker | Outside the gateway | The worker that runs activities, reads events by `seq`, and calls `tbhbdev alpha agent exec`, plus the helper that drops repeated `delivery` values. Its repository and size are for the worker's owner | 11b, the tools launcher change |
 
 If the client's filter port pushes step 5 or 7 past 400 lines, split the filter package into its own step first. awrel's filter tests port as table tests, which keeps parity checkable. The `number` and `label` filters add about 60 lines, an estimate no build has measured, and the filter package is the likeliest split. Their cases cover a pull request with no labels, a `labeled` action, an `unlabeled` action for a followed label, a comment on a pull request, a filter on an unsupported event, a list over 8 entries, and duplicate entries.
 
@@ -63,9 +66,11 @@ The harness configuration owner adds the gateway entry under a new server name f
 
 ## Temporal outline
 
-Not detailed. Temporal and its database are deployed by ops, on owned hosts, before this starts.
+Temporal and its database are deployed by ops, on owned hosts, before step 11b starts. [Appendix C](C-protocol.md#routing-rules) specifies the rules, the Temporal target, parking, and internal publish.
 
-- **Gateway:** a `temporal` target. Config maps a subscription filter to an action: start a workflow type, or signal a running one, with `SignalWithStart` covering both. The workflow ID comes from the event, for example `pr:<repo>#<number>`, following the action key idea in [appendix B](B-earlier-designs.md). The request ID is the event's `delivery`, so a redelivery is a no-op. Its durable consumer makes delivery at least once.
-- **Intent sessions:** the operator's small intent sessions write issues on GitHub. An `issues` event reaches the gateway and starts the matching workflow. No new source is needed.
-- **Workers:** a worker runs activities that call `tbhbdev alpha agent exec`, then `wait`, and records the result. tools changes the launcher to accept a named non-interactive caller.
+- **Gateway:** routing rules in config map events to target instances ([D14](decisions.md#d14-how-do-events-route-to-targets)). The `temporal` target runs each matching rule's `start`, `signal`, or `signal_with_start` with a workflow ID from a template, such as `review:<repo>#<n>@<head>`, which follows the action key idea in [appendix B](B-earlier-designs.md). It passes a reference to the event, never its payload, and parks events it can't deliver ([D15](decisions.md#d15-how-does-the-temporal-target-deliver-an-event-and-what-does-it-do-with-one-it-cant-deliver)). Its durable consumer makes delivery at least once, and the workflow ID and the workflow's own `delivery` check make a repeat harmless.
+- **Intent sessions:** the operator's small intent sessions write issues on GitHub. An `issues` event reaches the gateway and starts the matching workflow, routed on labels that sm owns, such as `role:<name>`. No new source is needed. A route on sm's Handler field isn't built ([D17](decisions.md#d17-may-the-gateway-hold-a-credential-that-reads-org-project-fields-so-rules-can-match-a-requests-handler)).
+- **Chaining:** a workflow starts the next one by writing an issue, comment, or label to GitHub, which the normal loop picks up ([D16](decisions.md#d16-may-workflows-agent-runs-and-sm-publish-events-into-the-gateway)). A later build step could add internal publish.
+- **Workers:** a worker runs activities that read the event by `seq`, call `tbhbdev alpha agent exec`, then `wait`, and record the result. tools changes the launcher to accept a named non-interactive caller.
 - **Coordination sessions** stop once workflows cover their work.
+- **Other targets:** a chat notice and a file sink are push targets behind the same `Target` interface, each one package and one config block, with their own rules. A second Temporal cluster is a second `temporal` instance with its own name, connection, and consumer. None of them changes the envelope, the subjects, or the interface.
