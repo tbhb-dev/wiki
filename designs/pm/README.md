@@ -9,6 +9,9 @@ updated: "2026-11-22"
 decisions_open: 0
 ---
 
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Copyright Tony Burns -->
+
 # Project management for tbhb-dev
 
 | Status | Owner | Updated | Needs from the operator |

@@ -7,6 +7,9 @@ status: draft
 parent: README.md
 ---
 
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Copyright Tony Burns -->
+
 # Project management routing and taxonomy
 
 Back to [the design](README.md).
