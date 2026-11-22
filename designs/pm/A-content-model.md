@@ -64,4 +64,4 @@ Floors are low or absent. A forced section produces filler text, so only section
 
 ## Checks outside the schema
 
-These rules need live data or relations between issues, not text shape, so the text-shape rule in D4 doesn't cover them. They stay in the kernel. This list keeps them from becoming a second home for text rules. They cover the parent's type (a Feature under an Epic), links-only sections, note flooding, a retrospective required at close, and the area and role label spellings against the live lists.
+These rules need live data, relations between issues, or a text check CUE can't express, as D4 allows. They stay in the kernel, and this named list keeps it from becoming a second home for other text rules. They cover the parent's type (a Feature under an Epic), links-only sections, note flooding, a retrospective required at close, and the area and role label spellings against the live lists.

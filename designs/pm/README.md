@@ -51,7 +51,7 @@ Each issue template starts with the title line. The kernel takes it as the issue
 
 ### Writing guides
 
-The schema is the only home for a rule about text shape, and the generator builds each guide from it. `tbhbdev pm guide <type>` prints the sections in order and marks which ones need text. It also lists caps, metadata rules, and a hint for each section, then shows a rendered example. Reviewers read the same guide. A refusal uses the guide's wording, which lets a drafter fix the text in one pass.
+The schema is the home for rules about text shape. The few CUE can't express stay in the kernel's named list, and they report in the same refusal format. The generator builds each guide from the schema. `tbhbdev pm guide <type>` prints the sections in order and marks which ones need text. It also lists caps, metadata rules, and a hint for each section, then shows a rendered example. Reviewers read the same guide. A refusal uses the guide's wording, which lets a drafter fix the text in one pass.
 
 ### Taxonomy
 
