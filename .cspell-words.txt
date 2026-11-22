@@ -1,5 +1,7 @@
+afakt
 akia
 ascm
+AUTOINCREMENT
 awrel
 bazelignore
 bazelisk
@@ -8,6 +10,7 @@ bazelversion
 bbolt
 buildcop
 buildifier
+buildmeta
 bxox
 cgnat
 complexipy
@@ -24,6 +27,7 @@ hskey
 keepalive
 lockfiles
 mcpjson
+mcpserver
 nobuild
 nocache
 noexperimental
@@ -37,6 +41,7 @@ pyproject
 pytest
 readyz
 regenerable
+relayclient
 rumdl
 runfile
 runfiles
