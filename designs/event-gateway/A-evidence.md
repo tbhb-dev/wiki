@@ -1,7 +1,7 @@
 ---
 type: Design Appendix
 title: Event gateway evidence
-description: What reads of awrel, the github-metrics receiver, and the launcher show for the event gateway design.
+description: What reads of awrel, the github-metrics receiver, the launcher, and nats-server show for the event gateway design.
 tags: [event-gateway, evidence, design]
 status: draft
 parent: README.md
@@ -9,12 +9,13 @@ parent: README.md
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
+<!-- cspell:ignore jetstream -->
 
 # Appendix A. Evidence
 
 Back to [the design](README.md).
 
-Each claim here was read from `main` of a public repository on 2026-11-21. Paths are relative to that repository.
+Each claim here was read from `main` of a public repository on 2026-11-21, except the NATS section, read on 2026-11-22. Paths are relative to that repository.
 
 ## awrel today
 
@@ -99,3 +100,23 @@ From tbhb-dev/tools, `src/tbhbdev/alpha/agent/` and `docs/reference/alpha/agent-
 ## Telemetry library
 
 No tbhb-dev/telemetry repository exists yet. The gateway starts with its own small telemetry package, as github-metrics does.
+
+## NATS server and JetStream
+
+Read on 2026-11-22 from shallow clones of nats-io/nats-server at `a0385c9` on `main`, whose `server/const.go` says `2.16.0-dev`, and nats-io/nats.go at `792e440` on `main`. The latest nats-server release tag is `v2.15.3`. Nothing here was run, so no claim is proven. Each line carries its label: existing means present in that source today, new means this design's choice, and unverified means not checked.
+
+- **Existing.** `server.NewServer(*server.Options)` builds a server, and `Start`, `ReadyForConnections(time.Duration)`, `Shutdown`, and `WaitForShutdown` run and stop it (`server/server.go`).
+- **Existing.** `server.Options` has `JetStream`, `StoreDir`, `DontListen`, `SyncAlways`, `SyncInterval`, `MaxPayload`, `JetStreamMaxMemory`, and `JetStreamMaxStore` (`server/opts.go`).
+- **Existing.** With `DontListen` set, `Start` skips the client accept loop (`server/server.go`). `(*Server).InProcessConn` returns one end of a `net.Pipe`, and nats.go's `nats.InProcessServer` option connects through it instead of dialing TCP (`nats.go`).
+- **Existing.** The file store's default sync interval is 2 minutes (`defaultSyncInterval` in `server/filestore.go`). The config value `sync_interval: always` sets `SyncAlways`. With `SyncAlways`, the file store calls `Sync` on the message block file after each write (`server/filestore.go`). A stream with one replica keeps `SyncAlways`, and a stream's async `PersistMode` turns it off (`server/stream.go`).
+- **Unverified.** That the publish acknowledgement goes out only after that `Sync` returns, and the latency it adds per publish. Step 1 measures both.
+- **Existing.** The stream config has `Name`, `Subjects`, `Storage`, `Replicas`, `MaxAge`, and `Duplicates`, in both the server and `jetstream.StreamConfig`. The default duplicate window is 2 minutes, cut to `MaxAge` when that is shorter, and a window longer than `MaxAge` is rejected (`server/stream.go`).
+- **Existing.** The message ID header is `Nats-Msg-Id`. A repeated ID inside the window isn't stored, and the acknowledgement carries the original sequence and `"duplicate": true`. The server keeps the window's IDs in an in-memory map (`server/stream.go`).
+- **Unverified.** The memory that map takes with a 7-day window at the gateway's event volume.
+- **Existing.** With `JetStreamMaxMemory` unset, the server sizes JetStream memory at 75% of system memory, and with `JetStreamMaxStore` unset, at the free disk of the store directory (`dynJetStreamConfig` in `server/jetstream.go`).
+- **Existing.** The default maximum payload is 1 MiB, and the server warns above 8 MiB (`MAX_PAYLOAD_SIZE` and `MAX_PAYLOAD_MAX_SIZE` in `server/const.go`).
+- **Existing.** nats.go's `jetstream` package has `New`, `CreateStream`, `CreateOrUpdateConsumer`, `OrderedConsumer`, the publish option `WithMsgID`, and `Stream.GetMsg(ctx, seq)`. Consumer configs have `Durable`, `AckPolicy`, `MaxAckPending`, `FilterSubjects`, `DeliverPolicy`, and `OptStartSeq`, and the ordered consumer config has the last three. A message has `NakWithDelay`. The stream state has `FirstSeq` and `LastSeq` (`jetstream/`).
+- **Unverified.** What an ordered consumer does when `OptStartSeq` is below the stream's first sequence. The design doesn't rely on it, since the server compares `resume_after + 1` with `FirstSeq` itself.
+- **Unverified.** How a durable pull consumer behind the window moves when `MaxAge` deletes its next messages. The runner detects the jump in sequence either way.
+- **Unverified.** That every field named here exists in the release the gateway pins, since the read was of `main`, not of `v2.15.3`.
+- **New.** The `EVENTS` stream, its subjects, the 7-day `MaxAge` and duplicate window, `SyncAlways`, the 6 MiB `MaxPayload`, and the body-hash header ([appendix C](C-protocol.md#stream-configuration)).
