@@ -28,6 +28,10 @@ Two kinds go to the operator. An approval Request asks for a decision, and the a
 
 Every Request has a Handler field: Operator or Agent. Agent is the default and the operator never sees it. Operator is allowed only when no agent account can do the work, because a credential, a host, or a one-way door is out of reach, and the Request's body must name that reason in one line.
 
+An Agent Request has exactly one `area:<repo>` label. The label names the repository whose context a run loads, and it names no owner. An optional `cap:<name>` label says which capability the work needs. Only its shape is checked today. An Operator Request has neither label. Each label is a new rule in the record schema, and the schema refuses a Request that breaks it.
+
+Later work, none of it built: acting-role metadata on each Request, a check that the requester differs from the doer, a refusal of work that needs reserved authority, an agent `run` variant, a capability vocabulary, and routing by capability.
+
 A Request about information, or a plain ask an agent role can answer, stays with that role. A decision between two reversible options is also not an operator Request: the agent role whose capabilities fit decides and records it. The operator sees one-way doors, credentials, grants, loosened trust boundaries, and their own standing rules.
 
 ## States
