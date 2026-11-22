@@ -23,6 +23,7 @@ This file backs the recommendations in [README.md](README.md). Each line is one 
 ## Codex `gpt-6.1-sol`
 
 - Succeeded at second-family code review, finding blocking security issues in two PRs that the first-family review alone stated less strongly.
+- Failed at reviewing a change that tests symlink and patch-export safety. The provider's content filter refused it four times, so a Claude review run replaced it.
 
 ## Antigravity `gemini-4-argon-high`
 
@@ -34,3 +35,10 @@ This file backs the recommendations in [README.md](README.md). Each line is one 
 - Failed at writing a design draft from a nested folder of CSV results. Headless runs ended within seconds with no output on all three tries, because headless mode auto-denied the shell command that read the inputs.
 - Succeeded at the same draft once the inputs were flat files in one folder. The figures it quoted were accurate against the source results, and one run is the whole test.
 - Mixed on labelling evidence in that draft. Its prose was dense, and it labelled some inferred claims as measured, so check each label against the data.
+
+## Antigravity `gemini-4-neon-high`
+
+- Mixed at splitting an oversized prose draft. Every moved line survived and both files fit the limit, but it dropped ten section anchors and added a `tags:` field. Check anchors and front matter after a split.
+- Mixed at building a scheduled settings job. Its under-400-line claim measured 411, and it missed home-directory placeholders. Check the size and the config inputs.
+- Mixed at a narrow config fix. It moved an allowlist beyond the brief, and whether that is right is unverified. Pin the scope in the brief.
+- Succeeded at adding a metric gauge with table tests and a catalog row, and its tests passed. The diff hasn't been reviewed.
