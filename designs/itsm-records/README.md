@@ -16,7 +16,7 @@ decisions_open: 0
 
 | Status | Owner | Updated | Needs from the operator |
 | --- | --- | --- | --- |
-| Draft | Service-management maintainer | 2026-11-22 | Nothing. The operator answered the five questions in the operator-requests appendix |
+| Draft | Service-management maintainer | 2026-11-22 | Nothing. The operator answered the five questions in [decisions.md](decisions.md) |
 
 ## Summary
 
@@ -32,7 +32,7 @@ A plugin of the shared command-line tool opens, updates, and closes the records.
 
 ## How it works
 
-Operator Requests are the first part written up. A Request that only the operator can act on says why, shows the exact command, and waits. The operator runs it from their own terminal, and the result returns as one comment from their own login. [Operator requests](operator-requests.md) gives the states, the commands, the workflow side, and the threats.
+Operator Requests are the first part written up. A Request that only the operator can act on says why, shows the exact command, and waits. The operator runs it from their own terminal, and the result returns as one comment from their own login. [Operator requests](D-operator-requests.md) gives the states, the commands, the workflow side, and the threats.
 
 The record kinds, their schema variants, and the decision records are built in the private repository today. Public-safe appendices describing them will be written here later.
 
@@ -53,4 +53,5 @@ The record kinds, their schema variants, and the decision records are built in t
 
 ## Appendices
 
-- [Operator requests](operator-requests.md): how a Request only the operator can act on is opened, answered, run, and closed.
+- [Operator requests](D-operator-requests.md): how a Request only the operator can act on is opened, answered, run, and closed.
+- [Decisions](decisions.md): none open, then the decided record.
