@@ -4,7 +4,7 @@ title: Event gateway
 description: A self-hosted gateway that logs GitHub and Grafana events and delivers them to agent sessions and later Temporal.
 tags: [event-gateway, webhooks, mcp, design]
 status: draft
-owner: Event gateway owner
+owner: Gateway maintainer
 updated: "2026-11-22"
 decisions_open: 0
 ---
@@ -16,15 +16,15 @@ decisions_open: 0
 
 | Status | Owner | Updated | Needs from the operator |
 | --- | --- | --- | --- |
-| Draft | Event gateway owner (new role) | 2026-11-22 | None. All decisions are recorded in [decisions.md](decisions.md) |
+| Draft | Gateway maintainer | 2026-11-22 | None. All decisions are recorded in [decisions.md](decisions.md) |
 
 ## Summary
 
-The event gateway is a new public project, tbhb-dev/event-gateway, which the operator decided on. It's a self-hosted front door for event-driven work. It receives GitHub webhooks and Grafana alerts, verifies them, writes each one to a local event log, and then hands it to pluggable targets: agent sessions through its own Model Context Protocol (MCP) server, and later Temporal.
+The event gateway is a new public project, tbhb-dev/event-gateway, which the operator decided on. It's a self-hosted front door for event-driven work. It receives GitHub webhooks and Grafana alerts, verifies them, commits each one to a durable NATS JetStream stream inside the gateway, and then hands it to pluggable targets: agent sessions through its own Model Context Protocol (MCP) server, and later Temporal.
 
-It replaces awrel. awrel runs on a hosted edge platform, keeps no events, and drops every event a session misses while disconnected. The gateway runs on an owned host, commits each event to its log before it acknowledges the event, and lets a session resume from its last sequence number.
+It replaces awrel. awrel runs on a hosted edge platform, keeps no events, and drops every event a session misses while disconnected. The gateway runs on an owned host, commits each event to its stream before it acknowledges the event, and lets a session resume from its last sequence number.
 
-The first piece is the ingest: one Go service that verifies GitHub webhooks and commits them to the log. With a second webhook it runs beside awrel, and the migration below gives each session a defined replay boundary.
+The first piece is the ingest: one Go service that verifies GitHub webhooks and commits them to the stream. With a second webhook it runs beside awrel, and the migration below gives each session a defined replay boundary.
 
 ## Proposal
 
@@ -33,8 +33,8 @@ Build one Go service, `event-gateway`, and one MCP client binary from the same m
 The service has three layers:
 
 - **Sources** take inbound requests. GitHub comes first, then Grafana. Each source verifies a Hash-based Message Authentication Code (HMAC) over the raw body before it parses anything, then normalizes the request into one event envelope.
-- **The log** is a SQLite file on a named volume. Each accepted event gets a monotonic sequence number and is committed before the source answers 202. Duplicate delivery IDs collapse into one row.
-- **Targets** read the log. Each target is a plug-in behind one small Go interface, and each keeps its own cursor in the log. The first target is the session server. Temporal comes later. Other targets, such as a file sink or a chat notice, use the same interface.
+- **The stream** is one NATS JetStream stream, `EVENTS`, served by a NATS server embedded in the gateway process ([D12](decisions.md)), with file storage on a named volume. Each accepted event is published on `events.<provider>.<event>`, takes the stream sequence as its `seq`, and is on disk before the source answers 202. A repeated delivery ID inside the duplicate window collapses into the first message.
+- **Targets** read the stream. Each target is a plug-in behind one small Go interface, and each pull target reads through its own durable JetStream consumer. The first target is the session server. Temporal comes later. Other targets, such as a file sink or a chat notice, use the same interface.
 
 Sessions keep awrel's model. A session runs a stdio MCP client that holds one WebSocket to the gateway, subscribes per provider, repository, and event with awrel's filters, and receives matching events as channel notifications. The client exposes the same four tools under the same names. The gateway adds a sequence number to each event and a resume cursor to each connection, so a session that reconnects within the retention window gets every event it missed.
 
@@ -48,7 +48,7 @@ Every source produces the same envelope. It extends awrel's `event` message, so 
 
 | Field | Meaning |
 | --- | --- |
-| `seq` | Gateway-wide sequence number, assigned at commit |
+| `seq` | The `EVENTS` stream sequence, assigned when the publish is stored |
 | `provider` | `github` or `grafana`, set by the route and never read from the body |
 | `event` | GitHub's event name, or `alert.firing` and `alert.resolved` |
 | `delivery` | GitHub's delivery ID, or a deterministic hash for Grafana, as awrel does |
@@ -60,21 +60,21 @@ Every source produces the same envelope. It extends awrel's `event` message, so 
 
 | What | Durable or best-effort | How |
 | --- | --- | --- |
-| Verified GitHub webhook, after 202 | Durable | Committed to the log before the 202 |
+| Verified GitHub webhook, after 202 | Durable | Published to the stream, with its acknowledgement back, before the 202. The server syncs every write to disk, which is unverified until step 1 measures it |
 | GitHub webhook while the gateway is down | Recoverable | GitHub records the failed delivery. A later piece requests redelivery ([D4](decisions.md)). Until then, redelivery is manual |
 | Grafana alert, after 202 | Durable | Same commit rule. Grafana's own retry behavior is unverified |
 | Session delivery | Kept for replay within retention | At least once. The client resumes from its last `seq` and drops repeated `delivery` IDs |
-| Temporal delivery | Durable | At least once from a per-target cursor. The workflow ID and request ID make it idempotent |
+| Temporal delivery | Durable | At least once from a durable pull consumer. The workflow ID and request ID make it idempotent |
 | Pings, echoes, and status notices | Best-effort | Never stored |
-| Events older than retention | Gone | A sweep removes every payload at 7 days by default, whatever any target's cursor says ([D3](decisions.md)) |
+| Events older than retention | Gone | The stream's `MaxAge` deletes each whole message at 7 days, whatever any consumer's position ([D3](decisions.md)) |
 
 ### Targets
 
-A target implements `Name()` and `Deliver(ctx, Event) error`. A pull target, such as Temporal, gets a goroutine that walks the log from its cursor and advances the cursor after each success, with backoff on failure. The session server is a push target. It fans each committed event out to connected sockets whose subscriptions match, and it serves resume reads straight from the log. Adding a target means adding one package and one config block.
+A target implements `Name()` and `Deliver(ctx, Event) error`. A pull target, such as Temporal, gets a goroutine that reads a durable JetStream pull consumer named after the target, acknowledges each event after `Deliver` succeeds, and asks JetStream to redeliver it with backoff on failure. JetStream keeps each consumer's position, so the gateway keeps no cursor table. The session server opens one ordered consumer per socket, which serves both the resume read and the live events after it. Adding a target means adding one package and one config block.
 
 ### Sessions
 
-The session protocol is awrel's `awrel.v1` protocol with two additions, served under the subprotocol `gateway.v1`. The client sends `resume_after` with its last `seq` and its subscriptions in a `hello` when it connects, split across frames when the set exceeds awrel's 4096-byte frame cap. The server replays matching events from the log, sends a `caught_up` marker, and then goes live. awrel's message types, filter fields, size limits, and error codes stay the same ([appendix C](C-protocol.md#session-protocol)).
+The session protocol is awrel's `awrel.v1` protocol with two additions, served under the subprotocol `gateway.v1`. The client sends `resume_after` with its last `seq` and its subscriptions in a `hello` when it connects, split across frames when the set exceeds awrel's 4096-byte frame cap. The server replays matching events from the stream, sends a `caught_up` marker, and then goes live. awrel's message types, filter fields, size limits, and error codes stay the same ([appendix C](C-protocol.md#session-protocol)).
 
 The MCP client stores its subscriptions and its last `seq` per session key in its state directory, as awrel's client stores subscriptions today. A Claude Code session still needs the development channels flag. That's a harness constraint and stays the same.
 
@@ -83,21 +83,22 @@ Each client gets its own bearer token rather than one shared token. The gateway 
 ### Runtime and ingress
 
 - **Language:** Go, matching the awrel client and the github-metrics receiver. The image is one static binary with cgo off on a distroless base, run as a non-root user with a read-only root file system.
-- **Storage:** SQLite through a pure-Go driver, in write-ahead logging mode with `synchronous=FULL`, on one named volume. Write-ahead logging alone doesn't make a commit durable before the 202. One writer, one host, no cluster.
-- **Deploy:** Docker Compose, deployed by the ops owner's roles, with the image built on the host from a pinned commit. Secrets arrive as files from 1Password, as the github-metrics receiver reads them.
+- **Queue and storage:** NATS JetStream, from the `nats-server` Go package, runs inside the gateway process ([D12](decisions.md)). File storage on one named volume, one stream, one replica, one host, no cluster. The server starts with `SyncAlways` on, so the file store syncs each write to disk before the publish acknowledgement returns. The default syncs every 2 minutes, which could lose the last events on power loss and break the durability the 202 promises. That the acknowledgement waits for the sync, and what it costs per publish, are unverified until step 1 measures them ([appendix A](A-evidence.md#nats-server-and-jetstream)).
+- **No NATS port:** the embedded server starts with `DontListen`, and the gateway connects to it through the client's `InProcessServer` option, so the server opens no client listener and no NATS port is exposed in the container or on the host. The monitoring, cluster, and leaf node ports stay unset.
+- **Deploy:** Docker Compose, deployed by ops, with the image built on the host from a pinned commit. Secrets arrive as files from 1Password, as the github-metrics receiver reads them.
 - **Ingress:** a Cloudflare Tunnel sidecar routes only the webhook paths to the service. The session endpoint stays on the private network ([D2](decisions.md)).
 - **Telemetry:** OpenTelemetry traces, metrics, and logs over the OpenTelemetry Protocol (OTLP) to the loopback-only local collector, which forwards logs to Loki. The container joins the collector's network, as the github-metrics receiver does. The code starts with a small internal telemetry package and moves to tbhb-dev/telemetry once that library exists.
 
 ### Migration off awrel
 
-1. **Run alongside.** Add a second GitHub webhook that points at the gateway, and a second Grafana contact point. awrel keeps its webhook and is unchanged, so both systems receive the same events. The gateway records T0 for each source in its own store: when that source's webhook was added, which is GitHub at step 2 of the build and Grafana at step 4 ([D-pieces](D-pieces.md)). Its first retained event for a source is that source's T0 marker. Only the gateway uses T0, to pick an imported session's replay start.
+1. **Run alongside.** Add a second GitHub webhook that points at the gateway, and a second Grafana contact point. awrel keeps its webhook and is unchanged, so both systems receive the same events. T0 for each source is the gateway's earliest stored event for that source, the first message on `events.<provider>.>` in the stream. A source's first event arrives once its webhook is added, which is GitHub at step 2 of the build and Grafana at step 4 ([D-pieces](D-pieces.md)). After 7 days, `MaxAge` moves T0 forward with the retention window. Only the gateway uses T0, to pick an imported session's replay start.
 2. **Move one session.** The harness configuration owner adds the gateway's MCP entry for one canary session. awrel keeps each session's subscriptions in a file at `$XDG_STATE_HOME/awrel/sessions/<sha256 of the session key>.json` (default `~/.local/state/awrel/sessions/`), JSON with `version`, `endpoint`, and `subscriptions` (`internal/persist/persist.go` in the awrel repository). awrel's own client reloads that file on restart, but only when `endpoint` matches, and the gateway client starts with no state file. So the swap converts it: on first start, if its own state file for the session is missing and awrel's exists, the gateway client imports the `subscriptions` list once, ignoring `endpoint`, and writes its own state file. Its first hello then carries the full subscription set and `"import": true`. Every session host must run awrel v0.6.0 or later before the swap, since awrel's state file format came with v0.6.0 (awrel PR #62, `internal/persist`). The import is skipped, and the session starts live-only with a logged warning, when the file is malformed, has an unknown `version`, or has an empty `subscriptions` list. Once the gateway's own state file exists, awrel's file is never read again, so later awrel edits after a rollback don't flow back. Compare its events with awrel's for a few days.
 3. **Move all sessions.** Swap the awrel entry for the gateway entry everywhere, one session at a time, each with the same reconnect. Rollback means a session reconnects to awrel, which kept receiving throughout and kept its own state file.
-4. **Soak.** Wait one week with no session on awrel and match gateway log counts against GitHub's delivery log.
+4. **Soak.** Wait one week with no session on awrel and match the gateway's stream counts against GitHub's delivery log.
 5. **Cut the webhooks over.** Remove awrel's webhook and contact point only after every session has moved. Rollback is to add them back, since awrel's code and deploy are unchanged.
 6. **Retire awrel.** Stop its deploy, mark the repository archived with a pointer to the gateway, and revoke its secrets.
 
-The server, not the client, picks the replay start for an imported session. The client's first hello carries `"import": true` and no `resume_after`. For each subscribed source, the gateway replays from and including that source's T0 marker, then goes live. The client never needs to know T0, so there is no off-by-one and no channel for T0. No event received after T0 is lost for a session that moves within the retention window. Events before T0 were delivered by awrel as before. A session with no import and no `resume_after`, brand new or with nothing to import, gets no replay. It is live-only from its first hello. A returning session sends its last saved `seq` as `resume_after`, and replay is strictly after it.
+The server, not the client, picks the replay start for an imported session. The client's first hello carries `"import": true` and no `resume_after`. For each subscribed source, the gateway replays from and including T0, that source's earliest stored event within retention, then goes live. The client never needs to know T0, so there is no off-by-one and no channel for T0. No event received after T0 is lost for a session that moves within the retention window. Events before T0 were delivered by awrel as before. A session with no import and no `resume_after`, brand new or with nothing to import, gets no replay. It is live-only from its first hello. A returning session sends its last saved `seq` as `resume_after`, and replay is strictly after it.
 
 The replay can repeat events awrel already delivered during the parallel run. That is expected under at-least-once delivery, and clients already drop repeated `delivery` IDs within their window. At first start the delivery ID set is empty, so duplicates are possible and acceptable.
 
@@ -106,13 +107,16 @@ The replay can repeat events awrel already delivered during the parallel run. Th
 | Risk | Effect | What handles it | Evidence |
 | --- | --- | --- | --- |
 | The one host or the tunnel goes down | GitHub records failed deliveries, and sessions see nothing new | Redelivery piece ([D4](decisions.md)), plus a Grafana alert on webhook gaps | Unverified for this service. github-metrics runs the same shape |
-| Payloads at rest hold private repository content | A disk or backup leak exposes it | Retention sweep, volume on the owned host only, no payload in logs ([D3](decisions.md)) | New |
+| Payloads at rest hold private repository content | A disk or backup leak exposes it | `MaxAge` deletes every message at 7 days, volume on the owned host only, no payload in logs ([D3](decisions.md)) | New |
 | Channel notifications stay experimental in Claude Code | A harness change breaks live delivery | Keep awrel's notification shape so one fix covers both | awrel `README.md` (appendix A) |
 | Container to loopback collector path | Telemetry goes nowhere | Join the collector network, as github-metrics does | github-metrics `deploy/compose.yaml` |
 | cloudflared needs `runc` rather than a sandboxed runtime | The sidecar runs with weaker isolation | Same accepted debt as github-metrics, and the service itself stays sandboxed | github-metrics `deploy/compose.yaml` |
 | The launcher refuses some non-interactive callers | A Temporal worker can't launch reviewer runs | tools piece in the Temporal phase | tools `docs/reference/alpha/agent-configuration.md` (appendix A) |
 | Grafana retry and repeat behavior | An alert lost while the gateway is down | Grafana's repeat interval sends firing alerts again. Unverified | Unverified |
 | A session moves later than the retention window after T0 | It can miss events between T0 and its connect | Move every session within the retention window | New |
+| The embedded server's memory and disk use | The gateway process grows or the volume fills, and ingest fails | Set JetStream's memory and store limits in the server options, and alert on volume use. Unset limits default to 75% of system memory and the free disk. The duplicate window keeps every message ID of the last 7 days in memory | nats-server source (appendix A). Use under load is unverified |
+| One stream on one host | Losing the volume loses every retained event, and a stream fault stops all ingest | Accepted for now ([D12](decisions.md)). GitHub redelivery recovers webhooks, not events already stored | New |
+| NATS server upgrades change JetStream behavior | A dependency bump changes storage, dedupe, or sync behavior | Pin the `nats-server` and `nats.go` versions, and run the ingest, dedupe, and replay tests on every bump | New |
 
 ## Known debt
 
@@ -123,7 +127,9 @@ These gaps are known and not yet designed. Each goes into the first build that e
 | Exiting on stdin close may not end awrel's orphan processes after an `/mcp` reconnect | Orphan clients keep sockets and tokens open | 7, with a test that reproduces the orphan |
 | The organization webhook's event list must include `check_run` and `check_suite`, and the action types the filters accept for them aren't listed | A subscription on those events never matches | 2 and 5 |
 | Appendix A reads awrel at a commit after `v0.7.1`, while sessions run the client at `v0.6.0` or later | Behavior described in appendix A may not be what sessions run today | 5, by pinning the filter tests to the version sessions run |
-| Appendix A's claims don't carry proven, existing, new, or unverified labels | A reader can't weigh each claim | Next revision of this design |
+| Appendix A's claims outside its NATS section don't carry proven, existing, new, or unverified labels | A reader can't weigh each claim | Next revision of this design |
+| The NATS server runs inside the gateway process, which is temporary | The queue lives and dies with one process on one host, and no other service can share it | A later decision on clustering or a separate NATS server. The `Target` interface and the stream subjects let that swap happen without changing targets |
+| Step 8's owner is still named the harness configuration owner. No durable role for harness MCP configuration was found among the public role names | A reader can't tell which role edits the MCP config | 8, once that role has a name |
 
 ## Plan
 
@@ -131,18 +137,18 @@ Each step is one pull request of under 400 code lines, unless it says config. [A
 
 | Step | What lands | Done when | Owner |
 | --- | --- | --- | --- |
-| 0 | Repository: public, Apache-2.0, rules baseline, CI, rulesets | `bazelisk test //...` passes on `main` and the rulesets match awrel's | Event gateway owner |
-| 1 | Ingest: GitHub route, HMAC, envelope, SQLite log, dedupe, telemetry | A signed test delivery returns 202 and appears in the log once, even when sent twice | Event gateway owner |
-| 2 | Deploy: compose, tunnel route, secrets, second GitHub webhook | GitHub's delivery log shows 202s and the log grows | Ops |
-| 3 | Read API and `events tail` command on the private network | `event-gateway events tail --after N` prints the missed events | Event gateway owner |
-| 4 | Grafana route, ported from awrel's semantics | A signed test alert lands with awrel's delivery ID | Event gateway owner |
-| 5 | Session server: subscriptions, filters, per-client tokens | awrel's filter test cases pass against the gateway | Event gateway owner |
-| 6 | Resume and replay over the session socket | A client that drops for 10 minutes receives every matching event once | Event gateway owner |
-| 7 | MCP client with awrel's tools and channel notifications | A canary session gets the same events from both relays | Event gateway owner |
+| 0 | Repository: public, Apache-2.0, rules baseline, CI, rulesets | `bazelisk test //...` passes on `main` and the rulesets match awrel's | Gateway maintainer |
+| 1 | Ingest: GitHub route, HMAC, envelope, embedded JetStream stream with `MaxAge`, dedupe, telemetry | A signed test delivery returns 202 and appears in the stream once, even when sent twice | Gateway maintainer |
+| 2 | Deploy: compose, tunnel route, secrets, second GitHub webhook | GitHub's delivery log shows 202s and the stream grows | Ops |
+| 3 | Read API and `events tail` command on the private network | `event-gateway events tail --after N` prints the missed events | Gateway maintainer |
+| 4 | Grafana route, ported from awrel's semantics | A signed test alert lands with awrel's delivery ID | Gateway maintainer |
+| 5 | Session server: subscriptions, filters, per-client tokens | awrel's filter test cases pass against the gateway | Gateway maintainer |
+| 6 | Resume and replay over the session socket | A client that drops for 10 minutes receives every matching event once | Gateway maintainer |
+| 7 | MCP client with awrel's tools and channel notifications | A canary session gets the same events from both relays | Gateway maintainer |
 | 8 | Harness MCP config: canary, then everyone | Every session lists the gateway's tools and none lists awrel's | Harness configuration owner |
-| 9 | Retention sweep and redelivery of failed GitHub deliveries | A forced outage heals with no manual redelivery | Event gateway owner, ops for the credential |
+| 9 | Redelivery of failed GitHub deliveries | A forced outage heals with no manual redelivery | Gateway maintainer, ops for the credential |
 | 10 | Cut awrel's webhooks and retire it | awrel's webhook is gone and the gateway is the only receiver | Ops, awrel owner |
-| 11 | Temporal target, outlined only | A routed event starts or signals a workflow | Event gateway owner, ops, tools |
+| 11 | Temporal target, outlined only | A routed event starts or signals a workflow | Gateway maintainer, ops, tools |
 
 Recommended first piece: step 1. It's small, needs nothing else from the gateway, and once step 2 deploys it, it keeps a durable record of every webhook. awrel has never kept that record. Step 3 then gives any consumer a way to catch up on events, before the session server exists.
 
