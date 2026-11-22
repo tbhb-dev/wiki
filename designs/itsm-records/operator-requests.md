@@ -26,7 +26,7 @@ Two kinds go to the operator. An approval Request asks for a decision, and the a
 
 Every Request has a Handler field: Operator or Agent. Agent is the default and the operator never sees it. Operator is allowed only when no agent account can do the work, because a credential, a host, or a one-way door is out of reach, and the Request's body must name that reason in one line.
 
-A Request about information, or a plain ask an agent role can answer, stays with that role. A decision between two reversible options is also not an operator Request: the owning role decides and records it. The operator sees one-way doors, credentials, grants, loosened trust boundaries, and their own standing rules.
+A Request about information, or a plain ask an agent role can answer, stays with that role. A decision between two reversible options is also not an operator Request: the agent role whose capabilities fit decides and records it. The operator sees one-way doors, credentials, grants, loosened trust boundaries, and their own standing rules.
 
 ## States
 
@@ -94,13 +94,13 @@ The private repository's workflow reads issue comments. It acts only when the co
 
 The workflow edits only labels and the open or closed state, never the issue body. It uses the API only, runs no code from the issue, and takes its token from the records application the repository already uses.
 
-Agents learn of a result through the event relay the sessions already use. The author's session subscribes to issue and comment events on its own Request, and a state label change wakes it. An agent never polls. If the author has ended, the owning role picks up the Request from the label.
+Agents learn of a result through the event relay the sessions already use. The author's session subscribes to issue and comment events on its own Request, and a state label change wakes it. An agent never polls. If the author has ended, an agent role with the matching capability label picks up the Request.
 
 A `/complete` comment is a record, and the workflow copies its status into a state label. When the operator's reply asks for work, the author opens a follow-up Request or Change rather than reusing a closed one.
 
 ## What a command Request contains
 
-A command Request holds one script and nothing else that runs. The script lives in the operator's user-level script directory, named `YYYY-MM-DD-<owner>-<slug>.sh` or `.py`, with an optional `.vN` before the extension for a revision. The command line is `bash` or `python3` followed by that path and at most four plain arguments.
+A command Request holds one script and nothing else that runs. The script lives in the operator's user-level script directory, named `YYYY-MM-DD-<role>-<slug>.sh` or `.py`, with an optional `.vN` before the extension for a revision. The command line is `bash` or `python3` followed by that path and at most four plain arguments.
 
 The body has these sections, in this order, each one line or one short list:
 
@@ -162,7 +162,7 @@ The operator answered all five as recommended. Each answer sits under its questi
 - **Recommendation:** No. It stays open until a new attempt or an explicit close.
 - **Why:** A failed command may have changed something, and a closed issue hides that.
 - **If yes:** Failed closes with a failure label, and a retry needs a new Request.
-- **If no:** The operator or the owning role closes it after reading the tail.
+- **If no:** The operator, or an agent role the Request's labels suggest, closes it after reading the tail.
 - **Reversible:** Yes.
 - **Answer:** Q2: no. A failed run doesn't close its Request on its own.
 
