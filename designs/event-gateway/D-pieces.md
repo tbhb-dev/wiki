@@ -33,7 +33,7 @@ Before step 1, the gateway maintainer creates tbhb-dev/event-gateway:
 
 | Step | Size | Contents | Depends on |
 | --- | --- | --- | --- |
-| 1. Ingest | ~350 | `cmd/event-gateway serve`, `POST /webhooks/github`, HMAC check, envelope, embedded NATS server with no listener, the `EVENTS` stream config with `MaxAge` and the duplicate window, publish with message ID and body-hash check, `/healthz`, OTLP setup. Tests: a repeat inside the window, a 409 on a changed body, and expiry under a short `MaxAge`. A measurement of publish latency with `SyncAlways` | 0, D3 |
+| 1. Ingest | ~350 | `cmd/event-gateway serve`, `POST /webhooks/github`, HMAC check, envelope, embedded NATS server with no listener, the `EVENTS` stream config with `MaxAge` and the duplicate window, publish with message ID and body-hash check, `/healthz`, OTLP setup. Tests: a repeat inside the window, a 409 on a changed body, and expiry under a short `MaxAge`. A measurement of publish latency with `SyncAlways` | 0, D3, D12 |
 | 2. Deploy | Config | Compose file with the service, built on the host from a pinned commit, and a `cloudflared` sidecar, tunnel route for the webhook paths only, secrets as files, named volume, collector network, second GitHub webhook | 1, D2, D5, D6 |
 | 3. Read API | ~200 | `GET /v1/events?after=N` through an ordered consumer, with the subscription filter, bearer tokens, `event-gateway events tail` | 1 |
 | 4. Grafana | ~250 | `POST /webhooks/grafana` with awrel's checks, allowlist, and IDs. Second contact point in Grafana | 1 |

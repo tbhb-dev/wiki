@@ -143,7 +143,7 @@ Each step is one pull request of under 400 code lines, unless it says config. [A
 | 3 | Read API and `events tail` command on the private network | `event-gateway events tail --after N` prints the missed events | Gateway maintainer |
 | 4 | Grafana route, ported from awrel's semantics | A signed test alert lands with awrel's delivery ID | Gateway maintainer |
 | 5 | Session server: subscriptions, filters, per-client tokens | awrel's filter test cases pass against the gateway | Gateway maintainer |
-| 6 | Resume and replay over the session socket | A client that drops for 10 minutes receives every matching event once | Gateway maintainer |
+| 6 | Resume and replay over the session socket | A client that drops for 10 minutes receives every matching event at least once, in order | Gateway maintainer |
 | 7 | MCP client with awrel's tools and channel notifications | A canary session gets the same events from both relays | Gateway maintainer |
 | 8 | Harness MCP config: canary, then everyone | Every session lists the gateway's tools and none lists awrel's | Harness configuration owner |
 | 9 | Redelivery of failed GitHub deliveries | A forced outage heals with no manual redelivery | Gateway maintainer, ops for the credential |
@@ -157,7 +157,7 @@ The Temporal piece adds one target that maps routing rules to `SignalWithStart` 
 ## Appendices
 
 - [Decisions](decisions.md): none open, then the decided record.
-- [A. Evidence](A-evidence.md): awrel today, the github-metrics receiver, the launcher.
+- [A. Evidence](A-evidence.md): awrel today, the github-metrics receiver, the launcher, the `nats-server` embedding.
 - [B. Earlier designs](B-earlier-designs.md): what older designs offer, and the constraints this design drops.
-- [C. Protocol](C-protocol.md): envelope, session protocol, target interface, storage schema.
+- [C. Protocol](C-protocol.md): envelope, session protocol, target interface, stream configuration.
 - [D. Pieces](D-pieces.md): each step in detail, day-one repository contents, Temporal outline.
