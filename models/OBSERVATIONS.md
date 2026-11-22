@@ -23,6 +23,7 @@ This file backs the recommendations in [README.md](README.md). Each line is one 
 ## Codex `gpt-6.1-sol`
 
 - Succeeded at second-family code review, finding blocking security issues in two PRs that the first-family review alone stated less strongly.
+- Failed at reviewing a change that tests symlink and patch-export safety. The provider's content filter refused the review four times, so a Claude review run replaced it. The owner of that change reported this.
 
 ## Antigravity `gemini-4-argon-high`
 
@@ -34,3 +35,12 @@ This file backs the recommendations in [README.md](README.md). Each line is one 
 - Failed at writing a design draft from a nested folder of CSV results. Headless runs ended within seconds with no output on all three tries, because headless mode auto-denied the shell command that read the inputs.
 - Succeeded at the same draft once the inputs were flat files in one folder. The figures it quoted were accurate against the source results, and one run is the whole test.
 - Mixed on labelling evidence in that draft. Its prose was dense, and it labelled some inferred claims as measured, so check each label against the data.
+
+## Antigravity `gemini-4-neon-high`
+
+Each line is the owner's report of one build run, and every run was a single sample. No run could push, so each commit reached the repository as a patch that the owner replayed.
+
+- Succeeded at splitting an oversized prose draft into two files. Every moved line reappeared, and both files came in under the size limit. It dropped ten section anchors without leaving compatibility anchors, and it added a `tags:` field that the sibling appendices lack. No link to the dropped anchors existed.
+- Mixed at building a scheduled settings job. It finished in about 15 minutes, and its summary said under 400 code lines. The PR measured 411, partly because of the owner's own additions. It missed home-directory template placeholders in two settings sources, so the job would have written them verbatim, and the owner added a guard.
+- Mixed at a narrow config fix. It went beyond the brief and moved an allowlist into the generated top-level config after reading the scanner's source. Its gate passed, and the wider change is under review, so whether it is right is unverified.
+- Succeeded at adding a metric gauge to a receiver, with table tests and a catalog row. It finished, the run reported its tests passing, and it followed the brief. The diff isn't reviewed yet.
