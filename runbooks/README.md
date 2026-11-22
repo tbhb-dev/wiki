@@ -23,7 +23,7 @@ A helper script for a runbook is a real file in the same directory, so any host 
 - [WRITING.md](WRITING.md) is the author's checklist before review.
 - [REVIEW.md](REVIEW.md) is the reviewer's checklist and report format.
 
-A runbook lands only after a reviewer who didn't write it clears it of blocking items at the exact head that review read.
+A runbook lands only after two reviews from models that didn't write it clear it of blocking items at the exact head they read.
 
 ## Public pages and private appendices
 
@@ -31,7 +31,7 @@ This repository is public, so a runbook starts here. A runbook that needs privat
 
 ## Upkeep
 
-Check a runbook against the host or tool it describes before relying on it. Whoever changes the hosts or tools fixes the runbook in the same change, or marks it stale in its `Last verified` line.
+Check a runbook against the host or tool it describes before relying on it. Whoever changes the hosts or tools fixes the runbook in the same change, or marks it stale by setting `last_verified` to `never`.
 
 ## Planned checks
 
