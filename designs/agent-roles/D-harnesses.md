@@ -63,7 +63,7 @@ An agent definition is a Markdown file with YAML frontmatter, and the body is th
 | `claude -p` in a fresh run clone | Project subagent frontmatter hooks and inline `mcpServers` aren't used in a folder never trusted | Existing |
 | `--strict-mcp-config` | Only servers passed for the run load | Existing |
 
-The design therefore delivers definitions at user level, as `<role>.md` in the `.claude/agents/` folder of the account's home, installed by the deployer, and passes the run's role with `--agents <file>` and `--agent <role>`. `--agents` outranks project and user agents, and only managed definitions outrank it. With `--agent`, the main thread takes the definition's tool restrictions and model. Whether it also takes the definition's hooks is unverified. For role hooks to bind, the launcher stops setting `disableAllHooks` for runs that carry a role. Removing that setting makes runs stricter, so it is the tools owner's engineering call under R13.
+The design therefore delivers definitions at user level, as `<role>.md` in the `.claude/agents/` folder of the account's home, installed by the deployer, and passes the run's role with `--agents <file>` and `--agent <role>`. `--agents` outranks project and user agents, and only managed definitions outrank it. With `--agent`, the main thread takes the definition's tool restrictions and model. Whether it also takes the definition's hooks is unverified. For role hooks to bind, the launcher stops setting `disableAllHooks` for runs that carry a role. Removing that setting makes runs stricter, so it is an engineering call for tools under R13.
 
 ### Example
 
@@ -79,7 +79,7 @@ hooks:
     - matcher: Bash
       hooks:
         - type: command
-          command: tbhbdev alpha hook guard-role --role reviewer
+          command: tbhbdev hook guard-role --role reviewer
 ---
 
 You are the reviewer kind. ...
@@ -107,7 +107,7 @@ A capability bundle has five fields, and the launcher composes the kind's base w
 
 | Bundle field | Claude Code | Codex | Antigravity |
 | --- | --- | --- | --- |
-| Allow rules | `tools` in the run's definition, and `permissions.allow` in the run's generated settings. Allow rules have no effect under `bypassPermissions` | Not emitted, because a Codex rule that allows skips approval | `tools` in the run's definition |
+| Allow rules | Only entries that narrow what the kind's base already allows: a `tools` list within the base's, and `permissions.allow` entries the base holds. Omitted under `auto` and `bypassPermissions` | Not emitted, because a Codex rule that allows skips approval | `tools` in the run's definition |
 | Deny rules | `permissions.deny` in the run's generated settings for command patterns, and `disallowedTools` for whole tools | Forbid rules in the run's `<role>.rules` file | Not emitted until step 1 shows how Antigravity combines them |
 | Hooks | Frontmatter `hooks`, from the guard list. Whether they bind under the launcher is unverified | Unverified whether a profile file can carry `[hooks]`, so not emitted yet | Frontmatter `hooks`, from the guard list |
 | Credentials | Not in the definition. The launcher mints them per run, scoped to the area repository and the capability, as it scopes the build run's token today | Same | Same |
@@ -121,7 +121,7 @@ The rule is that no emitted field widens authority. `skills` and `maxTurns` add 
 
 | Harness | Emitted | Never emitted |
 | --- | --- | --- |
-| Claude Code | `name`, `description`, `tools`, `disallowedTools`, `model`, `effort`, `skills`, `maxTurns`, guard `hooks` | `permissionMode`, `mcpServers`, `memory`, `isolation`, any hook outside the guard list |
+| Claude Code | `name`, `description`, `tools` within the base's, `disallowedTools`, `model`, `effort`, `skills`, `maxTurns`, guard `hooks` | `permissionMode`, `mcpServers`, `memory`, `isolation`, any hook outside the guard list, any allow entry wider than the base's |
 | Codex | `developer_instructions`, `model`, `model_reasoning_effort`, `features.*` set to false, a role rules file | `sandbox_mode`, `approval_policy`, `mcp_servers`, `model_instructions_file`, any rule that allows |
 | Antigravity | `name`, `description`, `tools`, `model`, guard `hooks` | `commandExecutionPolicy`, `mcpServers`, `plugins` |
 

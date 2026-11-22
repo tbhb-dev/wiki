@@ -18,8 +18,8 @@ Back to [the design](README.md).
 
 | Option | Why not |
 | --- | --- |
-| One file in the public rules repository, synced to every repository by the baseline | Entries name private repositories and host classes, which can't appear in a public repository. Every repository would also carry every role, though each needs only its own outputs |
-| A public core in rules plus a private overlay | Workable, and the baseline already has visibility variants. It splits one entry across two repositories and two reviews, and a public core holds little once private scopes leave it. Kept as the fallback |
+| One file in the public rules repository, synced to every repository by the baseline | The registry feeds harness configuration, which the operator gave to the harness configuration owner, and every repository would carry a file only the launcher reads |
+| A public core in rules plus a private overlay | Workable, and the baseline already has visibility variants. It splits one file across two repositories and two reviews for no gain. Kept as the fallback |
 | The private IT service management records repository, beside the Requests whose `area:` and `cap:` labels it feeds | The Request label set is one output of five. The other four, launch definitions above all, are harness configuration, which the operator gave to the harness configuration owner |
 | The private harness configuration repository | Taken. It already holds account routing and harness settings, and the operator made its owner this design's owner |
 
@@ -29,7 +29,7 @@ Back to [the design](README.md).
 | --- | --- |
 | CUE, as the content kernel uses for templates | The operator chose CUE for content templates and constraints, not configuration. TOML matches the routing file beside it. A CUE schema can still validate the TOML later |
 | YAML | No other file in the repository uses it, and its typing surprises are a known source of drift |
-| One file per role | Diffs that move authority between roles would span files, which makes a widening harder to see in review |
+| One file per kind | Diffs that move a capability between kinds would span files, which makes a widening harder to see in review |
 
 ## Claude Code delivery
 

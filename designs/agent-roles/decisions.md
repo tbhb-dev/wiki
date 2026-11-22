@@ -28,7 +28,7 @@ Back to [the design](README.md).
 
 ### D1. Who may add a role for a new repository?
 
-- **Decided:** 2026-11-22, by the operator, answering this design's open question.
+- **Decided:** 2026-11-23, by the operator, answering this design's open question.
 - **Rule:** no role is assigned to a repository. The registry defines role kinds and their capabilities only, and creating or widening a kind or a capability stays the operator's. An agent looks up the context each task needs, so a new repository needs no new role. Today's per-repository sessions are interim and retire as loops replace them.
 - **Routing:** the Handler field stays Operator or Agent. An agent Request's `area:<repo>` label scopes which repository's context a run loads. Its `cap:<name>` labels, from a short fixed vocabulary, suggest a kind: routing matches them to a kind, the run or router may relabel or reassign, and routing never blocks on them. With no match, a workflow launches the fallback builder kind.
 - **Undo:** the operator decides again.

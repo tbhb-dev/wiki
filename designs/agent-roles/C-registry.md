@@ -35,7 +35,7 @@ capabilities = ["repo-write", "merge", "approve", "change-approve", "review", "c
 
 [capability.merge]
 summary = "Merge a pull request the Request produced, at its approved head."
-allow = ["Bash(tbhbdev alpha merge *)"]  # composed in; an allow never lifts an account deny
+allow = ["Bash(tbhbdev alpha merge *)"]  # emitted only where it narrows the base; never lifts a deny
 deny = []                       # composed in; adds to the account's denies
 hooks = ["guard-merge-match-head"]   # names from the fixed guard list in tools
 credentials = ["merge:area-repo"]    # task-scoped: the Request's area repository only
@@ -123,9 +123,9 @@ The registry check is a Bazel test in the private harness configuration reposito
 - A bundle widens: it carries a field the harness mapping never emits, a hook outside the guard list, a credential scope wider than the Request's area repository, or an allow rule that matches an account deny.
 - A kind breaks its limits: a reviewer can't have `merges` or `approves`, an approver can't have `merges`, and exactly one kind has `fallback = true`.
 - Any table names a repository or a host.
-- A `guardrails` field names a value that isn't on the allowed list in [appendix D](D-harnesses.md#what-the-generator-may-emit).
+- A bundle field names a value that isn't on the allowed list in [appendix D](D-harnesses.md#what-the-generator-may-emit).
 
-The generators each carry their own check, run in CI where the output lives:
+The generators each carry their own check, run in CI where the output lives, and CODEOWNERS, which isn't generated, is checked as is:
 
 - **Request labels:** compare the label set with one `area:<repo>` label per tbhb-dev repository, read from the organization, plus one `cap:<name>` label per vocabulary entry. On Requests, it checks only that each `cap:` label is in the vocabulary, and never refuses a Request for missing, extra, or mismatched ones. The same check confirms the Handler field still holds exactly Operator and Agent.
 - **CODEOWNERS:** compare each repository's file with the baseline's owner-less `*`, plus the records repository's allowed-author lines. Kinds can't be code owners, because all agents act as one GitHub user.

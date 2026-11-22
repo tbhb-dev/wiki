@@ -101,7 +101,7 @@ These records sit in the operator's private decision notes, which aren't a repos
 | R11 | 2026-11-15 and 2026-11-22 | Operator | Owners deploy their own merged services, and may log in as the ops account to do it |
 | R12 | 2026-11-15 and 2026-11-22 | Operator, mechanics by the coordinator | The standup of the coordinator's sub-coordinators, now every 2 hours, from a participants file |
 | R13 | 2026-11-15 | Operator | The Laws narrowed to exposure and to authority over decisions |
-| R14 | 2026-11-22 | Operator, with the coordinator's calls | Workflows behind an event gateway, no coordination sessions in the end state, and new repository owners named when each repository is created |
+| R14 | 2026-11-22 | Operator, with the coordinator's calls | Workflows behind an event gateway, no coordination sessions in the end state, and new repository owners named when each repository is created. The owner part is superseded by R30 |
 | R15 | 2026-11-22 | Operator, with the coordinator's calls | Agent runs push their own branches and are autonomous |
 | R16 | 2026-11-22 | Operator, mechanics proposed by the coordinator | Requests split by who picks them up, operator or agent |
 | R17 | 2026-11-22 | Operator | Who approves Normal Changes |
@@ -116,9 +116,9 @@ These records sit in the operator's private decision notes, which aren't a repos
 | R26 | 2026-11-06 | Operator | The wiki repositories merge on green, without an approval |
 | R27 | 2026-11-22 | Operator | Roles split into kinds and assignments, answering D1. Creating or widening a kind stays the operator's. Its assignment half was superseded by R30 |
 | R28 | 2026-11-22 | Operator | Request labels name the capabilities a Request needs, from a fixed vocabulary, and the registry lists each kind's capabilities. This replaces kind labels |
-| R29 | 2026-11-22 | Operator | Capability labels are suggestions. The handler or router may relabel or reassign, and no check refuses a Request over them beyond vocabulary membership. Its fallback to the area's owner became the builder kind under R30 |
-| R30 | 2026-11-22 | Operator | No per-repository owners in the target design. The registry defines kinds and capabilities only, `area:<repo>` scopes the context a run loads, routing matches suggested capabilities to a kind, and today's per-repository sessions are interim |
-| R31 | 2026-11-22 | Operator's direction | A capability is composed run configuration: tool allow and deny entries, hooks, task-scoped credentials, and context fragments. A kind is a base plus the capabilities it may take. Granting one to a kind stays the operator's, and injecting an allowed one is routine |
+| R29 | 2026-11-23 | Operator | Capability labels are suggestions. The handler or router may relabel or reassign, and no check refuses a Request over them beyond vocabulary membership. Its fallback to the area's owner became the builder kind under R30 |
+| R30 | 2026-11-23 | Operator | No per-repository owners in the target design. The registry defines kinds and capabilities only, `area:<repo>` scopes the context a run loads, routing matches suggested capabilities to a kind, and today's per-repository sessions are interim |
+| R31 | 2026-11-23 | Operator's direction | A capability is composed run configuration: tool allow and deny entries, hooks, task-scoped credentials, and context fragments. A kind is a base plus the capabilities it may take. Granting one to a kind stays the operator's, and injecting an allowed one is routine |
 
 ### Two records that conflict
 
