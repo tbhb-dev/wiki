@@ -6,7 +6,7 @@ tags: [event-gateway, webhooks, mcp, design]
 status: draft
 owner: Event gateway owner
 updated: "2026-11-22"
-decisions_open: 6
+decisions_open: 0
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
@@ -16,7 +16,7 @@ decisions_open: 6
 
 | Status | Owner | Updated | Needs from the operator |
 | --- | --- | --- | --- |
-| Draft | Event gateway owner (new role) | 2026-11-22 | 6 open decisions in [decisions.md](decisions.md) |
+| Draft | Event gateway owner (new role) | 2026-11-22 | None. All decisions are recorded in [decisions.md](decisions.md) |
 
 ## Summary
 
@@ -84,7 +84,7 @@ Each client gets its own bearer token rather than one shared token. The gateway 
 
 - **Language:** Go, matching the awrel client and the github-metrics receiver. The image is one static binary with cgo off on a distroless base, run as a non-root user with a read-only root file system.
 - **Storage:** SQLite through a pure-Go driver, in write-ahead logging mode with `synchronous=FULL`, on one named volume. Write-ahead logging alone doesn't make a commit durable before the 202. One writer, one host, no cluster.
-- **Deploy:** Docker Compose, deployed by the ops owner's roles, with images pinned by digest. Secrets arrive as files from 1Password, as the github-metrics receiver reads them.
+- **Deploy:** Docker Compose, deployed by the ops owner's roles, with the image built on the host from a pinned commit. Secrets arrive as files from 1Password, as the github-metrics receiver reads them.
 - **Ingress:** a Cloudflare Tunnel sidecar routes only the webhook paths to the service. The session endpoint stays on the private network ([D2](decisions.md)).
 - **Telemetry:** OpenTelemetry traces, metrics, and logs over the OpenTelemetry Protocol (OTLP) to the loopback-only local collector, which forwards logs to Loki. The container joins the collector's network, as the github-metrics receiver does. The code starts with a small internal telemetry package and moves to tbhb-dev/telemetry once that library exists.
 
@@ -150,7 +150,7 @@ The Temporal piece adds one target that maps routing rules to `SignalWithStart` 
 
 ## Appendices
 
-- [Decisions](decisions.md): 6 open, then the decided record.
+- [Decisions](decisions.md): none open, then the decided record.
 - [A. Evidence](A-evidence.md): awrel today, the github-metrics receiver, the launcher.
 - [B. Earlier designs](B-earlier-designs.md): what older designs offer, and the constraints this design drops.
 - [C. Protocol](C-protocol.md): envelope, session protocol, target interface, storage schema.

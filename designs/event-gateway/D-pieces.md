@@ -34,7 +34,7 @@ Before step 1, the event gateway owner creates tbhb-dev/event-gateway:
 | Step | Size | Contents | Depends on |
 | --- | --- | --- | --- |
 | 1. Ingest | ~350 | `cmd/event-gateway serve`, `POST /webhooks/github`, HMAC check, envelope, SQLite log with dedupe, `/healthz`, OTLP setup | 0 |
-| 2. Deploy | Config | Compose file with the service and a `cloudflared` sidecar, tunnel route for the webhook paths only, secrets as files, named volume, collector network, second GitHub webhook | 1, D2, D5 |
+| 2. Deploy | Config | Compose file with the service, built on the host from a pinned commit, and a `cloudflared` sidecar, tunnel route for the webhook paths only, secrets as files, named volume, collector network, second GitHub webhook | 1, D2, D5 |
 | 3. Read API | ~200 | `GET /v1/events?after=N` with the subscription filter, bearer tokens, `event-gateway events tail` | 1 |
 | 4. Grafana | ~250 | `POST /webhooks/grafana` with awrel's checks, allowlist, and IDs. Second contact point in Grafana | 1 |
 | 5. Session server | ~380 | `/connect`, `gateway.v1`, subscription validation ported from awrel's rules, fan-out | 3 |
