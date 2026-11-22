@@ -38,7 +38,7 @@ This file backs the recommendations in [README.md](README.md). Each line is one 
 
 ## Antigravity `gemini-4-neon-high`
 
-- Succeeded at splitting an oversized prose draft, with every moved line intact and both files under the size limit. It dropped ten section anchors and added a `tags:` field that sibling files lack. Single run, and its commit couldn't push.
-- Mixed at building a scheduled settings job. Its size claim of under 400 code lines measured 411 in the PR, partly from the owner's additions, and it missed home-directory template placeholders. Single run.
-- Mixed at a narrow config fix. It moved an allowlist beyond the brief and its gate passed, but whether the wider change is right is unverified. Single run.
-- Succeeded at adding a metric gauge to a receiver with table tests and a catalog row, and the run reported its tests passing. The diff hasn't been reviewed. Single run.
+- Mixed at splitting an oversized prose draft. Every moved line survived and both files fit the limit, but it dropped ten section anchors and added a `tags:` field. Check anchors and front matter after a split.
+- Mixed at building a scheduled settings job. Its under-400-line claim measured 411, and it missed home-directory placeholders. Check the size and the config inputs.
+- Mixed at a narrow config fix. It moved an allowlist beyond the brief, and whether that is right is unverified. Pin the scope in the brief.
+- Succeeded at adding a metric gauge with table tests and a catalog row, and its tests passed. The diff hasn't been reviewed.
