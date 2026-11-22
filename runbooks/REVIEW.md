@@ -5,7 +5,7 @@
 
 The reviewer didn't write or edit the runbook, and reads the whole file and any helper script beside it. Check each item against the live host or tool and primary sources, not against the author's summary. The rules are in [README.md](README.md), [TEMPLATE.md](TEMPLATE.md), and [WRITING.md](WRITING.md).
 
-A runbook lands only after a review with no blocking items, at the exact head that review read.
+A runbook lands only after two reviews with no blocking items, at the exact head they read.
 
 ## Blocking
 

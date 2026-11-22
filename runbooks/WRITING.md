@@ -14,7 +14,7 @@ Follow this list before asking for review of a runbook. Use the skeleton in [TEM
 
 ## Truth
 
-- [ ] You ran every step against the live host or tool, and `last_verified` carries that date. A step you couldn't run says so beside the step.
+- [ ] You ran every step against the live host or tool, and `last_verified` carries that date, or `never` when nobody has run it. A step you couldn't run says so beside the step.
 - [ ] Each command sits on its own line in a code block, exact enough to copy and run, with each placeholder named.
 - [ ] Each step says what the output looks like when it worked.
 - [ ] A helper script is a real file beside the runbook, not a snippet that the reader retypes.
@@ -39,5 +39,5 @@ Follow this list before asking for review of a runbook. Use the skeleton in [TEM
 
 ## Review and the PR
 
-- [ ] A reviewer who didn't write the runbook clears it of blocking items at the exact head they reviewed.
+- [ ] Two reviews from models that didn't write the runbook clear it of blocking items at the exact head they read.
 - [ ] The PR body fills every section of the PR template.
