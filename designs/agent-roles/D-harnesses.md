@@ -69,23 +69,23 @@ The design therefore delivers definitions at user level, as `<role>.md` in the `
 
 ```markdown
 ---
-name: reviewer
-description: Launches reviewer pairs for green heads, with the context of the area repository.
-model: sonnet
-effort: medium
-disallowedTools: Edit, Write
+name: <kind>
+description: <description>
+model: <model>
+effort: <effort>
+disallowedTools: <tool>, <tool>
 hooks:
   PreToolUse:
-    - matcher: Bash
+    - matcher: <tool>
       hooks:
         - type: command
-          command: tbhbdev hook guard-role --role reviewer
+          command: <hook>
 ---
 
-You are the reviewer kind. ...
+<base context fragments, then the injected capabilities' fragments>
 ```
 
-The `guard-role` hook is planned. It denies `git push`, `tbhbdev alpha merge`, and the approval command for this role, which a `disallowedTools` entry can't do without removing Bash.
+A guard hook is planned for command-level limits, which a `disallowedTools` entry can't set without removing the whole tool.
 
 ## Codex
 

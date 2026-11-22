@@ -110,7 +110,7 @@ These records sit in the operator's private decision notes, which aren't a repos
 | R20 | 2026-11-22 | Operator | Handler field alone, Operator plus one value per agent role. Replaced the same day, because the field limits its values: the design keeps the field at Operator and Agent and routes by labels (R27 to R29) |
 | R21 | 2026-11-22 | Operator | This design, its owner, and what the registry feeds |
 | R22 | 2026-11-22 | Operator, with the coordinator's reading | No limit of one pull request in review per repository. That review launchers start pairs for every green head at once is the coordinator's reading |
-| R23 | 2026-11-22 | Coordinator's calls | Reviews post on GitHub through the reviews App, as `COMMENT` only for now |
+| R23 | 2026-11-22 | Coordinator's calls, resting on the operator's direction the same day to move reviews onto GitHub | Reviews post on GitHub through the reviews App, as `COMMENT` only for now |
 | R24 | 2026-11-08 | Operator | A deterministic loop that spawns independent agents per event replaces the long-lived coordination session |
 | R25 | 2026-11-12 | Operator | Answers on the review and merge worker: it runs as a service account with no harness, and it may approve, with no model read, a rebuilt replacement whose tree equals an approved one |
 | R26 | 2026-11-06 | Operator | The wiki repositories merge on green, without an approval |

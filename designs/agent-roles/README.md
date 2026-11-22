@@ -47,7 +47,7 @@ This is the target design. Nothing in it is built now except what's already in f
 
 ### Role kinds and today's authority
 
-Each row is today's authority as the records state it ([appendix A](A-evidence.md) has every source, labeled existing). The operator row is for reference and isn't a registry kind. The builder row carries the authority today's per-repository owners hold, held per Request in the target design. Two kinds of record grant authority. One is the operator's own decision. The other is a reversible call by the coordinator, made within authority the operator gave.
+Each row is today's authority as the records state it ([appendix A](A-evidence.md) has every source, labeled existing). The operator row is for reference and isn't a registry kind. The builder row carries the authority today's per-repository owners hold, held per Request in the target design. Two kinds of record grant authority. One is the operator's own decision. The other is a reversible coordinator call that cites the operator record it rests on.
 
 | Kind | Scope | Decides | May merge or approve | May never | Requests reach it by |
 | --- | --- | --- | --- | --- | --- |

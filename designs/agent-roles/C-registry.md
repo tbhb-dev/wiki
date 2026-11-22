@@ -35,11 +35,11 @@ capabilities = ["repo-write", "merge", "approve", "change-approve", "review", "c
 
 [capability.merge]
 summary = "Merge a pull request the Request produced, at its approved head."
-allow = ["Bash(tbhbdev alpha merge *)"]  # emitted only where it narrows the base; never lifts a deny
+allow = ["<allow entry>"]        # emitted only where it narrows the base; never lifts a deny
 deny = []                       # composed in; adds to the account's denies
-hooks = ["guard-merge-match-head"]   # names from the fixed guard list in tools
-credentials = ["merge:area-repo"]    # task-scoped: the Request's area repository only
-context = ["runbooks/merge.md#before-merge"]   # fragments appended to the definition's instructions
+hooks = ["<hook>"]              # names from the fixed guard list
+credentials = ["<credential scope>"]   # task-scoped: the Request's area repository only
+context = ["<context fragment>"]   # fragments appended to the definition's instructions
 authority = ["R9", "R31"]
 
 [kind.builder]
@@ -51,7 +51,7 @@ never = ["approve-own-change", "pick-own-reviewer"]
 may_take = ["repo-write", "merge"]   # capabilities this kind may take; the operator grants these
 fallback = true                 # routing falls back to this kind
 standup = false                 # whether runs of this kind report at standup
-authority = ["R9", "R10", "R11", "R26", "R30"]   # operator records only
+authority = ["R9", "R10", "R11", "R26", "R30"]   # operator records, or coordinator records that rest on one
 
 [kind.builder.launch]
 harness = "codex"
@@ -64,17 +64,17 @@ profile = "build"               # the launcher profile: build | review
 allow = []
 deny = []
 hooks = []
-credentials = ["read:area-repo"]
-context = ["roles/briefs/builder.md"]
+credentials = ["<credential scope>"]
+context = ["<context fragment>"]
 
 [record.R10]
 summary = "Owners decide their own work."
-who = "operator"                # operator | coordinator
+who = "operator"                # operator | coordinator; a coordinator record also sets rests_on = ["<operator record>"]
 date = "2026-11-15"
 source = "operator decision notes, owners decide their own work"
 ```
 
-The value lists are closed. A new value for `decides`, `merges`, `approves`, or `never` is a schema change, reviewed as one. No table names a repository, so nothing in the registry grows with the repository count. The `area-repo` scope resolves at launch to the repository the Request's `area:` label names.
+The value lists are closed. A new value for `decides`, `merges`, `approves`, or `never` is a schema change, reviewed as one. No table names a repository, so nothing in the registry grows with the repository count. A credential scope resolves at launch to the repository the Request's `area:` label names.
 
 ## Routing and context
 
@@ -93,7 +93,7 @@ Each line cites the key from [appendix A](A-evidence.md#operator-and-coordinator
 | --- | --- | --- | --- | --- | --- |
 | builder | Its own work on the Request, two-way doors in the area, its deploys until the deploy runner works | A pull request its Request produced, as the repository's ruleset allows | None | `repo-write`, `merge` | R9, R10, R11, R26, R30 |
 | approver | Whether a green head meets the checks | None | `approval-rules` | `approve` | R1, R2, R9 |
-| reviewer | Which reviewer pair runs, when launching reviews. The verdict, as a review run | None | None. Reviews post as `COMMENT` | `review` | R22, R23, tools `launcher.py` |
+| reviewer | Which reviewer pair runs, when launching reviews. The verdict, as a review run | None | None. Reviews post as `COMMENT` | `review` | R22, R23 (a coordinator record resting on the operator's direction recorded in it) |
 | coordinator | Priorities, cross-role questions, its own workings, Connect grants | None outside its own work | `normal-changes-across-roles` | `change-approve`, `credential-grant` | R0, R2, R7, R8, R10, R17 |
 | admin | How to carry out admin steps others decided | None | None | `org-settings`, `credential-grant`, `console` | R5, R6, R7 |
 
@@ -118,7 +118,7 @@ The admin kind's `never` list is the refusal list of the tool that mints the adm
 
 The registry check is a Bazel test in the private harness configuration repository. It fails when:
 
-- A kind's `authority` is empty, names a key with no `[record]` table, or names a record whose `who` isn't `operator`.
+- A kind's `authority` is empty, names a key with no `[record]` table, or names a record whose decider is neither the operator nor the coordinator with a `rests_on` that names an operator record.
 - A change adds a kind or a capability, widens a capability's bundle, or gives a kind a `decides`, `merges`, `approves`, or `may_take` value that main lacks, and no `[record]` with `who = "operator"` was added for it.
 - A bundle widens: it carries a field the harness mapping never emits, a hook outside the guard list, a credential scope wider than the Request's area repository, an allow entry wider than the base's, or an allow rule that matches an account deny.
 - A kind breaks its limits: a reviewer can't have `merges` or `approves`, an approver can't have `merges`, and exactly one kind has `fallback = true`.
