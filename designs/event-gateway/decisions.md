@@ -33,7 +33,7 @@ None.
 - **Decided:** 2026-11-22, by the gateway maintainer.
 - **Rule:** the client splits `hello` across frames of at most 4096 bytes each, marked with `more`, up to 256 subscriptions. The server delivers nothing until the last frame, and buffers live events from the first ([appendix C](C-protocol.md#session-protocol)).
 - **Undo:** two-way door before step 6 ships. After it, a new subprotocol version would carry a different scheme.
-- **Record:** the revision of this design that answers review of commit `f02d805`.
+- **Record:** [wiki#70](https://github.com/tbhb-dev/wiki/pull/70), merged as `69542e44`. It carries the revision that answered the design's first review.
 
 ### D10. What is the end state behind the gateway?
 
