@@ -10,7 +10,7 @@ A runbook lands only after a review with no blocking items, at the exact head th
 ## Blocking
 
 - [ ] **The steps work.** Run the read-only steps, or a dry run of the others, and compare the output with what the runbook says. A step that can't run from where you are says so in the report.
-- [ ] The frontmatter is complete and `last_verified` is a date someone ran the runbook.
+- [ ] The frontmatter is complete and `last_verified` is a date someone ran the runbook. A value of `never` is allowed and means the runbook is unverified, so the review says so.
 - [ ] The sections follow the skeleton, and each command sits on its own line in a code block.
 - [ ] Each failure path and the undo are present. A one-way door says so and says why.
 - [ ] A helper script is a real file beside the runbook, and it matches what the steps call.

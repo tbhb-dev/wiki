@@ -5,6 +5,8 @@
 
 Each design has its own directory, `designs/<slug>/`. Its `README.md` gives an overview of the design, `decisions.md` records every decision, and lettered appendices give the detail. Each design's frontmatter records its status.
 
+[runbooks/process/write-a-design.md](../runbooks/process/write-a-design.md) is the procedure from intake to tracked work.
+
 ## A design folder
 
 | File | Contents |

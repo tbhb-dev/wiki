@@ -5,11 +5,11 @@
 
 The reviewer didn't write or edit the design, and reads the whole folder: the README, `decisions.md`, every appendix, and every diagram source. Check each item against the files and primary sources, not against the author's summary. The rules are in [README.md](README.md), [TEMPLATE.md](TEMPLATE.md), and [WRITING.md](WRITING.md).
 
-A design reaches the operator only after a review with no blocking items, at the exact head that review read.
+A design reaches the operator only after two reviews with no blocking items, at the exact head they read.
 
 ## Reviewer models
 
-A design takes two reviews, each from a model that didn't write it. The review pair follows the model that wrote the design, under the review-pair ruling in the [model roster](../models/README.md): a Claude-written design gets Codex and Antigravity, and the roster says which models serve as each reviewer. The two reviewers are at equal capability, and the reviewer of record checks every finding.
+A design takes two reviews, and the pair follows the model that wrote the design, under the review-pair ruling in the [model roster](../models/README.md): a Claude-written design gets Codex and Antigravity, and the roster says which models serve as each reviewer. The two reviewers are at equal capability, and the reviewer of record checks every finding.
 
 ## Blocking
 
