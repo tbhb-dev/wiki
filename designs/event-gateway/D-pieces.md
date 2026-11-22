@@ -37,7 +37,7 @@ Before step 1, the gateway maintainer creates tbhb-dev/event-gateway:
 | 2. Deploy | Config | Compose file with the service, built on the host from a pinned commit, and a `cloudflared` sidecar, tunnel route for the webhook paths only, secrets as files, named volume, collector network, second GitHub webhook | 1, D2, D5, D6 |
 | 3. Read API | ~200 | `GET /v1/events?after=N` through an ordered consumer, with the subscription filter, bearer tokens, `event-gateway events tail` | 1 |
 | 4. Grafana | ~250 | `POST /webhooks/grafana` with awrel's checks, allowlist, and IDs. Second contact point in Grafana | 1 |
-| 5. Session server | ~380 | `/connect`, `gateway.v1`, subscription validation ported from awrel's rules, one ordered consumer per socket | 3 |
+| 5. Session server | ~380 | `/connect`, `gateway.v1`, subscription validation ported from awrel's rules plus the `number` and `label` filters ([D13](decisions.md)), one ordered consumer per socket | 3 |
 | 6. Resume | ~200 | chunked `hello`, consumer start at `resume_after + 1` or T0, `caught_up`, `gap` from the stream's first sequence. Smaller than before, since one consumer carries replay and live events | 5 |
 | 7. MCP client | ~390 | `event-gateway mcp`, awrel's tools, channel notifications, state file with `seq`, one-time import of awrel's session file | 6 |
 | 8. Harness config | Config | Gateway MCP entry for a canary, then everyone | 7 |
@@ -45,7 +45,7 @@ Before step 1, the gateway maintainer creates tbhb-dev/event-gateway:
 | 10. Retire awrel | Config | Remove awrel's webhook and contact point, stop its deploy, archive with a pointer | 8 plus one week |
 | 11. Temporal | Several | See the outline below | Temporal deployed |
 
-If the client's filter port pushes step 5 or 7 past 400 lines, split the filter package into its own step first. awrel's filter tests port as table tests, which keeps parity checkable.
+If the client's filter port pushes step 5 or 7 past 400 lines, split the filter package into its own step first. awrel's filter tests port as table tests, which keeps parity checkable. The `number` and `label` filters add about 60 lines, an estimate no build has measured, and the filter package is the likeliest split. Their cases cover a pull request with no labels, a `labeled` action, an `unlabeled` action for a followed label, a comment on a pull request, a filter on an unsupported event, a list over 8 entries, and duplicate entries.
 
 ### Why step 1 first
 

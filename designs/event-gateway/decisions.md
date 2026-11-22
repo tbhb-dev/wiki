@@ -20,6 +20,14 @@ None.
 
 ## Decided
 
+### D13. How do subscriptions follow one issue, pull request, or label?
+
+- **Decided:** 2026-11-22, by the gateway maintainer, on the coordinator's request.
+- **Rule:** add two optional subscription filters, `number` and `label`, for the GitHub events `issues`, `issue_comment`, `pull_request`, and `pull_request_review`. `label` matches the item's current labels and, on a `labeled` or `unlabeled` action, the changed label, so a follower of a label sees the event that removes it. Neither filter is required, and a filter on any other event is refused ([appendix C](C-protocol.md#session-protocol)).
+- **Why:** sessions follow one work item or one role's label instead of every event in a repository, and only the gateway builds it because it replaces awrel.
+- **Undo:** two-way door. The filters are optional and additive, so a client that never sends them is unaffected, and removing them breaks only subscriptions that use them.
+- **Record:** this pull request.
+
 ### D12. What queues events inside the gateway?
 
 - **Decided:** 2026-11-22, by the operator.
