@@ -25,9 +25,9 @@ A design starts in this public repository. A design that needs private specifics
 - [WRITING.md](WRITING.md) is the author's checklist before review.
 - [REVIEW.md](REVIEW.md) is the reviewer's checklist and report format.
 
-A design reaches the operator only after a reviewer who didn't write it clears it of blocking items at the exact head it reviewed. Designs written before these conventions keep their earlier layout until someone next revises them.
+A design reaches the operator only after the reviews in [REVIEW.md](REVIEW.md) clear it of blocking items at the exact head they read. Designs written before these conventions keep their earlier layout until someone next revises them.
 
 ## Planned checks
 
 - A tbhb-dev/rules check is to fail a design README with a heading containing `Decisions`, `Open questions`, `Decided`, or `Already decided`, or with an image that isn't a render of a `.d2` source tracked in the same folder. It isn't written yet.
-- A planned tbhb-dev/rules target generates an index of designs from each design's frontmatter, to replace this page's list. Until it exists, list the directory to see the designs.
+- A planned tbhb-dev/rules target generates an index of designs from each design's frontmatter, to list the designs. Until it exists, list the directory to see the designs.

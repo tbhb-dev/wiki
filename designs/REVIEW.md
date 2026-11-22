@@ -9,7 +9,7 @@ A design reaches the operator only after a review with no blocking items, at the
 
 ## Reviewer models
 
-A design takes two reviews, each from a model that didn't write it. Both come from Codex or Antigravity at equal capability: Codex at its top model on high effort, or Antigravity's top Gemini model. The author runs on Opus 5.5 at medium effort through the launcher, so a Claude model never reviews its own family's design. [../models/README.md](../models/README.md) has the roster.
+A design takes two reviews, each from a model that didn't write it. The review pair follows the model that wrote the design, under the review-pair ruling in the [model roster](../models/README.md): a Claude-written design gets Codex and Antigravity, and the roster says which models serve as each reviewer. The two reviewers are at equal capability, and the reviewer of record checks every finding.
 
 ## Blocking
 
@@ -34,7 +34,7 @@ A design takes two reviews, each from a model that didn't write it. Both come fr
 - [ ] Run the read-only checks an open item depends on, and record the result in the item. An item can't wait on a check nobody ran.
 - [ ] Each decided entry gives a date, who decided, the rule, how to undo it, and a record. Open each record and confirm it says what the entry claims.
 - [ ] **Hold a design PR that has open items.** The PR body says `Open decisions: N` in its Needs human judgment section, and N equals `decisions_open`. When N exceeds 0, the reviewer doesn't approve and nobody merges the PR until the operator answers. The answer moves the item to `## Decided`. The PR gets a new head, and the reviewer reviews that head again.
-- [ ] **A merged design becomes tracked work.** When the design merges, its plan steps go into the relevant tracker in the tracker for its area, or into a new one. Each step has an owner and an evidence column. The merger or the design's owner does this.
+- [ ] **A merged design becomes tracked work.** When the design merges, its plan steps go into the tracker for its area, or into a new tracker. Each step has an owner and an evidence column. The merger or the design's owner does this.
 
 ### Diagrams
 

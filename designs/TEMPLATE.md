@@ -67,7 +67,7 @@ decisions_open: <N>      # the number of items under ## Open in decisions.md
 
 ## The decisions appendix
 
-Every decision for the design goes in `decisions.md`, beside the README. Keep that exact name, with no letter. The open items come first, then the decided record. Each item keeps its number for life: an answered item moves from `## Open` to `## Decided` as it stands, and numbers aren't reused.
+Every decision for the design goes in `decisions.md`, beside the README. Keep that exact name, with no letter. The open items come first, then the decided record. Each item keeps its number for life: an answered item moves from `## Open` to `## Decided`, rewritten as a Decided, Rule, Undo, and Record entry, and numbers aren't reused.
 
 ```markdown
 ---
@@ -95,7 +95,7 @@ Back to [the design](README.md).
 - **If no:** <the alternative, and what it costs>.
 - **Reversible:** <yes, and how / no, and why>.
 
-<Repeat for D2, D3, and so on. the operator answers as "D1: yes".>
+<Repeat for D2, D3, and so on. The operator answers as "D1: yes".>
 
 ## Decided
 
@@ -106,7 +106,7 @@ Back to [the design](README.md).
 - **Decided:** <YYYY-MM-DD>, by <the operator or a role>.
 - **Rule:** <what now holds, in one or two sentences>.
 - **Undo:** <how to reverse it, or "one-way door" and why>.
-- **Record:** <the Decisions entry, PR, or commit that holds it>.
+- **Record:** <the decision record, PR, or commit that holds it>.
 ```
 
 ## A lettered appendix
@@ -156,7 +156,7 @@ author -> reviewer: design at an exact head
 The `d2_diagrams` macro from tbhb-dev/rules renders and checks these files. The Bazel package that holds the `.d2` files calls it once:
 
 ```starlark
-load("the operator_rules_d2//:defs.bzl", "d2_diagrams")
+load("@tbhb_rules_d2//:defs.bzl", "d2_diagrams")
 
 # `bazel run :diagrams` writes the renders beside each source.
 # `:diagrams_test` fails when a render is stale, missing, or has no source.

@@ -57,4 +57,4 @@ Follow this list before asking for review of a design. Use the skeletons in [TEM
 - [ ] Before the design reaches the operator, a reviewer who didn't write it must clear it of blocking items at the exact head it reviewed.
 - [ ] The PR body fills every section of the PR template.
 - [ ] The PR body says `Open decisions: N` in its Needs human judgment section, where N is the number of items under `## Open`. Nobody merges a design PR that has an open item until the operator answers it.
-- [ ] When the design merges, its plan steps go into the relevant tracker in the tracker for its area, or into a new one. Each step has an owner and an evidence column.
+- [ ] When the design merges, its plan steps go into the tracker for its area, or into a new tracker. Each step has an owner and an evidence column.
