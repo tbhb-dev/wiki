@@ -1,3 +1,12 @@
+---
+type: Design Appendix
+title: Event gateway decisions
+description: The open and decided questions of the event gateway design.
+tags: [event-gateway, decisions, design]
+status: draft
+parent: README.md
+---
+
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
@@ -57,9 +66,37 @@ Back to [the design](README.md).
 
 ## Decided
 
-The operator decided these before the design:
+### D11. How does a client send a subscription set larger than one frame?
 
-- **The gateway is a new project.** tbhb-dev/event-gateway, public, self-hosted on owned hosts, and the front door for event-driven work. It supersedes awrel, whose code stays unchanged until it retires.
-- **No paid services.** Public ingress uses a Cloudflare Tunnel.
-- **Telemetry.** Every service sends OpenTelemetry to the loopback-only local collector, and logs go to Loki.
-- **End state.** Temporal on owned hosts runs workflows behind the gateway, workflows launch agents through `tbhbdev alpha agent exec`, and intent sessions replace coordination sessions.
+- **Decided:** 2026-11-22, by the event gateway owner.
+- **Rule:** the client splits `hello` across frames of at most 4096 bytes each, marked with `more`, up to 256 subscriptions. The server delivers nothing until the last frame, and buffers live events from the first ([appendix C](C-protocol.md#session-protocol)).
+- **Undo:** two-way door before step 6 ships. After it, a new subprotocol version would carry a different scheme.
+- **Record:** the revision of this design that answers review of commit `f02d805`.
+
+### D10. What is the end state behind the gateway?
+
+- **Decided:** by 2026-11-21, by the operator, before the design.
+- **Rule:** Temporal on owned hosts runs workflows behind the gateway, workflows launch agents through `tbhbdev alpha agent exec`, and intent sessions replace coordination sessions.
+- **Undo:** two-way door. The operator can change the end state, and the gateway's targets stay pluggable.
+- **Record:** this design's first commit, `003bd65`.
+
+### D9. Where does the gateway send telemetry?
+
+- **Decided:** by 2026-11-21, by the operator, before the design.
+- **Rule:** every service sends OpenTelemetry to the loopback-only local collector, and logs go to Loki.
+- **Undo:** two-way door, by pointing the exporter elsewhere.
+- **Record:** this design's first commit, `003bd65`.
+
+### D8. May the gateway use paid services?
+
+- **Decided:** by 2026-11-21, by the operator, before the design.
+- **Rule:** no paid services. Public ingress uses a Cloudflare Tunnel.
+- **Undo:** two-way door. The operator can lift the rule, and the ingress swaps without code changes.
+- **Record:** this design's first commit, `003bd65`.
+
+### D7. Is the gateway a new project that replaces awrel?
+
+- **Decided:** by 2026-11-21, by the operator, before the design.
+- **Rule:** tbhb-dev/event-gateway is a new public project, self-hosted on owned hosts, and the front door for event-driven work. It supersedes awrel, whose code stays unchanged until it retires.
+- **Undo:** two-way door until step 10 retires awrel. After that, restoring awrel means redeploying it and adding its webhooks back.
+- **Record:** this design's first commit, `003bd65`.

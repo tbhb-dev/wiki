@@ -1,3 +1,12 @@
+---
+type: Design Appendix
+title: Event gateway pieces
+description: Each build step of the event gateway in detail, the day-one repository, and the Temporal outline.
+tags: [event-gateway, plan, design]
+status: draft
+parent: README.md
+---
+
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
@@ -29,7 +38,7 @@ Before step 1, the event gateway owner creates tbhb-dev/event-gateway:
 | 3. Read API | ~200 | `GET /v1/events?after=N` with the subscription filter, bearer tokens, `event-gateway events tail` | 1 |
 | 4. Grafana | ~250 | `POST /webhooks/grafana` with awrel's checks, allowlist, and IDs. Second contact point in Grafana | 1 |
 | 5. Session server | ~380 | `/connect`, `gateway.v1`, subscription validation ported from awrel's rules, fan-out | 3 |
-| 6. Resume | ~250 | `hello`, replay, `caught_up`, `gap` | 5 |
+| 6. Resume | ~250 | chunked `hello`, replay, `caught_up`, `gap` | 5 |
 | 7. MCP client | ~390 | `event-gateway mcp`, awrel's tools, channel notifications, state file with `seq` | 6 |
 | 8. Harness config | Config | Gateway MCP entry for a canary, then everyone | 7 |
 | 9. Retention and redelivery | ~300 | Retention sweep. A loop that lists failed GitHub deliveries since the last good one and asks GitHub to redeliver them | 2, D3, D4 |

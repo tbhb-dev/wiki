@@ -1,3 +1,12 @@
+---
+type: Design Appendix
+title: Event gateway evidence
+description: What reads of awrel, the github-metrics receiver, and the launcher show for the event gateway design.
+tags: [event-gateway, evidence, design]
+status: draft
+parent: README.md
+---
+
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 

@@ -1,3 +1,12 @@
+---
+type: Design Appendix
+title: Event gateway earlier designs
+description: What earlier designs offer the event gateway, and which of their constraints it drops.
+tags: [event-gateway, alternatives, design]
+status: draft
+parent: README.md
+---
+
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 

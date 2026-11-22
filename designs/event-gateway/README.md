@@ -1,11 +1,22 @@
+---
+type: Design Draft
+title: Event gateway
+description: A self-hosted gateway that logs GitHub and Grafana events and delivers them to agent sessions and later Temporal.
+tags: [event-gateway, webhooks, mcp, design]
+status: draft
+owner: Event gateway owner
+updated: "2026-11-22"
+decisions_open: 6
+---
+
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
 # Event gateway
 
-| Status | Owner | Updated | Open decisions | Needs from the operator |
-| --- | --- | --- | --- | --- |
-| Draft | Event gateway owner (new role) | 2026-11-21 | 6 | Answers to the [open decisions](decisions.md) |
+| Status | Owner | Updated | Needs from the operator |
+| --- | --- | --- | --- |
+| Draft | Event gateway owner (new role) | 2026-11-22 | 6 open decisions in [decisions.md](decisions.md) |
 
 ## Summary
 
@@ -55,7 +66,7 @@ Every source produces the same envelope. It extends awrel's `event` message, so 
 | Session delivery | Kept for replay within retention | At least once. The client resumes from its last `seq` and drops repeated `delivery` IDs |
 | Temporal delivery | Durable | At least once from a per-target cursor. The workflow ID and request ID make it idempotent |
 | Pings, echoes, and status notices | Best-effort | Never stored |
-| Events older than retention | Gone | A sweep deletes them, 7 days by default ([D3](decisions.md)) |
+| Events older than retention | Gone | A sweep removes every payload at 7 days by default, whatever any target's cursor says ([D3](decisions.md)) |
 
 ### Targets
 
@@ -63,16 +74,16 @@ A target implements `Name()` and `Deliver(ctx, Event) error`. A pull target, suc
 
 ### Sessions
 
-The session protocol is awrel's `awrel.v1` protocol with two additions, served under the subprotocol `gateway.v1`. The client sends `resume_after` with its last `seq` when it connects. The server replays matching events from the log, sends a `caught_up` marker, and then goes live. awrel's message types, filter fields, size limits, and error codes stay the same ([appendix C](C-protocol.md#session-protocol)).
+The session protocol is awrel's `awrel.v1` protocol with two additions, served under the subprotocol `gateway.v1`. The client sends `resume_after` with its last `seq` and its subscriptions in a `hello` when it connects, split across frames when the set exceeds awrel's 4096-byte frame cap. The server replays matching events from the log, sends a `caught_up` marker, and then goes live. awrel's message types, filter fields, size limits, and error codes stay the same ([appendix C](C-protocol.md#session-protocol)).
 
 The MCP client stores its subscriptions and its last `seq` per session key in its state directory, as awrel's client stores subscriptions today. A Claude Code session still needs the development channels flag. That's a harness constraint and stays the same.
 
-Each client gets its own bearer token rather than one shared token. The gateway keeps a file of token hashes and names, so the operator can revoke one client without touching the others. The token name goes into telemetry, never the token.
+Each client gets its own bearer token rather than one shared token. The gateway keeps a file of token hashes and names, so the operator can revoke one client without touching the others. The server reloads the file at least every 30 seconds and closes the sockets of revoked tokens. The token name goes into telemetry, never the token.
 
 ### Runtime and ingress
 
 - **Language:** Go, matching the awrel client and the github-metrics receiver. The image is one static binary with cgo off on a distroless base, run as a non-root user with a read-only root file system.
-- **Storage:** SQLite through a pure-Go driver, in write-ahead logging mode, on one named volume. One writer, one host, no cluster.
+- **Storage:** SQLite through a pure-Go driver, in write-ahead logging mode with `synchronous=FULL`, on one named volume. Write-ahead logging alone doesn't make a commit durable before the 202. One writer, one host, no cluster.
 - **Deploy:** Docker Compose, deployed by the ops owner's roles, with images pinned by digest. Secrets arrive as files from 1Password, as the github-metrics receiver reads them.
 - **Ingress:** a Cloudflare Tunnel sidecar routes only the webhook paths to the service. The session endpoint stays on the private network ([D2](decisions.md)).
 - **Telemetry:** OpenTelemetry traces, metrics, and logs over the OpenTelemetry Protocol (OTLP) to the loopback-only local collector, which forwards logs to Loki. The container joins the collector's network, as the github-metrics receiver does. The code starts with a small internal telemetry package and moves to tbhb-dev/telemetry once that library exists.
@@ -100,6 +111,18 @@ No events go missing because the two systems overlap. Every event reaches both f
 | The launcher refuses some non-interactive callers | A Temporal worker can't launch reviewer runs | tools piece in the Temporal phase | tools `docs/reference/alpha/agent-configuration.md` (appendix A) |
 | Grafana retry and repeat behavior | An alert lost while the gateway is down | Grafana's repeat interval sends firing alerts again. Unverified | Unverified |
 
+## Known debt
+
+These gaps are known and not yet designed. Each goes into the first build that exercises it.
+
+| Debt | Where it bites | First step that answers it |
+| --- | --- | --- |
+| The step 8 config swap doesn't say how a session's awrel subscriptions move into the gateway client's state, or where replay starts for a session that has no `seq` yet | A swapped session starts with no subscriptions, or replays from the wrong point | 7 and 8 |
+| Exiting on stdin close may not end awrel's orphan processes after an `/mcp` reconnect | Orphan clients keep sockets and tokens open | 7, with a test that reproduces the orphan |
+| The organization webhook's event list must include `check_run` and `check_suite`, and the action types the filters accept for them aren't listed | A subscription on those events never matches | 2 and 5 |
+| Appendix A reads awrel at a commit after `v0.7.1`, while sessions run the client at `v0.5.0` | Behavior described in appendix A may not be what sessions run today | 5, by pinning the filter tests to the version sessions run |
+| Appendix A's claims don't carry proven, existing, new, or unverified labels | A reader can't weigh each claim | Next revision of this design |
+
 ## Plan
 
 Each step is one pull request of under 400 code lines, unless it says config. [Appendix D](D-pieces.md) has the detail and the size estimates.
@@ -125,7 +148,7 @@ The Temporal piece adds one target that maps routing rules to `SignalWithStart` 
 
 ## Appendices
 
-- [Decisions](decisions.md): 6 open.
+- [Decisions](decisions.md): 6 open, then the decided record.
 - [A. Evidence](A-evidence.md): awrel today, the github-metrics receiver, the launcher.
 - [B. Earlier designs](B-earlier-designs.md): what older designs offer, and the constraints this design drops.
 - [C. Protocol](C-protocol.md): envelope, session protocol, target interface, storage schema.
