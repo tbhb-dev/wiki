@@ -77,6 +77,8 @@ Rules:
   have answers. Reuse the question comment for gaps that still need answers.
 - A split parent needs its own current ready record to show Ready.
 - Never refine an item whose body you wrote.
+- For a tracker import, use a separate run from the one that mapped the
+  staged body.
 - Cite no private repository in a public item.
 - On a 403 or 429 response, back off. Stop when the write budget runs
   out, and report where you stopped.
@@ -115,7 +117,7 @@ A rubber-stamp Ready leaves signs, and one of them sends the reviewer to read th
 - A Ready item still matches a pattern of item 2, 3, 7, or 8 when checked again.
 - An item 4 pass lacks an issue search.
 
-The reviewer checks that every item with a `ready` outcome has a current record with a pass or fix for each applicable check. The reviewer checks the sample's evidence and inspects the whole batch if there are signs of a rubber stamp. One failed check on any reviewed item fails the batch. A failed batch gets a new refinement run.
+The reviewer checks that every `ready` result records a pass or fix for each applicable check. In ordinary refinement, the reviewer also checks that the record is current. The reviewer checks the sample's evidence and inspects the whole batch if there are signs of a rubber stamp. One failed check on any reviewed item fails the batch. A failed batch gets a new refinement run.
 
 ## Failure modes
 

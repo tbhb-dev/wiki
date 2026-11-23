@@ -53,7 +53,7 @@ The design relies on D1 to D4 and D6 as requirements. D5 only places the design.
 ### D11. Which issue types does the tracker import create?
 
 - **Decided.** tbhb, 2026-11-23, approved direct creation in the destination issue type.
-- **Rule.** The imports role refines and vets each file in staging. The kernel writes each issue once in its destination type with Source `Import`. At creation, the kernel adds `flag:split`, `flag:drop`, or `flag:needs-info` to match the staged outcome.
+- **Rule.** The imports role maps each staged file in one run. A separate run of the imports role refines and vets the file. The kernel writes each issue once in its destination type with Source `Import`. The creation write includes the [label for the staged outcome](E-import.md#review-and-creation).
 - **Why.** Staging already produces the sections each type requires. Direct creation keeps those sections and avoids about 2,000 follow-up writes.
 - **Undo.** Change the mapping and creation path for a future import. Two-way door.
 - **Record.** The [tracker import design](E-import.md) gives the approved procedure.
