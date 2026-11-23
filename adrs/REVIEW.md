@@ -14,13 +14,17 @@ status: draft
 
 The reviewer didn't write or edit the record, and reads each changed record whole, together with the index entry and any record it replaces. Check each item against the files and the primary sources, not against the author's summary. The rules are in [README.md](README.md) and [TEMPLATE.md](TEMPLATE.md).
 
-A decision record pull request gets two fresh review runs from different model families. Fable 5.2 and Codex Sol are one example pair. Reviewers report the head they read. After a fix, one fresh delta run checks the changes made by that fix. The operator approves the reviewed head once all blocking findings are resolved. Source: [ADR 0001](https://github.com/tbhb-dev/wiki/blob/22d528cbb73d640ff1291e3a5dd1e9f9ae89a791/adrs/0001-the-changed-paths-and-content-set-the-review-tier.md).
+The review tier sets the initial review count. A decision record pull request needs two fresh runs from different model families, and a fix needs one fresh run on the fix diff. The operator approves the reviewed head once all blocking findings are resolved. See [ADR 0001](https://github.com/tbhb-dev/wiki/blob/22d528cbb73d640ff1291e3a5dd1e9f9ae89a791/adrs/0001-the-changed-paths-and-content-set-the-review-tier.md).
+
+Count each run only for the commits for which its reviewer qualifies under the provider rule. This also applies to the sole delta reviewer for a fix. See [ADR 0002](https://github.com/tbhb-dev/wiki/blob/22d528cbb73d640ff1291e3a5dd1e9f9ae89a791/adrs/0002-reviewers-come-from-a-different-provider-from-the-builder.md).
 
 Each item ends with the source of the check. The Sources section summarizes the references and the operator's standing rulings.
 
 ## BLOCK
 
-Assign BLOCK only when ordinary use without an adversary produces a wrong result, destroys data, or breaks a workflow. For disclosures, only a credential or secret stops review. Source: [ADR 0007](https://github.com/tbhb-dev/wiki/blob/22d528cbb73d640ff1291e3a5dd1e9f9ae89a791/adrs/0007-a-review-finding-blocks-when-ordinary-use-breaks.md) and the operator's disclosure ruling.
+Assign BLOCK when ordinary use without an adversary produces a wrong result, destroys data, or breaks a workflow. For disclosures, only a credential or secret stops review. See the operator's disclosure ruling and [ADR 0007](https://github.com/tbhb-dev/wiki/blob/22d528cbb73d640ff1291e3a5dd1e9f9ae89a791/adrs/0007-a-review-finding-blocks-when-ordinary-use-breaks.md).
+
+Deliberate evasion of a scanner, linter, or other check also blocks. Fix the underlying issue or use the check's reviewed allowlist. Redaction placeholders can stand in for information that must be withheld. See [ADR 0008](https://github.com/tbhb-dev/wiki/blob/22d528cbb73d640ff1291e3a5dd1e9f9ae89a791/adrs/0008-deliberately-evading-a-check-blocks-review.md).
 
 ### Standing alone
 
@@ -35,7 +39,7 @@ Assign BLOCK only when ordinary use without an adversary produces a wrong result
 
 ### Scope
 
-- [ ] **The Scope section states the rule's boundaries.** It names the systems, repositories, roles, or situations where the rule applies and where it ends. Source: the operator's scope ruling and [AWS](https://docs.aws.amazon.com/prescriptive-guidance/latest/architectural-decision-records/adr-process.html#scope-of-the-adr-process).
+- [ ] **The record makes the rule's boundaries clear.** It names the systems, repositories, roles, or situations where the rule applies and where it ends. Block only if missing or incorrect scope would cause the reader to misapply the rule. Clear boundaries in Context qualify, as in [ADR 0029](https://github.com/tbhb-dev/wiki/blob/41816a4048b5ceab461a011440bf4ec44380d499/adrs/0029-wording-only-follow-ups-join-the-next-needed-pull-request.md). See the operator's scope ruling and [AWS](https://docs.aws.amazon.com/prescriptive-guidance/latest/architectural-decision-records/adr-process.html#scope-of-the-adr-process).
 
 ### One decision
 
@@ -66,7 +70,7 @@ Assign BLOCK only when ordinary use without an adversary produces a wrong result
 
 ### Checkable by an agent
 
-- [ ] **An agent that must follow the record can tell when it applies and whether it was followed.** The Scope names the trigger, and the Decision or the Confirmation section names the observable check. Source: [MADR](https://adr.github.io/madr/), [BrainGrid](https://www.braingrid.ai/blog/architecture-decision-records-for-ai-coding-agents), and [Evolu](https://www.evolu.dev/blog/architecture-decision-records-for-coding-agents).
+- [ ] **An agent that must follow the record can tell when it applies and whether it was followed.** The record names the trigger wherever it states the scope. The Decision or the Confirmation section names the observable check. See [MADR](https://adr.github.io/madr/), [BrainGrid](https://www.braingrid.ai/blog/architecture-decision-records-for-ai-coding-agents), and [Evolu](https://www.evolu.dev/blog/architecture-decision-records-for-coding-agents).
 - [ ] **The record supplies the knowledge needed to act.** An agent can find every required definition in the record or in a record it links directly. Source: the operator's self-contained ruling.
 
 ## TECH-DEBT
@@ -75,17 +79,20 @@ Assign BLOCK only when ordinary use without an adversary produces a wrong result
 
 - [ ] **Stranger-readable sections.** Context states the forces in neutral terms, Decision states the rule, and Consequences lists the good and the bad effects. Options considered is optional. If present, it names each rejected option with the reason it lost. Source: [Nygard](https://www.cognitect.com/blog/2011/11/15/documenting-architecture-decisions), [MADR](https://adr.github.io/madr/), and [TEMPLATE.md](TEMPLATE.md).
 - [ ] **No hidden costs.** Consequences name at least one cost or risk. Source: [Zimmermann on creating ADRs](https://ozimmer.ch/practices/2023/04/03/ADRCreation.html).
-- [ ] **Scope names a nearby case outside the rule.** Source: the operator's scope ruling.
+- [ ] **The record uses a Scope heading for its boundaries.** When the boundaries are clear under Context or another heading, flag placement as a writing issue. See [TEMPLATE.md](TEMPLATE.md).
+- [ ] **The record names a nearby case outside the rule.** See the operator's scope ruling.
 - [ ] **The title states the decision.** "Repository gates run as Bazel tests" states the rule. Source: [MADR primer](https://ozimmer.ch/practices/2022/11/22/MADRTemplatePrimer.html) and [TEMPLATE.md](TEMPLATE.md).
 - [ ] **The record is worth keeping.** The decision is hard to reverse, would surprise a reader without context, or has a real trade-off. Source: [Fowler](https://www.martinfowler.com/bliki/ArchitectureDecisionRecord.html), [Henderson](https://github.com/joelparkerhenderson/architecture-decision-record), and [Evolu](https://www.evolu.dev/blog/architecture-decision-records-for-coding-agents).
 - [ ] **The house writing rules hold.** Each sentence states one fact, each paragraph is on one line, and each list item is a full sentence ending with a period. Keep the prose focused on the decision. Source: the operator's house writing ruling and [TEMPLATE.md](TEMPLATE.md).
 - [ ] **Wording is observable.** The Decision names what a reader sees, runs, or can check. Source: the operator's house writing ruling.
 - [ ] **The record is short.** Aim for about one page within the word caps in [TEMPLATE.md](TEMPLATE.md). Link to detail, evidence, and measurements. Source: [Nygard](https://www.cognitect.com/blog/2011/11/15/documenting-architecture-decisions), [Fowler](https://www.martinfowler.com/bliki/ArchitectureDecisionRecord.html), and [TEMPLATE.md](TEMPLATE.md).
 - [ ] **The Decision states the rule in the present tense.** Keep quotations and accounts of who said what out of the record. Source: [TEMPLATE.md](TEMPLATE.md) and [README.md](README.md).
+- [ ] **The description is one sentence.** Reuse it in the index entry. See [TEMPLATE.md](TEMPLATE.md).
+- [ ] **The file ends with exactly one newline.** See [TEMPLATE.md](TEMPLATE.md) and [the EditorConfig rules](../.editorconfig).
+- [ ] **The record omits generated attribution text.** Keep the `generated` field and authorship trailers out of the record. See [TEMPLATE.md](TEMPLATE.md).
 
 ### Privacy
 
-- [ ] **Role labels replace identifying details.** Use role labels such as "the Linux build host" for host names, tailnet details, vault names, internal paths, account names, and public IP addresses. A private repository name is allowed. Source: the operator's disclosure ruling and [README.md](README.md).
 - [ ] **Keep links to private repositories and Decisions entry citations out of the record.** Source: [README.md](README.md).
 
 ### Other checks
@@ -96,21 +103,32 @@ Assign BLOCK only when ordinary use without an adversary produces a wrong result
 - [ ] The record states how confident the decision is where the confidence is low. Source: [Azure](https://learn.microsoft.com/en-us/azure/well-architected/architect-role/architecture-decision-record).
 - [ ] Review comments name the file, the line, and the fix, and skip wording preferences that don't change meaning. Source: [Zimmermann on reviewing ADRs](https://ozimmer.ch/practices/2023/04/05/ADRReview.html).
 
+## SECURITY-DEBT
+
+- [ ] **Role labels replace identifying details.** Use role labels such as "the Linux build host" for host names, tailnet details, vault names, internal paths, account names, and public IP addresses. A private repository name is allowed. See the operator's disclosure ruling and [README.md](README.md).
+
 ## Report
 
 Report as a PR review, in this format:
 
 ```text
 Record: <adrs/NNNN-slug> in <owner/repo#N> at <sha>
-Verdict: ready for the operator | changes needed
+Tier: <review tier>
+Run ID: <review run id>
+Provider: <model provider>
+Verdict: GO | HOLD
 BLOCK:
 - <checklist item>: <file:line>, <what is wrong>, <the fix>
+SECURITY-DEBT:
+- <file:line>: <note>
 TECH-DEBT:
 - <file:line>: <note>
 Checked: <the source Decisions entry compared, the records searched for overlap, the number checked for reuse>
 ```
 
-The verdict covers only that `sha`. The delta run after a fix checks the fix diff and each checklist item the diff could affect.
+The verdict covers only the reported head. See [ADR 0004](https://github.com/tbhb-dev/wiki/blob/22d528cbb73d640ff1291e3a5dd1e9f9ae89a791/adrs/0004-review-runs-publish-verdicts-on-the-pull-request.md). The fresh delta run after a fix checks the fix diff and each checklist item the diff could affect. Count the delta run only if its reviewer qualifies for the fix commits under the provider rule above.
+
+A history rewrite requires fresh review at the applicable tier. See [ADR 0021](https://github.com/tbhb-dev/wiki/blob/41816a4048b5ceab461a011440bf4ec44380d499/adrs/0021-authors-may-update-and-curate-pull-request-branches.md). The review worker can reuse approval for a rebuilt replacement whose Git tree matches the approved tree. The approval checks still apply at the replacement head, and the worker holds a replacement that changes the review template. See [ADR 0010](https://github.com/tbhb-dev/wiki/blob/22d528cbb73d640ff1291e3a5dd1e9f9ae89a791/adrs/0010-a-rebuilt-pull-request-can-reuse-approval-for-an-identical-tree.md).
 
 ## Sources
 
