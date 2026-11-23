@@ -18,20 +18,19 @@ Every GitHub API path below is a REST path under `https://api.github.com`. The c
 
 ## The trigger
 
-The approval needs two things at once: the App's secret, and the results of CI at the head. Untrusted pull request content must never run while the secret is in reach. Three kinds of trigger can supply the secret.
+Each approval needs the App's credentials and the CI results at the pull request head.
 
 | Trigger | When it fires | Secret and code | Tradeoff |
 | --- | --- | --- | --- |
-| `pull_request_target` | On pull request activity, such as `opened` and `synchronize` | Runs the base branch's workflow with secrets | Fires before CI finishes, so the job must poll or wait for a second event. It's also the trigger behind most known secret leaks, through a checkout of the head |
-| `workflow_run` | When a named workflow completes | Runs the default branch's workflow with secrets | Fires exactly when CI's result exists. It carries the same leak risk if the job checks out the head or downloads its artifacts, and this job does neither |
+| `pull_request_target` | On pull request activity, such as `opened` and `synchronize` | Runs the base branch's workflow | Fires before CI finishes. The job needs to poll or wait for a second event. Checking out and running code from the head can expose secrets |
+| `workflow_run` | When a named workflow completes | Runs the default branch's workflow on the default branch ref | Fires when CI's result exists. The approving job treats pull request content as data |
 | `check_suite` or `check_run` | When a check suite or check run completes | Runs the default branch's workflow | GitHub doesn't fire either for suites that GitHub Actions created, and every required check here comes from Actions, so neither fires |
 
-The workflow uses `workflow_run` with `types: [completed]`, recorded as [D5](decisions.md). The caller lists every workflow that reports a required check. Each completion re-runs the decision, and only the last one to finish can see all checks succeed.
+The caller uses `workflow_run` with `types: [completed]` and lists every workflow that reports a required check. Each completion triggers a decision. [D5](decisions.md)
 
-Three rules keep untrusted content away from the secret:
-
-- The job never checks out the pull request, never downloads its artifacts, and never runs any file from it. It reads the diff and file text as data through Git objects and the API.
-- The job's code comes from tbhb-dev/rules at the commit the caller pins. The caller itself runs from the default branch, so a pull request can't change either one for its own run.
+- To inspect pull request changes, the job reads the diff and file text as data through Git objects and the API. It never checks out or executes pull request code. CI artifacts stay outside the job.
+- GitHub runs the caller's workflow definition from the default branch. The job runs code from tbhb-dev/rules at the commit that definition pins.
+- In the reusable workflow, the approving job declares `environment: pins-approver`. Before the job starts, GitHub checks the run's ref against the environment policy in the calling repository. Only runs from the default branch can read the environment secrets.
 - No pull request field, such as a title or a branch name, reaches a `run:` script through a `${{ }}` expression. The script reads the event payload from `GITHUB_EVENT_PATH` and gets everything else from the API.
 
 zizmor's `dangerous-triggers` audit flags `workflow_run`. Each caller adds an ignore entry for its caller file, with a comment that points here.
@@ -44,13 +43,13 @@ GitHub has no compare-and-set for a review: the review endpoint can't refuse a p
 2. **Find the pull request.** `GET /repos/{owner}/{repo}/commits/{H}/pulls` must return exactly one open pull request whose head repository is this repository and whose head is H. Otherwise the run ends with `pr_not_unique` or `fork_head`.
 3. **First read.** `GET /repos/{owner}/{repo}/pulls/{number}` must show `head.sha` equal to H, or the run ends with `head_mismatch_at_start`.
 4. **Gather and decide** against H only. Every API call that takes a ref passes H or the merge base, never a branch name.
-5. **Second read**, just before the post, in enforce mode. The pull request read again must show head H, `state` open, `draft` false, and no opt-out label, and the required checks read again must still pass. A changed head ends the run with `head_moved`.
-6. **Bound post.** `POST /repos/{owner}/{repo}/pulls/{number}/reviews` with `event: APPROVE` and `commit_id: H`. The run requires the response's `commit_id` to equal H.
+5. **Second read, just before approval.** Recheck the required checks, then re-read the pull request. The checks must still pass and the pull request must still show head H, `state` open, `draft` false, and no opt-out label. A changed head ends the run with `head_moved`. In `evaluate` mode the run stops after recording the decision.
+6. **Bound post.** In enforce mode, send `POST /repos/{owner}/{repo}/pulls/{number}/reviews` with `event: APPROVE` and `commit_id: H`. The run requires the response's `commit_id` to equal H.
 7. **Third read.** The pull request read once more must show head H, or merged with merge base and head unchanged. If the head moved, the run calls `PUT .../reviews/{review_id}/dismissals` and logs `head_moved_after_approval`. A ruleset that restricts dismissals can refuse that call, which the spike checks, and the stale dismissal still applies.
 
-The proof that the head didn't move is the three equal reads plus the response's `commit_id`. A gap remains between the second read and the post. The ruleset closes it: `dismiss_stale_reviews_on_push` voids an approval when a push lands, and `require_last_push_approval` requires an approval after the latest push. The run reads both settings from the branch rules and refuses with `stale_dismissal_off` if either is off. Whether GitHub counts a review posted with an older `commit_id` after a push is unverified, and plan step 2 tests it.
+The reads check for head changes, and the response's `commit_id` confirms the review targets H. A push can land between the second read and the post. The workflow relies on two ruleset settings to guard that interval. `dismiss_stale_reviews_on_push` voids stale approvals on push, and `require_last_push_approval` requires approval of the latest push. The run reads both settings from the branch rules and refuses with `stale_dismissal_off` if either is off. Plan step 2 tests whether GitHub counts a review that the App posts with an older `commit_id` after a push.
 
-Renovate enables GitHub's auto-merge on its pull requests. The approval can therefore merge the pull request within seconds, and the third read accepts a merged pull request whose head is still H. Auto-merge can't merge a newer head on this approval, because the push that made that head dismissed it.
+Renovate enables GitHub's auto-merge on its pull requests. An approval can trigger a merge within seconds, and the third read accepts a merged pull request whose head is still H.
 
 ## The author check
 
@@ -103,23 +102,27 @@ These are proposals that the org's administrator confirms, under [D3](decisions.
 - **Permissions:** pull requests write, contents read, checks read, and metadata read, which GitHub adds to every App. No others, and no organization permissions.
 - **Webhook:** off. The App receives no events, because the workflow does the work.
 - **Where it installs:** only on this account, on selected repositories, starting with tbhb-dev/rules.
-- **Secrets:** `PIN_APPROVER_CLIENT_ID` and `PIN_APPROVER_PRIVATE_KEY`, as org secrets limited to the same selected repositories. The private key lives in 1Password, and the org secret is a copy for Actions.
+- **Secrets.** `PIN_APPROVER_CLIENT_ID` and `PIN_APPROVER_PRIVATE_KEY` live in the `pins-approver` environment of each calling repository. The administrator keeps the source key in the approved password manager.
 
 Contents read covers the commits and compare endpoints and the Git fetch of H and the merge base. Checks read covers the check runs. Pull requests write covers the review and its dismissal. Lookups in third-party public repositories, such as a tag in `actions/checkout`, work with any token. A first-party source that's private needs the App installed there with contents read.
 
 ### Minting the token
 
-The job mints a short-lived installation token with `actions/create-github-app-token`, pinned by commit, as the Renovate workflow already does ([appendix A](A-evidence.md)). It passes `client-id`, `private-key`, `owner`, and `repositories` set to the calling repository only, plus `permission-pull-requests: write`, `permission-contents: read`, and `permission-checks: read`. In `evaluate` mode the job asks for `permission-pull-requests: read` instead, since it posts nothing. An installation token expires after one hour, and the action revokes it when the job ends. The token reaches only the decision step, through an environment variable.
+The approving job requests an installation token with `actions/create-github-app-token` at a pinned commit. Once GitHub admits the job to `pins-approver`, the action gets `${{ secrets.PIN_APPROVER_CLIENT_ID }}` as `client-id` and `${{ secrets.PIN_APPROVER_PRIVATE_KEY }}` as `private-key`. The token covers only the calling repository, as specified by `owner` and `repositories`.
+
+Both modes request `permission-contents: read` and `permission-checks: read`. For `permission-pull-requests`, the job requests `read` in `evaluate` mode or `write` in `enforce` mode. Only the decision step receives the token. It expires after one hour, and the action revokes it when the job ends.
 
 ### What the administrator sets up
 
 1. Create the App under the organization with the name, permissions, and webhook setting in the previous section, installable only on this account.
-2. Generate a private key, store it in 1Password, and delete the downloaded file.
-3. Install the App on the first repository.
-4. Create the two org secrets with access limited to the installed repositories.
-5. Record the App's ID and bot user ID in the rules maintainer's tracking issue, so the tests and logs can name it.
+2. Generate a private key, store it in the approved password manager, and delete the downloaded file.
+3. Record the App's ID and bot user ID in the rules maintainer's tracking issue so the tests and logs can name it.
 
-Each new repository repeats steps 3 and 4 for that repository.
+In each calling repository, including the first, complete these steps before enabling the caller.
+
+1. Install the App on the repository.
+2. Create the GitHub Actions environment `pins-approver`. Under **Deployment branches and tags**, choose **Selected branches and tags** and add one branch rule matching the default branch exactly. Leave tag rules and required reviewers unset.
+3. Add the App's client ID as the environment secret `PIN_APPROVER_CLIENT_ID` and its private key as `PIN_APPROVER_PRIVATE_KEY`.
 
 ## The `workflow_call` interface
 
@@ -139,9 +142,9 @@ The reusable workflow lives at `.github/workflows/renovate-auto-approval.yml` in
 | `opt_out_label` | string | `no-auto-approval` | A pull request with this label gets `opted_out` |
 | `runs-on` | string | `ubuntu-26.04-arm` | The runner label |
 
-Its secrets are `PIN_APPROVER_CLIENT_ID` and `PIN_APPROVER_PRIVATE_KEY`, both required. Its outputs are `decision`, `reason`, and `head_sha`.
+The reusable workflow exposes `decision`, `reason`, and `head_sha` as outputs. The approving job reads both credentials directly from `pins-approver` through its `secrets` context.
 
-Inside, it sets `permissions: {}` at the top and on its one job, because every call uses the App's token. The job has `timeout-minutes: 10`, and its concurrency group is `renovate-auto-approval-${{ github.repository }}-${{ github.event.workflow_run.head_branch }}` with `cancel-in-progress: false`. One Renovate branch is one pull request, so two runs for one pull request queue rather than overlap, and GitHub keeps only the newest pending run. The job never cancels a run mid-approval, because a cancel between the post and the third read would leave an approval unchecked.
+The reusable workflow sets `permissions: {}` at the workflow and job levels because the job uses the App's token. The job declares `environment: pins-approver` and `timeout-minutes: 10`. Its concurrency group is `renovate-auto-approval-${{ github.repository }}-${{ github.event.workflow_run.head_branch }}` with `cancel-in-progress: false`. Runs for one pull request queue, and GitHub keeps only the newest pending run. The job never cancels a run mid-approval, because a cancel between the post and the third read would leave an approval unchecked.
 
 The job's steps, in order:
 
@@ -172,9 +175,6 @@ jobs:
     uses: tbhb-dev/rules/.github/workflows/renovate-auto-approval.yml@<40-hex commit>  # main
     with:
       mode: evaluate
-    secrets:
-      PIN_APPROVER_CLIENT_ID: ${{ secrets.PIN_APPROVER_CLIENT_ID }}
-      PIN_APPROVER_PRIVATE_KEY: ${{ secrets.PIN_APPROVER_PRIVATE_KEY }}
 ```
 
 The `if:` is a cheap filter that saves a runner for fork and push runs, not a security check. The module repeats both checks against the API.

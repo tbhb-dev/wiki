@@ -16,7 +16,7 @@ Back to [the design](README.md).
 
 ## The fail-closed rule
 
-Every path out of the run ends in one of two outcomes: an approval with reason `ok_pin_only`, or no approval with exactly one other reason code. An unexpected exception anywhere maps to `internal_error`. The entry point catches it, writes the summary, and exits with status 0, so a refusal never reads as a broken workflow. A refusal never retries inside the run. The next CI completion, or a re-run, decides again from scratch.
+The decision code either approves with reason `ok_pin_only` or refuses with a reason code. On unexpected exceptions, the entry point records `internal_error` in the summary and exits with status 0. If GitHub blocks the job before it starts, the Actions run shows the failure and the decision code never runs. A CI completion or re-run starts a fresh decision.
 
 The job summary shows the mode, the pull request number, H, the decision, the reason code, every finding with its file and line, and the time of each of the three head reads. `decision.json` carries the same fields for the rollout review in [appendix F](F-rollout.md).
 
@@ -24,13 +24,14 @@ The job summary shows the mode, the pull request number, H, the decision, the re
 
 | Failure | What the run does | Reason code |
 | --- | --- | --- |
+| A workflow edit runs from a pull request branch and requests `pins-approver` | GitHub rejects the non-default ref under the environment's deployment policy. The job never starts or reads either secret | GitHub reports a deployment policy failure |
 | A GitHub API call returns 5xx or times out | Retries twice with backoff, then refuses | `api_error` |
 | A call returns 403 or 429 with no remaining quota or a `retry-after` | Refuses at once without waiting | `rate_limited` |
 | A call returns 404 for the pull request or a commit | Refuses | `api_error` |
 | A paginated list ends early or its count disagrees with the total | Refuses | `pagination_truncated` |
 | The push that triggered CI isn't the pull request's head when the run starts | Refuses, and the newer head's CI run decides | `head_mismatch_at_start` |
 | A force-push lands during the gather step | The second read sees it and refuses | `head_moved` |
-| A force-push lands between the second read and the post | The ruleset dismisses the approval, and the third read dismisses it too | `head_moved_after_approval` |
+| A force-push lands between the second read and the post | The post still targets H. The third read sees the new head and attempts to dismiss the review. The spike tests whether the ruleset counts the review in the interval | `head_moved_after_approval` |
 | The pull request closes or merges by hand during the run | The second read sees it and refuses | `pr_not_open` |
 | A pull request changes 500 files | Refuses from the files count, before any fetch | `too_many_files` |
 | The API truncates a large diff | The run doesn't use the API's diff. It computes the diff with Git, and cross-checks the file list | `file_list_mismatch` |
@@ -99,3 +100,10 @@ The tests drive `decide()` from the `testdata/` cases. Each case names its expec
 - **Property test.** A generator mutates accepted fixtures by one byte outside the value slots, and every mutant must refuse. It uses a fixed seed, so it runs the same way every time without a third-party library.
 
 The gather step and `approve.py` get their own tests against a fake API client that replays recorded JSON responses. Those tests cover the three head reads, the dismissal path, pagination, and the error mapping in the failure table. Nothing in the test suite calls GitHub.
+
+### Environment spike
+
+In plan step 2, set up `pins-approver` in a scratch calling repository. Use dummy values for both secrets. The reusable job declares `environment: pins-approver` and reports only whether it can read both values. Give the scratch caller both `workflow_run` and `workflow_dispatch` triggers.
+
+1. Let a CI completion trigger the caller on the default branch. Confirm that the job sees both dummy values without reviewer approval.
+2. Edit the caller on a pull request branch and trigger it with `workflow_dispatch` on that branch. Confirm that GitHub denies deployment because of the branch policy. The job must never start or receive either value.

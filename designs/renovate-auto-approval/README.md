@@ -31,11 +31,11 @@ For the operator, pin-only updates stop needing a hand approval, and every decis
 Once built, the design has four pieces:
 
 - **The decision module**, `repo/private/renovate_approval/` in tbhb-dev/rules (planned). A pure function, `decide(diff, metadata, checks)`, returns `(approve, reason)` with no network access. A gather step around it reads GitHub and hands it plain data.
-- **The reusable workflow**, `.github/workflows/renovate-auto-approval.yml` in tbhb-dev/rules (planned). It runs the module in a job that never checks out or runs pull request content.
-- **The approver App**, a GitHub App that the org's administrator creates and installs on the repositories that opt in (planned, [D3](decisions.md)). It can write pull request reviews and read contents and checks, and nothing else.
-- **A caller workflow** in each repository, about 20 lines, that runs after CI completes and passes the App's secrets to the reusable workflow.
+- **The reusable workflow**, `.github/workflows/renovate-auto-approval.yml` in tbhb-dev/rules (planned). Its approving job never checks out or executes pull request code.
+- **The approver App**, a GitHub App that the organization's administrator creates and installs on the repositories that opt in (planned, [D3](decisions.md)). It can write pull request reviews and read contents and checks. The reusable workflow's approving job declares `environment: pins-approver` and reads the App's credentials from that environment in the calling repository.
+- **A caller workflow** in each repository that runs from the default branch's workflow definition after CI completes.
 
-The rules maintainer owns the module, the reusable workflow, and its tests. The org's administrator owns the App and its secrets. Each repository's maintainer owns its caller and the moment it moves from evaluate mode to enforce mode. The workflow keeps no state of its own: each run reads GitHub afresh, and its decision record lives in the job summary and a run artifact.
+The rules maintainer maintains the module, the reusable workflow, and its tests. The administrator configures `pins-approver` in each calling repository. The environment allows deployments from the default branch only and leaves required reviewers unset. It stores `PIN_APPROVER_CLIENT_ID` and `PIN_APPROVER_PRIVATE_KEY` as environment secrets. Each repository's maintainer decides when to switch the caller from `evaluate` to `enforce`. The job writes its decision to the job summary and a run artifact.
 
 The operator's direction of 2026-11-23 sets the scope ([D1](decisions.md)). This design adds the mechanics, the refusal list, and the rollout.
 
@@ -48,7 +48,7 @@ The operator's direction of 2026-11-23 sets the scope ([D1](decisions.md)). This
 3. **Bind the head.** It reads that pull request and requires its head to equal H. A mismatch ends the run with `head_mismatch_at_start`, because a newer push has its own CI run coming.
 4. **Gather at H.** The run reads the author, the commits and their signatures, the required checks and their results at H, and the zero-context diff from the merge base to H. It also reads the facts each pin needs, such as which commit a tag names.
 5. **Decide.** `decide()` applies every rule to that data and returns one decision and one reason code, plus the full list of findings.
-6. **Re-read and approve.** In enforce mode, the run reads the pull request and the checks again. Only if the head is still H does it post an approving review bound to H with `commit_id`.
+6. **Re-read and approve.** The run rechecks the required checks and re-reads the head just before approval. In `enforce` mode it posts the approving review with `commit_id` set to H only if the head still equals H and the checks still pass.
 7. **Check after.** The run reads the head a third time. If it moved, the run dismisses its own review and logs `head_moved_after_approval`.
 8. **Log.** Every run, approve or not, writes the decision, the reason code, H, and the findings to the job summary and to a JSON run artifact.
 
@@ -86,6 +86,7 @@ The caller sets `mode`. In `evaluate`, the run does everything except post the r
 | --- | --- | --- | --- |
 | GitHub counts an approval whose `commit_id` is an older commit after a push lands between the re-read and the post | An approval could count for a head nobody checked | Rulesets dismiss stale approvals on push and require last-push approval. The post-check dismisses the review. A spike in plan step 2 tests the race | unverified |
 | The App's approval doesn't count toward the required review with contents read only | Enforce mode approves and nothing merges | Plan step 2 tests it. A wider grant goes back to the operator, and nobody adds it alone | unverified |
+| A workflow edit runs from a pull request branch | The branch run tries to read the App's key | The `pins-approver` deployment policy rejects the run's ref before the job can read its secrets. Plan step 2 tests the rejection | unverified |
 | A matcher bug accepts a non-pin change | A change that nobody reviewed merges | Fail-closed grammar, table tests for every reason code, an evaluate period, and two tier 2 reviews | new |
 | Renovate's own App can write checks and statuses | A forged `conclusion` result | The required check is bound to its integration ID, and runs from another App don't count | existing |
 | A rules change weakens the matcher, then reaches consumers through an auto-approved rules pin | Weaker checks everywhere | Changes to the module are tier 2 in tbhb-dev/rules, the review that the pin inherits | new |
@@ -99,12 +100,12 @@ The caller sets `mode`. In `evaluate`, the run does everything except post the r
 | Step | What lands | Done when | Owner |
 | --- | --- | --- | --- |
 | 1 | A decision record that amends the review rules for pin-only Renovate pull requests that [D1](decisions.md) and [D2](decisions.md) call for | The record merges in `adrs/` after its own two reviews | Rules maintainer |
-| 2 | The administrator creates the App and secrets per [D3](decisions.md), and a spike in a scratch repository tests the approval race, the App's counted approval and its dismissals, the rules endpoint's permission, and Renovate's commit shape | The spike's PR records each result as proven or refuted in [appendix A](A-evidence.md) | Org administrator, then rules maintainer |
+| 2 | The administrator creates the App and sets up `pins-approver` in a scratch repository per [D3](decisions.md). The spike tests that the deployment policy blocks a non-default branch run from reading the secrets. It also checks the other behaviors in [appendix A](A-evidence.md#open-questions-for-the-spike) | The spike's pull request records each result as proven or refuted in [appendix A](A-evidence.md) | Org administrator, then rules maintainer |
 | 3 | `decide()` with its table tests, in tbhb-dev/rules | `bazelisk test //repo/private/renovate_approval:all` passes with one case per reason code | Rules maintainer |
 | 4 | The gather step, the reusable workflow, and its zizmor and actionlint entries | `bazelisk test //...` passes in tbhb-dev/rules, and a manual run against a closed Renovate pull request logs a decision | Rules maintainer |
-| 5 | The caller in tbhb-dev/rules, in `evaluate` mode | Every Renovate pull request there for 14 days has a decision artifact | Rules maintainer |
+| 5 | The `pins-approver` environment and the caller in tbhb-dev/rules, in `evaluate` mode | Every Renovate pull request there for 14 days has a decision artifact | Org administrator and rules maintainer |
 | 6 | The decision-log review, then `enforce` in tbhb-dev/rules | The review's PR shows zero wrong approvals and explains every refusal, per [appendix F](F-rollout.md) | Rules maintainer, second reviewer |
-| 7 | Callers in the other repositories, each in `evaluate` first | Each repository passes step 6's bar before it enforces | Each repository's maintainer |
+| 7 | The `pins-approver` environment and caller in each new repository, starting in `evaluate` | Each repository passes step 6's bar before it enforces | Org administrator and each repository's maintainer |
 
 ## Appendices
 

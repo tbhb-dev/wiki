@@ -24,13 +24,13 @@ Back to [the design](README.md).
 - **If no:** the matcher refuses every first-party pin with `first_party_needs_review`. Third-party pins still qualify, and any pull request that moves a tbhb-dev pin keeps its review run.
 - **Reversible:** yes. A later decision record restores the review run, and one input default turns first-party pins off.
 
-### D3. May the org's administrator create the approver App and its two org secrets?
+### D3. May the administrator create the approver App and its environments?
 
 - **Recommendation:** yes, as `tbhb-dev-pin-approver`, with pull requests write, contents read, checks read, and GitHub's mandatory metadata read, installed on selected repositories only, with no webhook.
-- **Why:** it's a new credential that can approve pull requests. Renovate's own identity must never approve its own work, and the reviews App serves reviewer verdicts, not mechanical checks.
-- **If yes:** the administrator follows the steps in [appendix D](D-workflow.md#what-the-administrator-sets-up), stores the private key in 1Password, and sets `PIN_APPROVER_CLIENT_ID` and `PIN_APPROVER_PRIVATE_KEY` as org secrets limited to the installed repositories. GitHub counts approvals only from reviewers with write permission, so contents read may not be enough. If the spike shows the App needs contents write for its approval to count, that request comes back to the operator.
+- **Why.** The workflow needs its own identity to approve pull requests independently of Renovate. The environment limits access to the credential to jobs that use the default branch ref.
+- **If yes.** In each calling repository, create `pins-approver` and allow deployments only from the default branch. Leave required reviewers unset. Add `PIN_APPROVER_CLIENT_ID` and `PIN_APPROVER_PRIVATE_KEY` as environment secrets. GitHub counts approvals only from reviewers with write permission. If the spike shows that the App needs contents write for its approval to count, the operator decides whether to grant it. [Setup steps](D-workflow.md#what-the-administrator-sets-up)
 - **If no:** nothing gets an automatic approval, and pin-only pull requests keep waiting for a hand approval.
-- **Reversible:** yes. Uninstalling the App and deleting the secrets stops every approval at once, and its past reviews stay on their pull requests.
+- **Reversible.** Revoke the App's private key and uninstall the App to stop approvals across repositories. Remove both environment secrets from `pins-approver` in each calling repository. Past reviews stay on their pull requests.
 
 ### D4. Should the matcher also accept the renovate-config preset pins in `.github/renovate.json5`?
 

@@ -56,6 +56,7 @@ Where this design and those records differ, the operator's direction of 2026-11-
 | --- | --- | --- |
 | `check_suite` and `check_run` don't trigger workflows when GitHub Actions created the check suite | existing | GitHub Docs, "Events that trigger workflows" |
 | `workflow_run` runs only from the default branch's workflow file, can read secrets, and chains at most three levels | existing | the same page |
+| An approving job in a reusable workflow can read `pins-approver` secrets on the default branch of the calling repository. GitHub denies the job on other refs before it can read them | unverified | Plan step 2 tests both refs in a scratch repository |
 | `pull_request_target` runs with secrets, and running untrusted code under it can lead to vulnerabilities | existing | the same page |
 | The branch rules endpoint returns every active rule from repository and organization rulesets, and leaves out rulesets in `evaluate` or `disabled` | existing | GitHub REST docs, "Rules for repositories" |
 | The branch rules endpoint's required permission isn't documented | unverified | the same page, which names none. Plan step 2 tests it |
@@ -72,6 +73,7 @@ Where this design and those records differ, the operator's direction of 2026-11-
 
 Plan step 2 answers these in a scratch repository with a copy of the tbhb-dev/rules ruleset:
 
+- Whether GitHub admits the approving job on the default branch and denies it on a non-default branch. Follow [the environment probe](E-failures-and-tests.md#environment-spike) and record the default-branch result and the branch-policy rejection.
 - Whether an App's approval counts toward the required review with contents read, given that approvals count only from reviewers with write permission. If it needs contents write, the request goes back to the operator under [D3](decisions.md).
 - Whether the App can dismiss its own review when the ruleset restricts dismissals, and whether the `dismissal_failed` path then leaves stale dismissal as the only guard.
 - Whether a review posted with an older `commit_id` after a push counts toward the requirement.
