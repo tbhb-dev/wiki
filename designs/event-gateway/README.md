@@ -22,6 +22,13 @@ generated:
     surface: sdk-cli
     session: sha-256-64:1a832a02df3ab163
     at: "2026-11-23T08:02:35Z"
+  - role: generated
+    harness: claude-code:2.1.330
+    model: anthropic:claude-opus-5-5
+    effort: high
+    surface: sdk-cli
+    session: sha-256-64:d55a3d2c551dcd46
+    at: "2026-11-23T08:31:19Z"
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
@@ -93,7 +100,7 @@ Adding a target type means adding one package and one config block. Adding a rou
 
 ### Sessions
 
-The session protocol is awrel's `awrel.v1` protocol with additions, served under the subprotocol `gateway.v1`. The client sends `resume_after` with its last `seq` and its subscriptions in a `hello` when it connects, split across frames when the set exceeds awrel's 4096-byte frame cap. The server replays matching events from the stream, sends a `caught_up` marker, and then goes live. When retention has already deleted events the client missed, the server sends a `gap` message first. Subscriptions take optional `number` and `label` filters on issue and pull request events ([D13](decisions.md)). awrel's message types, size limits, and error codes stay the same, and its filter fields keep their rules beside the new ones ([appendix C](C-protocol.md#session-protocol)).
+The session protocol is awrel's `awrel.v1` protocol with additions, served under the subprotocol `gateway.v1`. The client sends its subscriptions in a `hello` when it connects, split across frames when the set exceeds awrel's 4096-byte frame cap. A returning session adds `resume_after` with its last `seq`, and the server replays matching events strictly after it. An imported session's first hello carries `"import": true` instead, and the server replays from each source's T0 ([migration](#migration-off-awrel)). A hello with neither is live-only. The server then sends a `caught_up` marker and goes live. When retention has already deleted events after `resume_after`, the server sends a `gap` message before the replay. Subscriptions take optional `number` and `label` filters on issue and pull request events ([D13](decisions.md)). awrel's message types, size limits, and error codes stay the same, and its filter fields keep their rules beside the new ones ([appendix C](C-protocol.md#session-protocol)).
 
 The MCP client stores its subscriptions and its last `seq` per session key in its state directory, as awrel's client stores subscriptions today. A Claude Code session still needs the development channels flag. That's a harness constraint and stays the same.
 

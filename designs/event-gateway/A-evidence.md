@@ -20,6 +20,13 @@ generated:
     surface: sdk-cli
     session: sha-256-64:1a832a02df3ab163
     at: "2026-11-23T08:02:35Z"
+  - role: generated
+    harness: claude-code:2.1.330
+    model: anthropic:claude-opus-5-5
+    effort: high
+    surface: sdk-cli
+    session: sha-256-64:d55a3d2c551dcd46
+    at: "2026-11-23T08:31:19Z"
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
@@ -30,7 +37,7 @@ generated:
 
 Back to [the design](README.md).
 
-Each claim here was read from `main` of a public repository on 2026-11-21, except the NATS and Temporal sections, read on 2026-11-22. Paths are relative to that repository.
+Each claim here was read from `main` of a public repository on 2026-11-21, except the NATS and Temporal sections, read on 2026-11-22, and one observation under [awrel today](#awrel-today), marked Unverified, which comes from a coordinator note outside public repositories. Paths are relative to that repository.
 
 ## awrel today
 

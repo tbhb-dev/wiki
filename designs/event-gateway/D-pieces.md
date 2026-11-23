@@ -13,6 +13,13 @@ generated:
     surface: cli
     session: sha-256-64:2220073242f73359
     at: "2026-11-22T23:11:10Z"
+  - role: generated
+    harness: claude-code:2.1.330
+    model: anthropic:claude-opus-5-5
+    effort: high
+    surface: sdk-cli
+    session: sha-256-64:d55a3d2c551dcd46
+    at: "2026-11-23T08:31:19Z"
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
@@ -77,7 +84,7 @@ The harness configuration owner adds the gateway entry under a new server name f
 Temporal and its database are deployed by ops, on owned hosts, before step 11b starts. [Appendix C](C-protocol.md#routing-rules) specifies the rules, the Temporal target, parking, and internal publish.
 
 - **Gateway:** routing rules in config map events to target instances ([D14](decisions.md#d14-how-do-events-route-to-targets)). The `temporal` target runs each matching rule's `start`, `signal`, or `signal_with_start` with a workflow ID from a template, such as `review:<repo>#<n>@<head>`, which follows the action key idea in [appendix B](B-earlier-designs.md). It passes a reference to the event, never its payload, and parks events it can't deliver ([D15](decisions.md#d15-how-does-the-temporal-target-deliver-an-event-and-what-does-it-do-with-one-it-cant-deliver)). Its durable consumer makes delivery at least once, and the workflow ID and the workflow's own `delivery` check make a repeat harmless.
-- **Intent sessions:** the operator's small intent sessions write issues on GitHub. An `issues` event reaches the gateway and starts the matching workflow, routed on labels that sm owns, such as `role:<name>`. No new source is needed. A route on sm's Handler field isn't built ([D17](decisions.md#d17-may-the-gateway-hold-a-credential-that-reads-org-project-fields-so-rules-can-match-a-requests-handler)).
+- **Intent sessions:** the operator's small intent sessions write issues on GitHub. An `issues` event reaches the gateway and starts the matching workflow, routed on labels, such as a Request's `area:<repo>` and `cap:<name>` labels. No new source is needed. A route on sm's Handler field isn't built ([D17](decisions.md#d17-may-the-gateway-hold-a-credential-that-reads-org-project-fields-so-rules-can-match-a-requests-handler)).
 - **Chaining:** a workflow starts the next one by writing an issue, comment, or label to GitHub, which the normal loop picks up ([D16](decisions.md#d16-may-workflows-agent-runs-and-sm-publish-events-into-the-gateway)). A later build step could add internal publish.
 - **Workers:** a worker runs activities that read the event by `seq`, call `tbhbdev alpha agent exec`, then `wait`, and record the result. tools changes the launcher to accept a named non-interactive caller.
 - **Coordination sessions** stop once workflows cover their work.
