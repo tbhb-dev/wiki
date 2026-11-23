@@ -27,13 +27,13 @@ The diff’s file paths and content set the tier. Reviewers can raise it. Once s
 
 - Tier 0 needs CI only for prose-only changes in wiki, draft, research and spike repositories, except wiki design documents and decision records.
 - Tier 1 needs one fresh run for most code, tests, refactors and documentation in code repositories, wiki design documents and deletion of regenerable state.
-- Tier 2 needs two fresh runs for changes to credentials, rulesets, permissions, agent harness configuration, deployments or the review and merge path. It covers destructive commands and code that can delete durable data or the only copy of work.
+- Tier 2 needs two fresh runs for changes to decision records, credentials, rulesets, permissions, agent harness configuration, deployments or the review and merge path. It covers destructive commands and code that can delete durable data or the only copy of work.
 
 A fix gets one fresh run on the changes made by that fix.
 
 ## Consequences
 
-The commissioning role merges tier 0 changes after head checks pass. Tier 0 changes need no review, approval or separate merger assignment. Review decision record changes under the decision record review checklist. Reviewers apply the tiers now. The review loop design, which describes how reviews run, specifies the path lists.
+The commissioning role merges tier 0 changes after head checks pass, without review, approval or a separate merger assignment. Decision record changes need two fresh review runs from different model families, then operator approval. Reviewers apply the tiers now. The review loop design specifies paths and explains how reviews run.
 
 Tier 2 covers changes to `.mcp.json`, the Model Context Protocol configuration for external tools. It also covers deletion of uncommitted changes, stashes, records, backups and branches or worktrees with work yet to merge or push. Deleting build caches stays at tier 1.
 

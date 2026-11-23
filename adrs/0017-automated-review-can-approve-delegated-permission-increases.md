@@ -11,7 +11,7 @@ decided: "2026-11-12"
 
 ## Context
 
-Deploy policy sets the review rules for changes to agent permissions. Its classes group changes by the authority they need. Standing authorization is ongoing permission to approve qualifying increases. The operator is the human with authority to approve permission increases. Class R is a narrow allowance, within the deploy policy’s routine limits, for an action the account was denied on the machine running the agent. Class D is an increase authorized by a decision record already on the default branch at the pull request’s base commit, the commit the proposal builds on. Class D also includes new or changed decision records.
+Deploy policy sets the review rules for changes to agent permissions. Its classes group changes by the authority they need. Standing authorization is ongoing permission to approve qualifying increases. The operator is the human with authority to approve permission increases. Class R covers only the single action the account was denied, on the machine running the agent, for the duration of that action. Requests for a wider scope, another machine or a longer duration go to the operator. Class D is an increase authorized by a decision record already on the default branch at the pull request’s base commit, the commit the proposal builds on. Class D also includes new or changed decision records.
 
 ## Decision
 
