@@ -41,6 +41,7 @@ Each record is `adrs/NNNN-<slug>.md`: the next free number, zero-padded to four 
 - A record never quotes anyone or says who decided. Acceptance is the pull request's approval and merge, and the pull request cites the source of the decision.
 - The `decided` field is the date of the decision, not of the record.
 - Nobody renames a record after it merges, with one exception: the fix for a duplicate number renames the later file.
+- Reviewers use [REVIEW.md](REVIEW.md).
 
 ## Records
 
