@@ -53,23 +53,45 @@ Real output from the normalizer showed these rules (proven):
 
 ## The shared issue section
 
-The shared rule bars tables, HTML blocks, block quotes, extra headings, thematic breaks, and link reference definitions from every issue section. It allows a list depth of one. A title runs 15 to 70 characters with at least three words, and it can't end in a period, an exclamation mark, or a colon. A Spike question must end in a question mark.
+The shared rule bars tables, HTML blocks, block quotes, extra headings, thematic breaks, and link reference definitions from every issue section. It allows a list depth of one. A title runs 15 to 70 characters with at least three words, and it can't end in a period, an exclamation mark, or a colon. End a Spike question with a question mark.
 
 ## The variants
 
+The tools role defines the issue types, field and label values, and type-by-field matrix in `designs/issue-taxonomy/`.
+
 | Variant | Total words | Notes |
 | --- | --- | --- |
-| Feature | 200 | Outcome, Checks as a task list, and optional Context and Out of scope |
+| Feature | 200 | Outcome, Acceptance criteria as a task list, and optional Context and Out of scope |
 | Chore | 150 | Maintenance with an end state and no user-visible change. Work that resumes, monitors, or operates a process falls outside this variant. A Chore requires a parent. |
 | Defect | 220 | Actual and Reproduction required |
-| Spike | 130 | Question, Decision it unblocks, Checks as deliverables, and a time box |
+| Spike | 130 | A Spike is a time-boxed experiment, often a throwaway build, that answers a question to unblock a decision. The experiment yields an answer, while Research requires a written finding. Its sections include Question, Decision it unblocks, and Acceptance criteria. The Acceptance criteria list the deliverables. The shared taxonomy defines its time box. |
+| Research | 150 | See [Research](#research) for the proposed variant. |
 | Epic | 180 | Parent optional, so an Epic can belong to an Initiative |
 | Initiative | 180 | No parent |
-| Service Request | 80 | Body prose cap, based on the [operator command Request](../itsm-records/D-operator-requests.md#what-a-command-request-contains) |
+| Service Request | By variant | See the [Request workflow check](../issue-refinement/B-definition-of-ready.md#requests). |
 
 Floors are low or absent. A forced section produces filler text, so only sections that give the type its meaning need text.
 
 A Task always has a parent. It requires a Verification section. A Task may include a Context section of up to 60 words once the pm role changes the Task schema (proposed). Until then, the Task schema refuses a Context section.
+
+### Research
+
+Research is an investigation that delivers a written finding as a report in the research repository or its private twin. A Spike uses a time-boxed experiment to unblock a decision, while the Research deliverable is the report.
+
+Write the six required sections in the order shown. Use at most 150 visible body words across all six sections.
+
+| Section | Word cap | What it states |
+| --- | --- | --- |
+| Question | 20 | State one question in one sentence ending in a question mark. |
+| Decision or work it informs | 25 | Identify the decision or work the finding informs. |
+| Scope | 45 | State what the investigation covers and what it leaves out. |
+| Deliverable location | 35 | Identify the research repository by role and give the report's path pattern, without linking to a private repository. |
+| Time box | 10 | Choose a time box from the same set that Spike uses. |
+| Verification | 15 | Identify the report in one task-list item that verifies it exists at the specified path. |
+
+Set Priority and Source. The sync job sets Status. Omit Work type, Severity, and Handler. A Research issue can have an Epic or Initiative as its parent, or it can have no parent. Exclude Tasks and Chores as parents.
+
+After this design merges, `admin-vm` creates the org issue type. In a later change, pm adds `issue.research.cue` using these sections and fields.
 
 ## Refusals and the guide
 
@@ -77,4 +99,4 @@ A Task always has a parent. It requires a Verification section. A Task may inclu
 
 ## Checks outside the schema
 
-The kernel keeps a named list of checks that need live data, issue relations, or text rules that CUE can't express, as [decision D4](decisions.md#d4-how-do-the-writing-rules-stay-in-one-place) allows. Named checks cover links-only sections and note flooding. The kernel checks that a cited Request has approval and that a required retrospective request for comments exists. Outside CUE, the kernel also checks parent types. For fields and labels, it uses the merged global and repository configuration. Under [readiness check 5](C-refinement.md#readiness-checks), a Defect can have a parent. If it does, the type must be Problem or Epic.
+The kernel keeps a named list of checks that need live data, issue relations, or text rules that CUE can't express, as [decision D4](decisions.md#d4-how-do-the-writing-rules-stay-in-one-place) allows. Named checks cover links-only sections and note flooding. The kernel checks that a cited Request has approval and that a required retrospective request for comments exists. Outside CUE, the kernel also checks parent types. For fields and labels, it uses the merged global and repository configuration. Under [readiness check 5](../issue-refinement/B-definition-of-ready.md#readiness-checks), a Defect can have a parent. If it does, the type must be Problem or Epic.

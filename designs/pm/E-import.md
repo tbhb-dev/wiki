@@ -20,7 +20,7 @@ GitHub issues go on the target repository's org Project. One Epic in the central
 
 ## Staging and refinement
 
-Store each item's original text in a Markdown file in the run's working directory outside any repository. The imports role chooses the destination type and repository. For fields and labels, use the [shared taxonomy](B-routing-and-taxonomy.md#one-home-per-fact). Follow the [issue writing rules](D-issue-writing.md#imports) in each section.
+Store each item's original text in a Markdown file in the run's working directory outside any repository. The imports role chooses the destination type and repository. For fields and labels, use the [shared taxonomy](B-routing-and-taxonomy.md#one-home-per-fact). Follow the [shared writing rules](../issue-refinement/B-definition-of-ready.md#writing-rules) in each section.
 
 Classify each item's Source from its origin notes and tracker text. Record a one-line reason under `origin:` in the working notes. Keep that key and those notes in staging. Never send them to GitHub. Put each item with an unclear origin on a short list for the owner of its area. Leave Source empty until the owner answers.
 
@@ -28,9 +28,9 @@ For a review finding, cite the pull request or finding in Context.
 
 Under the [routing order](B-routing-and-taxonomy.md#routing-order-for-create), an item about internal security goes to a private repository.
 
-A separate run of the imports role applies the [Definition of Ready](C-refinement.md#readiness-checks) to the staged file.
+A separate run of the imports role applies the [Definition of Ready](../issue-refinement/B-definition-of-ready.md#readiness-checks) to the staged file.
 
-Thirty-two staged titles start with a process verb from [D. Issue writing](D-issue-writing.md#the-rules). During refinement, rewrite those titles. Run the title lint from refinement onward. Use the imported variant to preserve the original title text.
+Thirty-two staged titles start with a process verb from the [shared title rules](../issue-refinement/B-definition-of-ready.md#titles-and-process-verbs). During refinement, rewrite those titles. Run the title lint from refinement onward when the later pm schema change makes it available. Use the imported variant to preserve the original title text.
 
 Record each outcome with its evidence in staging. A `needs-info` record identifies the answering role or specifies that the operator must answer. Give follow-up to the responsible role.
 
@@ -40,12 +40,12 @@ Each item due for creation must pass `cue vet` against its destination type, inc
 
 The schema checks the required sections, fields, and caps. The kernel also checks the required relations and labels.
 
-The content check runs the scans and the destination type's writing checks. It also runs the [Vale pass](C-refinement.md#vale-pass) on the rendered body.
+The content check runs the scans and the destination type's writing checks. It also runs the [Vale pass](../issue-refinement/A-refinement-procedure.md#vale-pass) on the rendered body.
 
 The pass uses the same organization configuration and short-body threshold as issue creation.
 
 1. A Vale refusal stops the staged file before the kernel writes it. The imports role reads the findings in staging.
-2. The imports role applies only fixes that preserve intent under the [refinement fix rules](C-refinement.md#steps-for-each-item). If a fix would change intent, the run stops the batch and keeps the draft in staging.
+2. The imports role applies only fixes that preserve intent under the [refinement fix rules](../issue-refinement/A-refinement-procedure.md#steps-for-each-item). If a fix would change intent, the run stops the batch and keeps the draft in staging.
 3. The imports role renders the revised draft and reruns the staging check. A second Vale refusal for the same draft stops the batch. The draft and findings stay in staging for the pm role. The run log shows counts only.
 
 ## Review and creation
@@ -56,7 +56,7 @@ After a passing review, the kernel repeats the checks. Each approved item goes t
 
 Leave dropped items and the original item of a split in staging. For a split, create only the approved replacements.
 
-On the batch Chore, the kernel records the created issue link and the vetted body hash beside its staging result. The sync job matches each created issue to its staging result and sets Status using the [Status table in C. Refinement](C-refinement.md#status-and-the-ready-signal). A current `needs-info` result gives the issue Status `Needs info`.
+On the batch Chore, the kernel records the created issue link and the vetted body hash beside its staging result. The sync job matches each created issue to its staging result and sets Status using the [shared Status transitions](../issue-refinement/D-status-transitions.md#transition-order).
 
 On retry, the import looks for a GitHub issue from the same tracker item. Resume from that issue if it exists. Stop the batch if the status of a prior write remains unclear.
 
