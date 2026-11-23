@@ -33,11 +33,13 @@ A check on raw Markdown counts words and lines. A table, an HTML block, or a lon
 | File | Content |
 | --- | --- |
 | `core.cue` | The draft, block, inline, and metrics definitions that every object shares |
-| `taxonomy.cue` | Priority, work type, severity, handler, area and role label patterns, time box, and the issue reference pattern |
+| `taxonomy.cue` | Priority, Work type, Severity, Handler, area and role label patterns, time box, and the issue reference pattern |
 | `issue.cue` | The shared issue section, title, and item rules |
 | `issue.<variant>.cue` | One variant with its sections in order, caps, metadata, and hints |
 
 A run loads core, taxonomy, the issue base, and exactly one variant, because each variant file defines the same `#Variant` name. The `#Hints` definition keys its hints by variant.
+
+The pm variant schemas use `#WorkType` from the [shared taxonomy](https://github.com/tbhb-dev/tools/blob/main/schemas/taxonomy.cue). Its values are `Planned` and `Unplanned`. The import adds the Source field with the value `Import`, which [E. Tracker import](E-import.md) preserves on conversion.
 
 ## Metric semantics
 
@@ -63,6 +65,7 @@ The shared rule bars tables, HTML blocks, block quotes, extra headings, thematic
 | Spike | 130 | Question, Decision it unblocks, Checks as deliverables, and a time box |
 | Epic | 180 | Parent optional, so an Epic can belong to an Initiative |
 | Initiative | 180 | No parent |
+| Service Request | 80 | Body prose cap, based on the [operator command Request](../itsm-records/D-operator-requests.md#what-a-command-request-contains) |
 
 Floors are low or absent. A forced section produces filler text, so only sections that give the type its meaning need text.
 
