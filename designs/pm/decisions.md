@@ -28,11 +28,11 @@ The choice between Epics as design documents and an Epic issue type remains open
 
 ### D8. Should ordinary refinement send questions of operator intent as one approval Request per batch?
 
-This decision covers ordinary refinement. The tracker import records gaps in staging. At creation, the kernel adds `flag:split`, `flag:drop`, or `flag:needs-info` when the staged outcome calls for owner follow-up. See [decision D11](#d11-which-issue-types-does-the-tracker-import-create).
+This decision covers ordinary refinement. The tracker import records gaps in staging. A created issue that still needs an answer has Status `Needs info`. See [decision D11](#d11-which-issue-types-does-the-tracker-import-create).
 
 - **Recommendation.** Open at most one approval Request per batch. The Request lists each issue with its question. One comment answers them all.
-- **Why.** A batch can contain several questions of intent. The operator already answers approval Requests in one place.
-- **If yes.** Refinement links each item with a question for the operator to the batch Request. An `sm` run copies each answer onto its issue with the question comment link, question number, and source reply link. The `sm` run removes the issue's `needs-info` refinement label once every question has an answer. The sync job shows Needs refinement. The next refinement run selects the issue and reads the answers there.
+- **Why.** A batch can contain more than one question of intent. The operator already answers approval Requests in one place.
+- **If yes.** Refinement links each item with a question for the operator to the batch Request. An `sm` run copies each answer onto its issue with the question comment link, question number, and source reply link. The `sm` run returns the issue to the queue once every question has an answer. The sync job shows Needs refinement. The next refinement run selects the issue and reads the answers there.
 - **If no.** The operator answers the question comment on its issue, as [C. Refinement](C-refinement.md#outcome-writes) describes.
 - **Reversible.** Change the refinement brief to switch between the two options.
 
@@ -53,7 +53,8 @@ The design relies on D1 to D4 and D6 as requirements. D5 only places the design.
 ### D11. Which issue types does the tracker import create?
 
 - **Decided.** tbhb, 2026-11-23, approved direct creation in the destination issue type.
-- **Rule.** The imports role maps each staged file in one run. A separate run of the imports role refines and vets the file. The kernel writes each issue once in its destination type with Source `Import`. The creation write includes the [label for the staged outcome](E-import.md#review-and-creation).
+- **Amended.** On 2026-11-23, the operator ruled that Source records where the work came from. During an import, the kernel doesn't use any field as an import marker.
+- **Rule.** The imports role maps each staged file in one run. A separate run of the imports role refines and vets the file. The kernel creates each approved item once in its destination type. Splits and drops stay in staging. See [E. Tracker import](E-import.md#review-and-creation).
 - **Why.** Staging already produces the sections each type requires. Direct creation keeps those sections and avoids about 2,000 follow-up writes.
 - **Undo.** Change the mapping and creation path for a future import. Two-way door.
 - **Record.** The [tracker import design](E-import.md) gives the approved procedure.
@@ -61,23 +62,23 @@ The design relies on D1 to D4 and D6 as requirements. D5 only places the design.
 ### D7. How does an item become Ready while only the sync job writes Status?
 
 - **Decided:** 2026-11-22, by the pm role.
-- **Rule:** the sync job keeps sole write access to every Status value. Ready and In progress both require the item's own current `ready` record, and any batch it belongs to must pass review. An open pull request or an assignee moves an item to In progress only once it meets that gate. [C. Refinement](C-refinement.md) defines when a record is current.
-- **Undo:** let the refine verb write the Ready value itself, which needs a change to D3. Two-way door.
+- **Rule.** The sync job derives Status as [C. Refinement](C-refinement.md#status-and-the-ready-signal) describes.
+- **Undo.** Let the refine verb set Status. Two-way door.
 - **Record:** the pull request that adds C-refinement.md to this design.
 
 ### D6. Must issues pass refinement before work starts?
 
 - **Decided:** 2026-11-22, by the operator through coordination.
-- **Rule.** Every issue and every service request passes the Definition of Ready before work starts. The `sm` role refines Requests, Incidents, Problems, and Changes. It applies the common readiness checks and uses each Incident, Problem, or Change template and schema for the type-specific checks. For tracker imports, the imports role applies the gate in staging. The import sets Source to `Import` at creation. That value meets the [Problem Source requirement](../itsm-records/problems.md#fields).
+- **Rule.** Every issue and every service request passes the Definition of Ready before work starts. The `sm` role refines Requests, Incidents, Problems, and Changes. It applies the common readiness checks and uses each Incident, Problem, or Change template and schema for the type-specific checks. For tracker imports, the imports role applies the gate in staging.
 - **Undo:** remove the refinement condition from the sync job and the workflow. Two-way door.
 - **Record:** the operator's refinement ruling, relayed by coordination.
 
-### D5. Where do the pm and IT service management designs go?
+### D5. Where do the designs for pm and IT service management go?
 
 - **Decided:** 2026-11-22, by the operator.
 - **Rule:** both designs go in the public wiki under `designs/`, as wiki pull requests under the wiki's protocol. Text describes private repositories by role.
 - **Undo:** move the folder. Two-way door.
-- **Record:** the operator's decision entry on the public location of the two designs.
+- **Record:** the operator's decision on where to publish both designs.
 
 ### D4. How do the writing rules stay in one place?
 
@@ -90,9 +91,10 @@ The design relies on D1 to D4 and D6 as requirements. D5 only places the design.
 ### D3. Which taxonomy applies?
 
 - **Decided:** 2026-11-22, by the operator through coordination.
-- **Rule:** handler applies to Requests only, and Severity runs SEV1 to SEV3. Priority is a field and never a label. Only the sync job writes Status. Area labels get a live check in the kernel, and the IT service management side maintains role labels.
+- **Amended.** On 2026-11-23, the operator assigned the shared issue taxonomy design to the tools role.
+- **Rule.** Use the [shared taxonomy reference in B. Routing and taxonomy](B-routing-and-taxonomy.md#one-home-per-fact).
 - **Undo:** edit the taxonomy schema. Two-way door.
-- **Record:** the coordination message of 2026-11-22 that set the taxonomy.
+- **Record.** Coordination relayed the operator's decision on the shared issue taxonomy on 2026-11-23.
 
 ### D2. Which language holds the constraints?
 
@@ -104,7 +106,7 @@ The design relies on D1 to D4 and D6 as requirements. D5 only places the design.
 ### D1. Where do issues go?
 
 - **Decided:** 2026-11-22, by the operator.
-- **Rule:** every work item is an issue in the repository responsible for it, and the org Project gathers them. Larger units go in a private central work repository. Story isn't a type, so Feature is the unit of user-visible work.
+- **Rule.** Every work item is an issue in the repository responsible for it. That repository determines the org Project. Larger units go in a private central work repository. Feature is the unit of user-visible work.
 - **Undo:** transfer issues. Two-way door.
 - **Record:** the operator's project-management issues ruling and the rename ruling.
 
@@ -112,11 +114,11 @@ The design relies on D1 to D4 and D6 as requirements. D5 only places the design.
 
 These questions go to another role, not to the operator, so `decisions_open` doesn't count them. The asked role answers, and the answer moves the item to Decided with its number.
 
-### D10. Can the content check run Vale with the org configuration on issue and comment bodies before each write, with errors as its rules set them and warnings only for a short body?
+### D10. Can the content check use Vale before each body or comment write and report only warnings for short text?
 
 - **Asked of:** the tools role, which maintains the content kernel and `tbhbdev content check`.
-- **Recommendation:** yes. Run the required pass as a plugin of the content check so all kernel callers and import staging share one implementation.
+- **Recommendation:** yes. Run the required pass as a plugin of the content check so all kernel callers and import staging share one Vale pass.
 - **Why:** today Vale runs only on each repository's own Markdown in continuous integration (CI). Vale doesn't run on issue bodies, comments, or staged import files, and two separate copies in refinement and the import would drift.
-- **If yes:** the content check runs Vale with the configuration in [the rules repository](https://github.com/tbhb-dev/rules/blob/main/.vale.ini) on each body and comment before the kernel writes it. Import staging and issue creation use the same pass, including the short-body threshold and semicolon rule, as [C. Refinement](C-refinement.md#vale-pass) and [E. Tracker import](E-import.md) describe.
-- **If no:** the kernel calls the same Vale pass directly before every issue body and comment write. Import staging calls that pass with the same settings as issue creation.
-- **Reversible:** yes. The kernel can call the pass directly if the plugin is removed.
+- **If yes.** The content check runs Vale with the configuration in [the rules repository](https://github.com/tbhb-dev/rules/blob/main/.vale.ini) on each body and comment before the kernel writes it. Staging and issue creation use the same pass, including the short-body threshold and semicolon rule. See [C. Refinement](C-refinement.md#vale-pass) and [E. Tracker import](E-import.md).
+- **If no.** The kernel calls the same Vale pass directly before every issue body and comment write. Staging calls that pass with the same settings as issue creation.
+- **Reversible:** yes. If the tools role removes the plugin, the kernel can call the pass directly.

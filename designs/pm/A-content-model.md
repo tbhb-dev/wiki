@@ -18,7 +18,7 @@ generated:
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
-# Project management content model
+# Content model for pm issues
 
 Back to [the design](README.md).
 
@@ -33,13 +33,11 @@ A check on raw Markdown counts words and lines. A table, an HTML block, or a lon
 | File | Content |
 | --- | --- |
 | `core.cue` | The draft, block, inline, and metrics definitions that every object shares |
-| `taxonomy.cue` | Priority, Work type, Severity, Handler, area and role label patterns, time box, and the issue reference pattern |
+| `taxonomy.cue` | Shared taxonomy rules, the time box, and the issue reference pattern |
 | `issue.cue` | The shared issue section, title, and item rules |
 | `issue.<variant>.cue` | One variant with its sections in order, caps, metadata, and hints |
 
 A run loads core, taxonomy, the issue base, and exactly one variant, because each variant file defines the same `#Variant` name. The `#Hints` definition keys its hints by variant.
-
-The pm variant schemas use `#WorkType` from the [shared taxonomy](https://github.com/tbhb-dev/tools/blob/main/schemas/taxonomy.cue). Its values are `Planned` and `Unplanned`. The destination variants already accept an optional `source` field. The import sets it to `Import` at creation. See [E. Tracker import](E-import.md#staging-and-refinement).
 
 The `schemas/issue.imported.cue` variant file stays in the pm repository until the import finishes. The pm role then removes the file.
 
@@ -62,8 +60,8 @@ The shared rule bars tables, HTML blocks, block quotes, extra headings, thematic
 | Variant | Total words | Notes |
 | --- | --- | --- |
 | Feature | 200 | Outcome, Checks as a task list, and optional Context and Out of scope |
-| Chore | 150 | Parent required, because tasks are sub-issues |
-| Defect | 220 | Actual and Reproduction required, severity required |
+| Chore | 150 | Maintenance with an end state and no user-visible change. Work that resumes, monitors, or operates a process falls outside this variant. A Chore requires a parent. |
+| Defect | 220 | Actual and Reproduction required |
 | Spike | 130 | Question, Decision it unblocks, Checks as deliverables, and a time box |
 | Epic | 180 | Parent optional, so an Epic can belong to an Initiative |
 | Initiative | 180 | No parent |
@@ -71,7 +69,7 @@ The shared rule bars tables, HTML blocks, block quotes, extra headings, thematic
 
 Floors are low or absent. A forced section produces filler text, so only sections that give the type its meaning need text.
 
-A Task always has a parent. It requires a Verification section. A Task may carry a Context section of up to 60 words once the pm role changes the Task schema (proposed). Until then, the Task schema refuses a Context section.
+A Task always has a parent. It requires a Verification section. A Task may include a Context section of up to 60 words once the pm role changes the Task schema (proposed). Until then, the Task schema refuses a Context section.
 
 ## Refusals and the guide
 
@@ -79,4 +77,4 @@ A Task always has a parent. It requires a Verification section. A Task may carry
 
 ## Checks outside the schema
 
-The kernel keeps a named list of checks that need live data, issue relations, or text rules that CUE can't express, as [decision D4](decisions.md#d4-how-do-the-writing-rules-stay-in-one-place) allows. The list covers links-only sections and note flooding. The kernel checks that a cited Request has approval and that a required retrospective request for comments exists. It also checks parent types and validates area and role labels against the live lists. A Defect's parent is optional under [readiness check 5](C-refinement.md#readiness-checks). If it has a parent, the type must be Problem or Epic.
+The kernel keeps a named list of checks that need live data, issue relations, or text rules that CUE can't express, as [decision D4](decisions.md#d4-how-do-the-writing-rules-stay-in-one-place) allows. Named checks cover links-only sections and note flooding. The kernel checks that a cited Request has approval and that a required retrospective request for comments exists. Outside CUE, the kernel also checks parent types. For fields and labels, it uses the merged global and repository configuration. Under [readiness check 5](C-refinement.md#readiness-checks), a Defect can have a parent. If it does, the type must be Problem or Epic.
