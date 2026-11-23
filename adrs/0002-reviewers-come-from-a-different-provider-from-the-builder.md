@@ -25,7 +25,7 @@ A pull request can combine work from several build runs. Treating the entire bra
 
 For each commit in the pull request’s head, count reviews from providers other than the one that built its change. A review of the full head contributes coverage to every commit for which its provider qualifies. The review tier sets the number of qualifying runs. When a pair is needed, two independent runs from one eligible provider can count, with distinct providers preferred when available.
 
-Prefer a model comparable to the builder’s model, using the [model roster](../models/README.md#matching-tiers). If the builder’s provider is the only one with capacity, use a reviewer model one tier higher on that provider. If a provider refuses the review, record the refusal as it appears in the run log and keep the brief intact for any replacement run.
+Prefer a model comparable to the builder’s model, using the [model roster](../models/README.md#matching-tiers). If the builder’s provider is the only one with capacity, use a reviewer model one tier higher on that provider. If a provider refuses the review, record the refusal verbatim from the run log and keep the brief intact for any replacement run.
 
 ## Consequences
 
