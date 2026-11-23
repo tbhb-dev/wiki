@@ -4,7 +4,7 @@ title: The reviews app posts approvals for an independent approver
 description: The reviews app posts approval for a verified green head after an independent approver checks the review evidence.
 tags: [approvals, reviews, github]
 status: stable
-decided: "2026-11-11"
+decided: "2026-11-23"
 generated:
   - role: generated
     harness: codex:0.171.0
