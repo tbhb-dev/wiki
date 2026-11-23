@@ -11,14 +11,14 @@ decided: "2026-11-11"
 
 ## Context
 
-Renovate produces routine dependency updates. A manual merge handoff delays them after the required checks and approval are complete.
+Renovate is a bot that opens routine dependency updates. A manual merge handoff delays them after approval and continuous integration (CI), the automated checks on a change. The rule covers merging Renovate's dependency updates and excludes pull requests from other authors.
 
 ## Decision
 
-Renovate enables GitHub platform automerge and keeps its five-day release cooldown. GitHub merges each eligible update after required CI and approval. The update follows the review tier that applies to its diff. Moving a pin to an already reviewed and merged commit, on its own, is tier 1 and gets one review run.
+Renovate enables GitHub automerge, which merges eligible updates after required CI and approval. Renovate keeps its five-day cooldown, the minimum release age for an update. The update follows the review tier, or review level, assigned to its changes. Changing only a pin, a fixed commit reference, to an already reviewed and merged commit is tier 1 and gets one review run.
 
-For an update that runs a command with the Renovate token, the approval check also confirms that the changes are confined to dependency manifests and lockfiles.
+If an update runs a command with Renovate's access token, approval also requires changes to stay within manifests that declare dependencies and lockfiles that record their resolved versions.
 
 ## Consequences
 
-The approval role handles successful CI events until a queue worker takes over automated approval. GitHub performs the merge once the requirements are met. The cooldown applies to release age and adds no waiting period after approval. Disabling automerge in the shared preset restores a separate merge step.
+The approver handles successful CI notifications until a queue worker, a service that processes queued work, takes over automated approval. GitHub performs the merge once the requirements are met. The release cooldown adds no waiting period after approval. Disabling automerge in the preset shared by repositories restores a separate merge step.

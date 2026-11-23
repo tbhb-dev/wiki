@@ -11,11 +11,11 @@ decided: "2026-11-22"
 
 ## Context
 
-Opening a separate pull request for each small wording correction repeats the submission and review work for the same change.
+Opening a separate pull request for each small wording correction repeats submission and review work for the same change. The rule covers later edits to phrasing for the same work and excludes changes to requirements or behavior.
 
 ## Decision
 
-A wording-only follow-up goes into the next needed pull request for the same work.
+A wording-only follow-up, an edit limited to phrasing, goes into the next pull request that the same work already requires.
 
 ## Consequences
 

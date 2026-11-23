@@ -11,12 +11,12 @@ decided: "2026-11-22"
 
 ## Context
 
-Pull request timing measures elapsed time from when work began, which can precede the first commit or the opening of the pull request. A change can include work from multiple runs.
+Pull request cycle time measures elapsed time from when work began. Work can start before the first commit or before the pull request opens. A change can include work from several agent runs, or sessions with automated contributors. The measure covers merged and closed pull requests and excludes those still open.
 
 ## Decision
 
-Cycle time starts at the oldest `started_at` value in the pull request's commit identity trailers, including Generated-by and Assisted-by. It ends at the merge time or, for a pull request closed without merging, the close time. Metrics report unmerged closes as a separate state.
+Cycle time starts at the earliest `started_at` timestamp in the pull request's [commit identity trailers](https://github.com/tbhb-dev/rules/blob/main/docs/reference/commit-identity.md), which are attribution lines at the end of a commit message. The timestamp records when an agent run began. The calculation includes `Generated-by` for agents that wrote changes and `Assisted-by` for agents that helped. Cycle time ends at merge or at closure without merge. Metrics report closure without merge as a separate state.
 
 ## Consequences
 
-Until the metrics integration can list commits through read-only access, the pull request creation command carries the oldest commit-trailer value into the pull request body. A long-lived run can record a start earlier than its work on the change began, which makes the measured cycle time longer.
+The metrics integration collects pull request timing data. The command that opens a pull request copies the earliest trailer timestamp into the description until the integration can list commits with read-only access. A long-running agent session can start before it begins work on a change, which makes the measured cycle time longer.
