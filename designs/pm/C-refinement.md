@@ -1,7 +1,7 @@
 ---
 type: Design Appendix
 title: Project management issue refinement
-description: The Definition of Ready, the refinement procedure that runs before an issue or service request is ready to work, and how the tracker import passes through it.
+description: The Definition of Ready, the refinement procedure that runs before an issue or service request is ready to work, and the sources behind those choices.
 tags: [pm, refinement, ready, import, design]
 status: draft
 parent: README.md
@@ -16,15 +16,25 @@ Back to [the design](README.md).
 
 Every issue and every service request passes refinement before anyone starts work on it, under the operator's ruling recorded as D6 in [decisions](decisions.md). A refinement run checks the item against the Definition of Ready (DoR) and fixes what it may. It then records one of five outcomes with evidence. The whole process is new, and none of it exists yet.
 
+## Why a gate
+
+The Scrum Guide has no Definition of Ready. It treats refinement as ongoing work that adds detail, order, and size until a team can finish an item within one Sprint. This design makes readiness a gate anyway, because D6 says so and because an agent starts work without the conversation a team would have first.
+
+A ready checklist can drift into a phase gate that holds work until every detail exists. This DoR requires only what a worker needs to start the work and to check the result. It never requires a design, an effort estimate, or an assignee. Work that needs exploration first splits off a Spike.
+
 ## Scope
 
-The gate covers the six work item variants of [the content model](A-content-model.md), from Initiative down to Spike, and the Requests of the service-management records design, which the service-management role (`sm`) refines. Incidents differ, and D9 puts the question of whether they skip the gate to the operator.
+The gate covers the six work item variants of [the content model](A-content-model.md), from Initiative down to Spike. It also covers the Requests of the service-management records design, which the service-management role (`sm`) refines. Incidents differ, and D9 puts the question of whether they skip the gate to the operator.
 
-Problem and change records follow the same seven items under `sm`. Their mapping arrives with their public appendices in the service-management records design.
+Problem and change records follow the same eight items under `sm`, and their mapping arrives with their public appendices in the service-management records design. The `sm` role is still designing the Problem type, so this appendix only leaves room for it:
+
+- A Defect may have a Problem or an Epic as its parent, or no parent at all.
+- A Problem is likely to become the parent of the Defects and Chores that fix it.
+- An Incident links to its Problem.
 
 ## Status and the Ready signal
 
-The README rule stays as written: only the sync job writes the Status field. Refinement never touches that field. Instead, the refine verb writes GitHub state, and the sync job derives every Status value from it. D7 in [decisions](decisions.md) records this choice.
+The README rule stays as written: only the sync job writes the Status field. Refinement never touches that field. Instead, the refine verb writes GitHub state, and the sync job derives every Status value from it, as D7 in [decisions](decisions.md) records.
 
 | Status | The sync job sets it when |
 | --- | --- |
@@ -35,11 +45,17 @@ The README rule stays as written: only the sync job writes the Status field. Ref
 | Done | GitHub closed the item as completed |
 | Dropped | GitHub closed the item as not planned or as a duplicate |
 
-A record counts as current under three conditions. First, the kernel's account wrote it through the refine verb. Second, the item bears the refinement label that the record gives, and third, the body hash in the record matches the body now. A label added by hand, or a record that a later edit made stale, leaves the item at Needs refinement.
+A record counts as current under three conditions. First, the kernel's account wrote it through the refine verb. Second, the item bears the refinement label that the record gives, and third, the body hash in the record matches the body now.
 
-After a split, the parent takes its Status from its children. It shows Ready once each child shows Ready or a closed state, and In progress when any child is in progress.
+A label added by hand, or a record that a later edit made stale, leaves the item at Needs refinement. After a split, the parent takes its Status from its children. It shows Ready once each child shows Ready or a closed state, and In progress when any child is in progress.
 
-Only a refinement run may make an item Ready, and only through the refine verb. Work items go to a run of the pm role, while Requests go to a run of the `sm` role. The run that wrote an item's body can't refine that item, and the reviewer of a batch can't refine items in it. That rule keeps the maker and the checker apart, as the agent roles registry requires.
+The org Project's built-in workflows can also write Status. Two of them start enabled, and each sets Done, one when an item closes and one when a pull request merges. The sync job's setup turns off every built-in workflow that sets Status, which leaves the sync job as the only writer.
+
+The sync job runs on issue and pull request events and also on a schedule. GitHub doesn't start a new workflow run for an event that a workflow's own token caused, and the schedule catches those changes.
+
+Only a refinement run may make an item Ready, and only through the refine verb. Work items go to a run of the pm role, while Requests go to a run of the `sm` role. The run that wrote an item's body can't refine that item, and the reviewer of a batch can't refine items in it, which keeps the maker and the checker apart as the agent roles registry requires.
+
+A worker who finds a Ready item unclear doesn't start it. The worker removes the ready label with `tbhbdev pm refine --return` and one comment that states the gap. The record then stops counting as current, and the sync job shows Needs refinement.
 
 Deriving Ready from GitHub state leaves one writer for the field and one audit trail in the issue itself. Anyone who edits the field by hand sees the next sync run put it back. Labels and records remain readable in GitHub while the Project is down.
 
@@ -52,15 +68,18 @@ Each item below says how its check runs and what runs it, using these kinds of c
 - A repo read means the refiner runs commands against a commit that the record cites.
 - Judgment means the refiner decides and writes down why.
 
-1. **The outcome is one sentence about the state after the work.** The variant's outcome section contains exactly one sentence, and that sentence describes a state the work leaves behind. For a Defect, the expected behavior counts as its outcome, and for a Spike, the decision it unblocks. Checked by a schema check for the sentence count, plus judgment that a stranger could observe the state.
+1. **The outcome is one sentence about an observable state after the work.** The variant's outcome section contains exactly one sentence. That sentence describes a state the work leaves behind, which someone can observe. It never says only that the work exists or that someone did it. For a Defect, the expected behavior counts as its outcome, and for a Spike, the decision it unblocks. Checked by a schema check for the sentence count and the existence patterns of [D. Issue writing](D-issue-writing.md), plus judgment that a stranger could observe the state.
 2. **The context makes sense to a stranger.** It lacks retired notes, run names, process dates, line numbers, bare issue references, and text about where the content came from. It identifies the repository, the component, and the current behavior. Checked by a schema check of patterns in the issue base for the mechanical forms, plus judgment that someone new to the work could act on it.
-3. **The checks are specific and testable, within the variant's caps.** Each check gives one observable result and how to see it, as a command, a path, or a visible behavior. Vague words such as works well, cleaner, or improved fail it. Checked by a schema check for the task list and the caps, plus judgment that a second person could run each check and agree on the result.
+3. **Each check states an observable result, within the variant's caps.** Each check states one result that a person or another system can see, and how to see it, such as a command and its output or a path and its content. A check fails when it says only that the work exists or that someone did it, as in a spike that exists, a pull request that merged, or a doc that changed. Vague words such as works well, cleaner, or improved fail it too. Checked by a schema check for the task list, the caps, and the existence and vague-result patterns of D, plus judgment that a second person could run each check and agree on the result.
 4. **Nobody has done the work, and no other open issue covers it.** A search at the target repository's current commit doesn't find a merged change that already meets the outcome. The refiner also searches open issues in the target repository, in its twin when the run can read it, and in the central work repository. Checked by a repo read and an issue search. The record cites the command and result count of each.
-5. **Relations, fields, and labels are valid for the variant.** The item is in the repository that the [routing order](B-routing-and-taxonomy.md) picks. Its parent has the right type, and each blocked-by link points at an issue that exists. Priority, Source, Work type, and Severity for a Defect have allowed values, Handler appears only on a Request, and the sync job has given it a Status. Each label comes from the label configuration in the tools repository. Checked by a kernel check against live data, plus judgment for any value the refiner fills in.
+5. **Relations, fields, and labels are valid for the variant.** The item is in the repository that the [routing order](B-routing-and-taxonomy.md) picks. Its parent has a type the variant allows, and each blocked-by link points at an issue that exists. Priority, Source, Work type, and Severity for a Defect have allowed values, Handler appears only on a Request, and the sync job has given it a Status. No item has an owner field, because the repository implies the owning role. A `role/<role>` label appears only when another role owns the work. Each label comes from the label configuration in the tools repository. Checked by a kernel check against live data, plus judgment for any value the refiner fills in.
 6. **One pull request can deliver it under the size limits.** The refiner lists the paths the change likely touches and estimates its size against the target repository's `pr_size` limits, which in this repository are 400 code lines and 1,500 raw lines. Work that spans repositories fails it, and an estimate over half a limit fails it too. An Epic or Initiative passes when its children together cover its outcome. Checked by judgment, backed by a repo read of the listed paths.
-7. **Each question has an answer.** The text lacks markers such as TBD or TODO, and it asks nothing outside a Spike's question section. A reader's likely questions find their answers in the text, or the item moves to Needs info with the answerer given. The operator answers only questions of operator intent, and a role takes the rest. Checked by a schema check for the markers, plus judgment for the unwritten questions.
+7. **Each question has an answer.** The text lacks markers such as TBD or TODO, and it asks nothing outside a Spike's question section. A reader's likely questions find their answers in the text, or the item moves to Needs info with the answerer given. The operator answers only questions of operator intent, and a role takes the rest. A question that needs exploration to answer becomes a Spike through a split. Checked by a schema check for the markers, plus judgment for the unwritten questions.
+8. **Every sentence states one fact about the work.** Each sentence states one fact in plain subject-verb order, and no semicolon or comma splice joins two facts. Each list item is a full sentence that ends with a period. No sentence describes the issue itself or its tracking, links, or history. GitHub's sub-issue and dependency links record those. Checked by the semicolon, final-period, and meta-exposition patterns of D, plus judgment for comma splices and that a stranger reads each sentence once.
 
-The schema refuses a create or an edit at once, so new items arrive with items 1, 2, 3, and 7 partly checked. Imported items use a looser variant, described under the import gate, and refinement does that work for them.
+The schema refuses a create or an edit at once, so new items arrive with items 1, 2, 3, 7, and 8 partly checked. Imported items use a looser variant, described in [E. Tracker import](E-import.md), and refinement does that work for them.
+
+A person can still open an issue in the GitHub web interface, which skips the kernel. An issue form can set the type, the labels, and the Project for such an issue, but it can't run the schema. Refinement is the gate for those issues: `refine --check` runs the same schema checks, and the issue shows Needs refinement until a run converts it into its real variant.
 
 ## The procedure
 
@@ -73,32 +92,36 @@ Its inputs are the issue list or query, the commit of each target repository, an
 ### Steps for each item
 
 1. Read the item and its comments. Then read the linked issues: parent, children, and blocked-by links.
-2. Run the schema checks with `tbhbdev pm refine --check`, which reports each finding without a write.
-3. Walk items 1 to 7 in order and write one result for each, with evidence. A result is pass, fixed, or fail.
+2. Run the schema checks with `tbhbdev pm refine --check`, which reports each finding and each warning without a write.
+3. Walk items 1 to 8 in order and write one result for each, with evidence. A result is pass, fixed, or fail.
 4. Decide the outcome from the results, using the table that follows.
 5. Write the outcome through `tbhbdev pm refine`, which posts the record and applies the labels, links, closes, and edits in one call.
 
 | Outcome | When it applies |
 | --- | --- |
-| Ready | Each of the seven items passes as written |
+| Ready | Each of the eight items passes as written |
 | Fixed, then Ready | Some items failed, the refiner fixed each one without changing the item's scope, and each now passes |
 | Needs info | A fix would change intent, or a question needs an answer the run can't find |
-| Split | Item 6 fails, and the work divides into pieces that each pass alone |
+| Split | Item 6 fails and the work divides into pieces that each pass alone, or item 7 needs a Spike first |
 | Drop | Item 4 shows the work done or covered by a duplicate, or the reason for it has gone |
 
 A fix may do any of these:
 
 - Restate, trim, or move text between sections.
+- Break a sentence into one fact per sentence, or into bullets.
+- End each list item with a period.
+- Delete a sentence that describes the issue itself.
+- Rewrite a check that says only that someone did the work into the observable result the item's text already implies.
 - Remove stale context.
 - Fill an empty field from evidence.
 - Correct a link.
 - Convert an imported item into its real variant.
 
-A fix may not change the meaning of the outcome sentence or the intent of a check. It may not change a Priority that someone already set either. Each of those changes makes the outcome Needs info.
+A fix may not change the meaning of the outcome sentence or the intent of a check. It may not change a Priority that someone already set either. Each of those changes makes the outcome Needs info, and so does a check whose observable result the text doesn't make plain.
 
 ### Outcome writes
 
-Each outcome writes one record comment. It goes through the refinement record variant. The record lists items 1 to 7 with a result and evidence for each, then the outcome and the refining run. It ends with the batch Chore, if any, and a Secure Hash Algorithm (SHA) hash, SHA-256, of the body after any fixes. A batch run writes one record per item, never one for the whole batch.
+Each outcome writes one record comment through the refinement record variant. The record lists items 1 to 8 with a result and evidence for each, then the outcome and the refining run. It ends with the batch Chore, if any, and a Secure Hash Algorithm (SHA) hash, SHA-256, of the body after any fixes. A batch run writes one record per item, never one for the whole batch.
 
 - **Ready** writes the record and the ready label of the refinement family. It edits nothing else.
 - **Fixed, then Ready** writes the body and field edits first, then the record and the ready label. The record lists each fix and the item it served, and GitHub's edit history keeps the earlier text.
@@ -119,59 +142,26 @@ Each claim in a record cites at least one of these:
 - A path at a commit, as `path@sha`.
 - A command, the commit or query it ran against, and its result count or a one-line result.
 
-A pass on item 4 always cites both a repo search and an issue search. A record on a public item never cites a private repository. When the only evidence is private, the refiner writes it on the private twin. The public record then says that one private citation exists. A review fails an unsupported claim, even one with a correct conclusion.
+A pass on item 4 always cites both a repo search and an issue search. A record on a public item never cites a private repository. When the only evidence is private, the refiner writes it on the private twin, and the public record says that one private citation exists. A review fails an unsupported claim, even one with a correct conclusion.
 
 ## Service requests
 
-The `sm` role applies the same seven items to Requests. In the service-management records design, an Agent Request goes to an agent role, while the two kinds of operator Request, approval and command, go to the operator.
+The `sm` role applies the same eight items to Requests. In the service-management records design, an Agent Request goes to an agent role, while the two kinds of operator Request, approval and command, go to the operator.
 
 | Item | Agent Request | Approval Request | Command Request |
 | --- | --- | --- | --- |
-| 1. Outcome | The ask says what's true once answered | The decision says what changes on yes | The Changes section says what the script changes |
+| 1. Outcome | The ask says what's observably true once answered | The decision says what changes on yes | The Changes section says what the script changes |
 | 2. Context | Applies | Applies | Applies, and the reason an agent can't run it makes sense alone |
 | 3. Checks | Applies when the ask is a change | Each option states its effect | Checks first, Exit codes, Undo, and Dry run are each testable |
 | 4. Not done | Applies | Applies, including a past Decision on the same question | Applies, including an earlier complete Request |
 | 5. Fields | Handler Agent, one area label, and Priority | Handler Operator and Priority, without an area label | Handler Operator and a script hash, without an area label |
 | 6. Size | Applies when the ask is a change | Doesn't apply | One script, checked against the command pattern |
 | 7. Questions | Applies | Applies, and the Request itself is the question to the operator | Applies |
+| 8. Sentences | Applies | Applies | Applies to the prose, never to the script |
 
 Severity and Work type never apply to a Request, and parent and blocked-by links apply only when they exist. Also, an operator Request whose body doesn't give a reason that an agent account can't do the work fails item 5 and goes back to its author.
 
 For an operator Request, refinement runs while the Request is open, before the workflow moves it to waiting on operator. That workflow gains one condition for that move: a current ready record. The `sm` role makes that change in the service-management records design.
-
-## Import gate
-
-Plan step 7 imports about 700 issues from the earlier tracker. Each one enters through the kernel in an imported variant. That variant keeps the title and one Context section of the original text, and it runs the scans without section or cap rules.
-
-The import sets Source to its import value. Each imported item then shows Needs refinement, and nobody can start it until refinement turns it into a real variant. The import uses issues and the org Project, without a new tracker. One Epic in the central work repository covers the import, and each batch is a Chore under it with its query and outcome counts.
-
-### Order and batches
-
-1. Order by the type that the import gives each item. Initiatives and Epics come first, then Features and Spikes, then Defects and Chores.
-2. Within a level, take `Expedite` before `Standard` before `Intangible`, then the oldest first.
-3. Wait to refine a child until its parent has an outcome. A child under a dropped parent gets a new parent or a Drop of its own.
-4. Keep each batch to one target repository and at most 25 items.
-
-### Throttling
-
-GitHub limits content writes per minute and per hour. A refinement writes two to five times per item. For 700 items that comes to a few thousand writes. Refinement runs share one budget of at most 200 writes an hour, with one run per target repository at a time, which leaves room for normal work under GitHub's limits. This design hasn't measured those limits yet.
-
-Review sets the pace as well. At most two batches wait for review at once, and the launcher doesn't start another batch until one of them clears review.
-
-### Calibration
-
-Before the first real batch, a run refines 20 imported items in a test repository. The set includes known bad cases, among them a done item, a duplicate, an item too large for one pull request, and stale context. The pm role compares the outcomes with the known answers and tunes the brief before the import starts.
-
-### Finish line
-
-The import ends when four counts hold:
-
-- Zero imported items show Needs refinement.
-- Each Needs info item gives its answerer.
-- Each batch Chore has closed after a passing review.
-- The import Epic's closing comment gives the outcome counts.
-
-A Needs info item without an answer after 30 days gets one reminder. After that, the pm role may drop it as not planned, citing the unanswered question in the record. Items that wait on the operator are exempt.
 
 ## Run brief
 
@@ -186,13 +176,14 @@ Items: <issue list, or the query that selects them>
 Batch Chore: <owner/repo#number, or none for a single item>
 Repository commits to read: <owner/repo@sha for each target repository>
 Label configuration: <path@sha of the tools label configuration>
-Write budget: <writes per hour>, shared with other refinement runs
+Write budget: <writes per hour and per minute>, shared with other runs
 
 For each item, in the order given:
 1. Read the item, its comments, its parent, its children, and its
    blocked-by links.
-2. Run `tbhbdev pm refine --check <item>` and read every finding.
-3. Walk items 1 to 7 of the DoR. For each, write pass, fixed, or fail,
+2. Run `tbhbdev pm refine --check <item>` and read every finding and
+   warning.
+3. Walk items 1 to 8 of the DoR. For each, write pass, fixed, or fail,
    with evidence: a SHA, a pull request, a path at a SHA, or a command
    with the commit or query it ran against and its result.
 4. Choose one outcome: ready, fixed-then-ready, needs-info, split, or drop.
@@ -200,14 +191,21 @@ For each item, in the order given:
 
 Rules:
 - Fix wording, stale context, empty fields, and links. Never change the
-  item's scope; ask instead, as needs-info.
+  item's scope. Ask instead, as needs-info.
+- Each outcome and check states a result someone can observe. A check
+  that says only that work exists or was done fails item 3.
+- Each sentence states one fact. Each list item is a full sentence that
+  ends with a period.
+- Delete each sentence about the issue itself, its tracking, or its
+  links. Sub-issue and dependency links carry those.
 - Item 4 needs a repo search and an issue search, both cited.
 - Give the answerer of each question. Ask the operator only about
   operator intent.
 - Skip any item that already has a current record.
 - Never refine an item whose body you wrote.
 - Cite no private repository in a public item.
-- Stop when the write budget runs out, and report where you stopped.
+- On a 403 or 429 response, back off. Stop when the write budget runs
+  out, and report where you stopped.
 
 At the end, report the count of each outcome, the items you skipped and
 why, and any check you couldn't run.
@@ -215,14 +213,16 @@ why, and any check you couldn't run.
 
 ## Review checklist
 
-A second run reviews each batch before its Chore closes. It reads as a reviewer only, from a model family other than the refiner's, and posts its verdict as a comment on the batch Chore. On a pass, a pm or `sm` run closes the Chore. On a fail, that run removes the ready labels in the batch.
+A second run reviews each batch before its Chore closes. It reads as a reviewer only, from a model family other than the refiner's, and posts its verdict as a comment on the batch Chore. On a pass, a pm or `sm` run closes the Chore, and on a fail, that run removes the ready labels in the batch.
 
 A refinement of one new item has no batch. Its Ready shows at once. Each week, a reviewer samples those records the same way, as if the week's records formed one batch.
 
 - [ ] The reviewer reads every item in a batch of 10 or fewer. In a larger batch, it takes 10 items or a fifth at random, whichever is more, and adds each Drop, each Split, and each fix that edited the outcome or the checks.
-- [ ] A sampled record covers items 1 to 7, each with a result and evidence that meets the evidence rules.
+- [ ] A sampled record covers items 1 to 8, each with a result and evidence that meets the evidence rules.
 - [ ] The reviewer runs at least one cited command per sampled item again, at the cited commit, and gets the same result.
 - [ ] For item 4, the reviewer's own search doesn't turn up done work or a duplicate that the refiner missed.
+- [ ] Each outcome and check on a sampled Ready item states an observable result, and none says only that the work exists or that someone did it.
+- [ ] A sampled Ready item has no semicolon in its prose, each of its list items ends with a period, and none of its sentences describes the issue itself.
 - [ ] For each fix, the edit history shows that the item's scope didn't change.
 - [ ] Each Needs info question gives an answerer, and none asks the operator about something a role could answer.
 - [ ] Each Drop cites the change, the duplicate, or the reason that has gone, and the close reason matches it.
@@ -230,9 +230,9 @@ A refinement of one new item has no batch. Its Ready shows at once. Each week, a
 
 A rubber-stamp Ready leaves signs, and one of them sends the reviewer to read the whole batch:
 
-- Over three in four imported items come out Ready without a fix, though imported text rarely passes item 2 unedited.
+- Over three in four imported items come out Ready without a fix, though imported text rarely passes items 2 and 8 unedited.
 - Two or more records share the same evidence text, or cite a commit without a command.
-- A Ready item still matches a pattern of item 2 or item 7 when checked again.
+- A Ready item still matches a pattern of item 2, 3, 7, or 8 when checked again.
 - An item 4 pass lacks an issue search.
 
 The batch fails when two or more sampled items fail, or when a full read confirms a rubber stamp. A failed batch gets a new refinement run, never the same one.
@@ -243,8 +243,11 @@ The batch fails when two or more sampled items fail, or when a full read confirm
 | --- | --- | --- |
 | A refiner marks items Ready without checking | Workers start on unclear or done work | The sampled review and the rubber-stamp signs |
 | A fix changes the item's scope | The work no longer matches the author's intent | The fix rules, and the reviewer's look at the edit history |
+| The DoR turns into a phase gate | Work waits for detail a worker could find while working | The DoR doesn't require a design or an estimate, exploration splits off as a Spike, and fixes happen in place |
+| A check says only that someone did the work | Someone closes the item without a result anyone saw | Item 3, the existence patterns of D, and the review checklist |
 | Someone edits a Ready item | The record no longer describes the text | The body hash, which returns the item to Needs refinement |
 | Someone adds the ready label by hand | An item looks ready without a record | The sync job ignores a label without a current record |
+| A built-in Project workflow writes Status | Status disagrees with the records | The sync job's setup turns off each built-in workflow that sets Status |
 | Needs info piles up for the operator | Operator time goes to triage | The rule that the operator answers only intent, and D8 |
 | A run stops partway through a batch | Part of a batch has records | Runs skip items with a current record and resume |
 | A record cites private evidence on a public item | A private detail leaks | The kernel's private-detail scan refuses the write |
@@ -253,7 +256,7 @@ The batch fails when two or more sampled items fail, or when a full read confirm
 ## Limits of refinement
 
 - Refinement doesn't set or rank Priority. It fills only an empty Priority with `Standard`, and any other change needs the priority verb with a work note.
-- It doesn't estimate effort or assign anyone, and it doesn't start work.
+- It doesn't estimate effort, assign anyone, add an owner, or start work.
 - Approving or denying a Request stays with the operator's request commands.
 - Operator intent comes from the operator. Refinement asks.
 - The Status field belongs to the sync job alone.
@@ -262,7 +265,31 @@ The batch fails when two or more sampled items fail, or when a full read confirm
 ## Changes to the rest of the design
 
 - The README's Status rule stays. This appendix adds the six Status values and the GitHub state behind each one.
+- The org Project's setup turns off each built-in workflow that sets Status, including the two that start enabled.
 - The taxonomy gains a Source field. Work type already appears in the taxonomy schema.
-- The verbs gain `refine` with an edit operation. The variants gain the imported variant and the refinement record variant.
+- Issues have no owner field. The repository implies the owning role, and a `role/<role>` label marks each exception.
+- The verbs gain `refine` with an edit operation and a return operation. The variants gain the imported variant and the refinement record variant.
+- The block model exposes the text of each paragraph and list item without its code spans, which the checks of D read.
 - The README and B spell labels as `area:<repo>`. The tools label configuration writes `family/value`, and both files take its spelling once it merges.
 - The service-management records design gains one condition before waiting on operator, as the service requests section describes.
+
+## Sources
+
+The web research pass of 2026-11-23 read these sources. Each line says what changed because of it, or what it confirmed.
+
+- [The Scrum Guide (2020)](https://scrumguides.org/scrum-guide.html) has no DoR and treats refinement as ongoing. Added the Why a gate section and confirmed the size check of item 6.
+- [Mountain Goat Software on the dangers of a DoR](https://www.mountaingoatsoftware.com/blog/the-dangers-of-a-definition-of-ready) warns that rules demanding finished upstream work form a stage gate. Added the limit that the DoR doesn't require a design, an estimate, or an assignee, and added the phase-gate failure mode.
+- [Scrum.org on why the Scrum Guide omits the DoR](https://www.scrum.org/resources/blog/why-isnt-definition-ready-described-scrum-guide) makes the same point about overhead. Confirmed the phase-gate risk, no change.
+- [Bill Wake's INVEST](https://xp123.com/articles/invest-in-good-stories-and-smart-tasks/) ties understanding a story to being able to test it. Confirmed items 3, 5, and 6, no change.
+- [The Gherkin reference](https://cucumber.io/docs/gherkin/reference/) says an outcome step checks what a user or outside system sees. Shaped items 1 and 3 so a check states what a person or another system can see.
+- [GitHub's Copilot coding agent guidance](https://docs.github.com/en/copilot/tutorials/coding-agent/get-the-best-results) asks for a clear problem, acceptance criteria, and file pointers, and keeps exploratory work for people. Added the Spike split to item 7 and confirmed items 3 and 6.
+- [Kubernetes issue triage](https://www.kubernetes.dev/docs/guide/issue-triage/) uses bot labels that change only by a command from a member, the author, or an assignee. Confirmed the label-driven states and the rule that ignores a hand-added label, no change.
+- [GitLab's product development flow](https://handbook.gitlab.com/handbook/product-development/how-we-work/product-development-flow/) sends work found incomplete after ready back to refinement. Added the worker's return operation.
+- [GitHub's issue form syntax](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-issue-forms) sets type, labels, and Project but checks only its own inputs. Added the paragraph on issues written outside the kernel.
+- [GitHub's built-in Project workflows](https://docs.github.com/en/issues/planning-and-tracking-with-projects/automating-your-project/using-the-built-in-automations) include two that set Done and start enabled. Added the setup step that turns them off, with a failure mode and a change line for it.
+- [GitHub's workflow token docs](https://docs.github.com/en/actions/concepts/security/github_token) say events the token causes don't start a new run. Added the scheduled run of the sync job.
+- [GitHub's REST rate limits](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api) cap content creation at 80 a minute and 500 an hour. Replaced the unmeasured limit in E with these figures and added the per-minute budget and the backoff rule.
+- [GitHub's sub-issue docs](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/adding-sub-issues) allow 100 sub-issues per parent. Added the line in E that the batch Chores fit under the import Epic.
+- [GitHub's issue dependency docs](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/creating-issue-dependencies) show blocked-by links in Projects. Confirmed that links record relations, which backs rule 4 of D, no change.
+- [Google's style guide on lists](https://developers.google.com/style/lists) lets a fragment end without a period. Kept the stricter rule 3 of D, which doesn't allow fragments.
+- [Digital.gov on short sentences](https://digital.gov/guides/plain-language/writing/clear-short) asks for one idea per sentence. Confirmed rule 2 of D, no change.
