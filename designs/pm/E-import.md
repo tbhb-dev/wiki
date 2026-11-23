@@ -18,7 +18,7 @@ Plan step 7 imports about 700 issues from the earlier tracker. Each one enters t
 
 That variant runs the scans without section or cap rules, and it reports the checks of [D. Issue writing](D-issue-writing.md) as warnings.
 
-While it maps the original text, the import strips each sentence that describes the issue itself, as D describes. It sets Source to `imported` and keeps that value when refinement converts the issue to its real variant. An item about internal security goes in a private repository, as rule 6 of D requires.
+While it maps the original text, the import strips each sentence that describes the issue itself, as D describes. It sets Source to `Import` and keeps that value when refinement converts the issue to its real variant. A converted Problem with Source `Import` meets the Source requirement in both this design and the [Problem design](https://github.com/tbhb-dev/wiki/blob/main/designs/itsm-records/problems.md#fields). An item about internal security goes in a private repository, as rule 6 of D requires.
 
 Each imported item then shows Needs refinement, and nobody can start it until refinement under [C. Refinement](C-refinement.md) turns it into a real variant.
 
@@ -26,11 +26,11 @@ The import uses issues and the org Project, without a new tracker. One Epic in t
 
 ## Staging and the Vale pass
 
-Before any write, the import maps each original issue into a Markdown file in the import run's working directory, outside any repository. The content check then runs over each staged file. It runs the scans, the checks of D as warnings, and the [Vale pass](C-refinement.md#vale-pass) of C with the organization's configuration.
+Before any write, the import maps each original issue into a Markdown file in the import run's working directory, outside any repository. The content check then runs over each staged file. It runs the scans and the checks of D as warnings. It runs the same [Vale pass](C-refinement.md#vale-pass) on the rendered body that the kernel runs at issue creation, with the same organization configuration and semicolon rule.
 
-Vale findings here are warnings. A secret finding still stops the item, as it does for any write. The import posts no finding list, because the run's logs show counts only.
+The imported variant has no total-word cap, so Vale errors become warnings only for bodies under 65 prose words. Any draft that the creation check would refuse also fails staging. The import posts no finding list, because the run's logs show counts only.
 
-The kernel runs the full Vale pass at write time for the imported body and again when refinement converts it into its real variant.
+The kernel reruns the same pass at creation and runs it again with the destination variant's threshold when refinement converts the issue.
 
 ## Order and batches
 
@@ -55,7 +55,7 @@ Others are an item too large for one pull request, stale context, a check that s
 
 ## Finish line
 
-The import ends when four counts hold:
+The finish checks count every staged draft. A creation refusal fails the batch. The import ends when every staged draft has passed creation, has a recorded refinement outcome, and the following checks pass:
 
 - Zero imported items show Needs refinement.
 - Each Needs info item gives its answerer.

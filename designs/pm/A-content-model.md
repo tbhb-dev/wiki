@@ -39,7 +39,7 @@ A check on raw Markdown counts words and lines. A table, an HTML block, or a lon
 
 A run loads core, taxonomy, the issue base, and exactly one variant, because each variant file defines the same `#Variant` name. The `#Hints` definition keys its hints by variant.
 
-The pm variant schemas use `#WorkType` from the [shared taxonomy](https://github.com/tbhb-dev/tools/blob/main/schemas/taxonomy.cue). Its values are `Planned` and `Unplanned`. The import adds the Source field with the value `imported`, matching the name of the imported variant in [E. Tracker import](E-import.md).
+The pm variant schemas use `#WorkType` from the [shared taxonomy](https://github.com/tbhb-dev/tools/blob/main/schemas/taxonomy.cue). Its values are `Planned` and `Unplanned`. The import adds the Source field with the value `Import`, which [E. Tracker import](E-import.md) preserves on conversion.
 
 ## Metric semantics
 

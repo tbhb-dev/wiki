@@ -56,7 +56,7 @@ The design relies on D1 to D4 and D6 as requirements. D5 only places the design.
 ### D6. Must issues pass refinement before work starts?
 
 - **Decided:** 2026-11-22, by the operator through coordination.
-- **Rule:** every issue and every service request passes the Definition of Ready before work starts. The `sm` role refines Requests, Incidents, Problems, and Changes. It applies the common readiness checks and uses each Incident, Problem, or Change template and schema for the type-specific checks. Imported issues pass the same gate.
+- **Rule:** every issue and every service request passes the Definition of Ready before work starts. The `sm` role refines Requests, Incidents, Problems, and Changes. It applies the common readiness checks and uses each Incident, Problem, or Change template and schema for the type-specific checks. Imported issues pass the same gate and keep Source `Import` on conversion. That value meets the Source requirement in both designs for a converted Problem.
 - **Undo:** remove the refinement condition from the sync job and the workflow. Two-way door.
 - **Record:** the operator's refinement ruling, relayed by coordination.
 
@@ -105,6 +105,6 @@ These questions go to another role, not to the operator, so `decisions_open` doe
 - **Asked of:** the tools role, which maintains the content kernel and `tbhbdev content check`.
 - **Recommendation:** yes. Run the required pass as a plugin of the content check so all kernel callers and import staging share one implementation.
 - **Why:** today Vale runs only on each repository's own Markdown in continuous integration (CI). Vale doesn't run on issue bodies, comments, or staged import files, and two separate copies in refinement and the import would drift.
-- **If yes:** the content check runs Vale with the configuration in [the rules repository](https://github.com/tbhb-dev/rules/blob/main/.vale.ini) on each body and comment before the kernel writes it. It runs the same pass on each staged import file with warnings only, as [C. Refinement](C-refinement.md#vale-pass) and [E. Tracker import](E-import.md) describe.
-- **If no:** the kernel calls the same Vale pass directly before every issue body and comment write. Import staging calls that pass in warnings-only mode.
+- **If yes:** the content check runs Vale with the configuration in [the rules repository](https://github.com/tbhb-dev/rules/blob/main/.vale.ini) on each body and comment before the kernel writes it. Import staging and issue creation use the same pass, including the short-body threshold and semicolon rule, as [C. Refinement](C-refinement.md#vale-pass) and [E. Tracker import](E-import.md) describe.
+- **If no:** the kernel calls the same Vale pass directly before every issue body and comment write. Import staging calls that pass with the same settings as issue creation.
 - **Reversible:** yes. The kernel can call the pass directly if the plugin is removed.

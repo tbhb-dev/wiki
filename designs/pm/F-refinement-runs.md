@@ -70,8 +70,8 @@ Rules:
   operator intent.
 - Skip items with a current record unless a follow-up run is rechecking
   a split parent whose children cover its outcome.
-- A non-bot comment newer than the record makes it stale. Pick up an
-  answered Needs info item again even if its body hash and label match.
+- A comment leaves the refinement state as it was. Pick up an answered
+  Needs info item after the body edit makes its record stale.
 - A split parent needs its own current ready record to show Ready.
 - Never refine an item whose body you wrote.
 - Cite no private repository in a public item.
@@ -110,7 +110,7 @@ A rubber-stamp Ready leaves signs, and one of them sends the reviewer to read th
 - A Ready item still matches a pattern of item 2, 3, 7, or 8 when checked again.
 - An item 4 pass lacks an issue search.
 
-The batch fails when two or more sampled items fail, or when a full read confirms a rubber stamp. A failed batch gets a new refinement run, never the same one.
+The batch passes only when every Ready item passes the gate. A single sampled item that fails review fails the batch, including a Ready item that duplicates other work. A full read that confirms a rubber stamp also fails the batch. A failed batch gets a new refinement run, never the same one.
 
 ## Failure modes
 
@@ -125,7 +125,7 @@ The batch fails when two or more sampled items fail, or when a full read confirm
 | An assignee or open pull request appears before refinement | An item could appear to be in progress before it passes the gate | In progress requires the item's own current `ready` record, and any batch it belongs to must pass review |
 | A built-in Project workflow writes Status | Status disagrees with the records | The sync job's setup turns off each built-in workflow that sets Status |
 | Needs info piles up for the operator | Operator time goes to triage | The rule that the operator answers only intent, and D8 |
-| Someone answers a Needs info question | The answer can sit unread when the body hash and label stay the same | A newer non-bot comment makes the record stale, so the next run picks the item up |
+| Someone answers a Needs info question in a comment | The item remains at Needs info while the answer is only in the comment | The person or role handling the answer updates the body and the next run picks the item up |
 | A run stops partway through a batch | Part of a batch has records | Runs skip items with a current record and resume |
 | An internal-security item sits in a public repository | Anyone can read about the weakness | The security-topic warning of D, item 5, and a transfer before any other write |
 | Vale's document-wide rules flag a short body | An honest short text can't pass | Warnings only below the short threshold |
