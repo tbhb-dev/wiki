@@ -28,7 +28,7 @@ The choice between Epics as design documents and an Epic issue type remains open
 
 ### D8. Should ordinary refinement send questions of operator intent as one approval Request per batch?
 
-This decision covers ordinary refinement. The tracker import records gaps in staging and flags them for the responsible role at creation. See [decision D11](#d11-which-issue-types-does-the-tracker-import-create).
+This decision covers ordinary refinement. The tracker import records gaps in staging. At creation, the kernel adds `flag:split`, `flag:drop`, or `flag:needs-info` when the staged outcome calls for owner follow-up. See [decision D11](#d11-which-issue-types-does-the-tracker-import-create).
 
 - **Recommendation.** Open at most one approval Request per batch. The Request lists each issue with its question. One comment answers them all.
 - **Why.** A batch can contain several questions of intent. The operator already answers approval Requests in one place.
@@ -53,7 +53,7 @@ The design relies on D1 to D4 and D6 as requirements. D5 only places the design.
 ### D11. Which issue types does the tracker import create?
 
 - **Decided.** tbhb, 2026-11-23, approved direct creation in the destination issue type.
-- **Rule.** The imports role refines and vets each file in staging. The kernel writes each issue once in its destination type with Source `Import`. It includes a flag for the responsible role when staging yields `split`, `drop`, or `needs-info`.
+- **Rule.** The imports role refines and vets each file in staging. The kernel writes each issue once in its destination type with Source `Import`. At creation, the kernel adds `flag:split`, `flag:drop`, or `flag:needs-info` to match the staged outcome.
 - **Why.** Staging already produces the sections each type requires. Direct creation keeps those sections and avoids about 2,000 follow-up writes.
 - **Undo.** Change the mapping and creation path for a future import. Two-way door.
 - **Record.** The [tracker import design](E-import.md) gives the approved procedure.

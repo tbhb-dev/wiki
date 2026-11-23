@@ -38,13 +38,13 @@ A batch groups up to 25 items in one target repository under a batch Chore. An i
 
 | Status | The sync job sets it when |
 | --- | --- |
-| Needs refinement | An open item has neither a current record nor a flag from the tracker import. This status also applies to open items with a current `split` record or a current `ready` record and a batch review that has yet to pass. |
+| Needs refinement | An open item has neither a current record nor an [import owner flag](E-import.md#review-and-creation). This status also applies to open items with a current `split` record or a current `ready` record and a batch review that has yet to pass. |
 | Needs info | The item is open and has a current `needs-info` record. An answer in a comment alone leaves the item at Needs info. Editing the body with the resolved information or removing the `needs-info` label returns it to Needs refinement. |
 | Ready | The open item has its own current `ready` record. Any batch it belongs to has passed review. The item has neither a linked open pull request nor an assignee. |
 | In progress | An assignee or a linked open pull request puts an open item with its own current `ready` record In progress. Any batch the item belongs to must have passed review. |
 | Done | GitHub closed the item as completed. |
 | Dropped | GitHub closed the item as not planned or as a duplicate. |
-| No Status | The item is open and has a current `drop` record. The sync job clears Status until the close succeeds. An open item with a flag from the tracker import also has no Status until ordinary refinement writes a current record. |
+| No Status | The item is open and has a current `drop` record. The sync job clears Status until the close succeeds. An open item with `flag:split`, `flag:drop`, or `flag:needs-info` also has no Status until ordinary refinement writes a current record. |
 
 Only the latest refinement record from the kernel's account can be current. Ordinary refinement writes that record through the refine verb. A current record requires the item's body hash and refinement label to match the record. A `drop` record requires the body hash to match and the item to have no refinement label. Only a `ready` record also requires the live fields, labels, and relations to pass check 5.
 

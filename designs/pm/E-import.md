@@ -20,9 +20,9 @@ The import uses GitHub issues and the org Project. One Epic in the central work 
 
 ## Staging and refinement
 
-The imports role maps each source item into a Markdown file in the import run's working directory, outside any repository. The role selects the destination type and repository. It checks the title against the form for the responsible role. It sets the area labels and Priority. It puts the text in the destination type's sections and applies the [issue writing rules](D-issue-writing.md#imports). The [routing order](B-routing-and-taxonomy.md#routing-order-for-create) sends an item about internal security to a private repository.
+The imports role maps each source item into a Markdown file in the import run's working directory, outside any repository. It selects the destination type and repository. To check the title, the imports role uses the form for the responsible role. It sets the area labels and Priority. The imports role follows the [issue writing rules](D-issue-writing.md#imports) to put the text in the sections for the destination type. Under the [routing order](B-routing-and-taxonomy.md#routing-order-for-create), an item about internal security goes to a private repository. For a Defect, the imports role sets Severity to the value in the source text or to the lowest severity the Defect schema allows if the text gives none, and the owner confirms Severity when they pick up the issue.
 
-The refiner applies the [Definition of Ready](C-refinement.md#readiness-checks) to the staged file. The refiner records the outcome and its evidence in staging. If the outcome is `split`, `drop`, or `needs-info`, the imports role prepares the issue in its destination type with a flag for the responsible role. The batch record gives the reason for the flag. For `needs-info`, it also names the role that can answer or identifies the operator. The import leaves the follow-up to the responsible role.
+The refiner applies the [Definition of Ready](C-refinement.md#readiness-checks) to the staged file. In staging, the refiner records the outcome and its evidence. The batch record gives the reason for any owner flag. For `needs-info`, the record identifies the role that can answer or specifies that the operator must answer. Follow-up belongs to the responsible role.
 
 Every staged issue must pass `cue vet` against its destination type before creation, including flagged issues. The check covers the required sections, fields, and caps. The kernel also checks the required relations and labels. The import sets Source to `Import` using the destination variant's optional `source` field. For a Problem, that value meets the [Problem Source requirement](../itsm-records/problems.md#fields).
 
@@ -36,7 +36,9 @@ The content check runs the scans and the destination type's writing checks. It r
 
 The independent reviewer uses the [batch review checklist](F-refinement-runs.md#review-checklist) with the staged files and evidence. For `split`, `drop`, and `needs-info`, the reviewer checks that the flag matches the evidence and gives the responsible role enough information to follow up. The reviewer posts the verdict on the batch Chore. The kernel creates the issues after the batch passes review.
 
-The kernel repeats the creation checks. The import writes each issue once with its vetted body and destination type. The same write adds the `ready` refinement label or a label that flags the staged outcome for the responsible role. The kernel records the created issue link and the vetted body hash beside its staging result on the batch Chore. The sync job uses a current `ready` record from that Chore after the batch passes review. An owner flag leaves the issue outside Ready until the owner resolves it through ordinary refinement.
+Before creation, the kernel repeats the checks. Each issue gets one write with its vetted body and destination type. When a staged outcome calls for owner follow-up, the kernel adds `flag:split`, `flag:drop`, or `flag:needs-info` at creation. An owner flag appears alongside the labels for the issue type. The issue keeps its destination type.
+
+The kernel records the created issue link and the vetted body hash beside its staging result on the batch Chore. For an issue without an owner flag, the sync job shows Ready at creation only if the issue has a current `ready` record and the batch has passed review. Otherwise, the sync job shows Needs refinement. See the [Ready signal](C-refinement.md#status-and-the-ready-signal) and the [batch review checklist](F-refinement-runs.md#review-checklist). An owner flag leaves the issue outside Ready until the owner resolves it through ordinary refinement.
 
 On retry, the import checks for a GitHub issue already created from the same source item. It resumes from that issue if it exists. If the run cannot tell whether a prior write succeeded, it stops the batch.
 
@@ -44,7 +46,7 @@ On retry, the import checks for a GitHub issue already created from the same sou
 
 1. Order by destination type. Initiatives and Epics come first, then Features and Spikes, then Defects and Chores.
 2. Within a level, take `Expedite`, then `Standard`, then `Intangible`. Take the oldest first within each Priority.
-3. Wait to refine a child until its parent has a staged outcome. A child under a parent flagged `drop` gets a new parent or a `drop` flag of its own. A required parent link must pass the kernel check before creation.
+3. Wait to refine a child until its parent has a staged outcome. A child whose parent has a `drop` outcome gets a new parent or the `flag:drop` label at creation. A required parent link must pass the kernel check before creation.
 4. Keep each batch to one target repository and at most 25 items.
 
 ## Throttling
@@ -65,7 +67,7 @@ The finish checks count every staged draft. A creation refusal fails the batch. 
 
 - Every staged source item has one GitHub issue in its destination type with Source `Import`.
 - The batch Chore records each issue's staging outcome.
-- Each issue with a `split`, `drop`, or `needs-info` outcome has its owner flag.
+- Each issue with a `split`, `drop`, or `needs-info` outcome has its matching `flag:split`, `flag:drop`, or `flag:needs-info` label.
 - Each batch Chore has closed after passing review.
 - The import Epic's closing comment gives the outcome counts.
 
