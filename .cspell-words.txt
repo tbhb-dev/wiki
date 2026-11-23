@@ -1,10 +1,8 @@
-AUTOINCREMENT
-ITIL
-Structurizr
 adrs
 afakt
 akia
 ascm
+AUTOINCREMENT
 awrel
 bazelignore
 bazelisk
@@ -27,6 +25,7 @@ heapdump
 hermeticity
 hprof
 hskey
+ITIL
 keepalive
 lockfiles
 mcpjson
@@ -54,6 +53,7 @@ shellcheck
 shfmt
 srcs
 starlark
+Structurizr
 subdirs
 tailnet
 tbhb
