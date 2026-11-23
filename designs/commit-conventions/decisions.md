@@ -28,11 +28,12 @@ None.
 
 ### D10. Which commit check governs the merge?
 
-- **Decided:** 2026-11-23, in the review follow-up for this design.
-- **Rule:** `tbhbdev alpha merge` rechecks the authored commits in the pull request range and the latest title using the live base in the mode calculation from D7. Any finding that blocks in that mode stops the merge. The earlier CI result is advisory for this decision.
-- **Why:** The ruleset continues to allow heads that are behind the base because the ruleset and the merge queue are separate decisions and the merge command already reads the live base.
-- **Undo:** Revise the merge check in a tools pull request.
-- **Record:** This design's pull request.
+- **Decided.** Coordination chose option A on 2026-11-23 in the design review follow-up. The choice is reversible.
+- **Rule.** In `enforce` mode, the checker blocks titles with scope allow-list or per-type scope findings and reports advisories for authored commits. `tbhbdev alpha merge` rechecks the latest title using D7's live base mode before writing the merge subject and requiring the hash of the checked head. Existing syntax findings keep their behavior.
+- **Why.** The base can advance after the merge command fetches it. The GitHub merge button and GitHub auto-merge also bypass the command. A merge can still include a commit with an unlisted scope. [Renovate auto-merge policy](../../adrs/0024-renovate-pull-requests-automerge-after-approval-and-ci.md)
+- **Upgrade.** Move to option B when the merge queue runs the commit check on `merge_group` as a required check. Then authored-commit scope findings block in `enforce` mode. [B. Alternatives](B-alternatives.md#where-to-enforce-scopes)
+- **Undo.** Set `mode = "evaluate"` to make title scope findings advisory again. To roll back option B, restore advisories for authored-commit scope findings in `enforce` mode.
+- **Record.** This design's pull request.
 
 ### D3. Who may add a scope to the global list?
 
@@ -60,21 +61,21 @@ None.
 ### D8. Where does the rollout mode live?
 
 - **Decided:** 2026-11-23, by the rules maintainer, in this design.
-- **Rule.** `mode = "evaluate" | "enforce"` goes in the global file, and `#Repo` rejects it in a repository file. Evaluate mode makes only the scope allow-list and per-type scope findings advisory. Existing commit checks and the title cap block in both modes. [D. Checker](D-checker.md#exit-codes) defines the exit codes.
+- **Rule.** `mode = "evaluate" | "enforce"` goes in the global file, and `#Repo` rejects it in a repository file. Scope allow-list and per-type scope findings for titles block in `enforce` mode, and those for authored commits remain advisory in both modes under D10. Existing blocking commit checks and the title cap apply in both modes. [D. Checker](D-checker.md#exit-codes)
 - **Undo:** set `mode = "evaluate"` again in one rules pull request and sync it. Two-way door.
 - **Record:** this design's pull request.
 
 ### D7. Which commit's configuration does a pull request check read?
 
 - **Decided:** 2026-11-23, by the rules maintainer, in this design.
-- **Rule.** CI and the merge command read the scope lists from the exact pull request head SHA. This lets a pull request add a scope and use it in the same change. Both apply the stricter of the head mode and the base branch mode. [D. Checker](D-checker.md#pull-request-configuration) specifies how the callers resolve both revisions.
+- **Rule.** Continuous integration (CI) and the merge command read the scope lists from the exact head of the pull request so a change can add and use a scope together. Both apply the stricter of the head and base modes to the title, with CI using the event's base and the merge command fetching the live base. CI checks authored commits using the head's scope lists and reports scope findings as advisories under D10. [D. Checker](D-checker.md#pull-request-configuration)
 - **Undo.** Pass the base branch's files to the loader. Two-way door.
 - **Record.** This design's pull request.
 
 ### D6. How do scope spellings outside the grammar resolve?
 
 - **Decided:** 2026-11-23, by the rules maintainer, in this design.
-- **Rule:** a listed scope matches `^[a-z][a-z0-9]*(-[a-z0-9]+)*$` and has at most 24 characters, and the schema rejects any other key. The checker rejects `_`, backtick-wrapped scopes, `snake_case` scopes, file paths, and a comma list of scopes, and suggests the nearest listed spelling. An identifier such as `e-000001` fits the grammar but fails as unlisted, because a scope refers to a part of the repository, never to one record. History keeps every old spelling.
+- **Rule.** A listed scope matches `^[a-z][a-z0-9]*(-[a-z0-9]+)*$` and has at most 24 characters, and the schema rejects any other key. The checker flags `_`, backtick-wrapped scopes, `snake_case` scopes, file paths, and a comma list of scopes, and suggests the nearest listed spelling. An identifier such as `e-000001` fits the grammar but still produces an unlisted-scope finding, because a scope refers to a part of the repository, never to one record.
 - **Undo:** widen the pattern in the schema. Two-way door.
 - **Record:** this design's pull request. [A. Evidence](A-evidence.md#scope-spellings) counts the spellings.
 

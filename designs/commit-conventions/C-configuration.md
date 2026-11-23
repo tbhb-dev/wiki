@@ -44,8 +44,8 @@ The rules source is `repo/baseline/files/tbhb/global/commits.toml`. The seed bel
 ```toml
 schema_version = 1
 
-# Evaluate makes only scope allow-list and per-type scope findings advisory.
-# Enforce makes those findings block the check.
+# Scope findings block titles in enforce mode.
+# Authored-commit scope findings are advisory in both modes.
 mode = "evaluate"
 
 [limits]

@@ -38,8 +38,14 @@ Back to [the design](README.md).
 
 ## Mechanisms
 
-- **`cog.toml` scopes and types in each repository.** Rejected. Pinned Cocogitto 7.0.0 supports a top-level `scopes` list. Its tagged tests show that `cog verify` accepts a listed scope and rejects an unlisted scope. The checker enforces the merged list and each type's scope policy. Existing `cog verify` callers keep their syntax checks without adding a second scope list. [Cocogitto 7.0.0 verification tests](https://github.com/cocogitto/cocogitto/blob/7.0.0/crates/cocogitto/tests/cog_tests/verify.rs#L63-L111)
+- **`cog.toml` scopes and types in each repository.** Rejected. Pinned Cocogitto 7.0.0 supports a top-level `scopes` list. Its tagged tests show that `cog verify` accepts a listed scope and rejects an unlisted scope. The checker applies the merged list and the scope policy for each type. Existing `cog verify` callers keep their syntax checks without adding a second scope list. [Cocogitto 7.0.0 verification tests](https://github.com/cocogitto/cocogitto/blob/7.0.0/crates/cocogitto/tests/cog_tests/verify.rs#L63-L111)
 - **A second checker in tools for pull request titles.** Rejected. Separate checkers drift, and today the 64-character title rule already sits apart from the 72-character subject rule. One target serves both.
 - **Taking scope lists from the base branch.** Under [decision D7](decisions.md#d7-which-commits-configuration-does-a-pull-request-check-read), the head supplies the scope lists so a pull request can add and use a scope in the same change. The base supplies only its mode.
 - **Enforcing at once with no `evaluate` period.** Rejected. About 1,500 scoped subjects in the spot check used a scope outside the seed. Day one would fail most pull requests until each repository wrote its file.
 - **Rewriting old subjects to the new list.** Rejected. Rewriting main breaks signatures, merges, and existing clones, and readers can still follow the old subjects.
+
+## Where to enforce scopes
+
+- **Option A. Enforce title scopes.** In `enforce` mode, the checker blocks titles with scope findings and reports advisories for authored commits. `alpha merge` rechecks the title it uses for the merge subject. The `commit-msg` hook flags authored-commit scope findings before push, and a merge can still include a commit with an unlisted scope. [Decision D10](decisions.md#d10-which-commit-check-governs-the-merge)
+- **Option B. Enforce authored-commit scopes in the merge queue.** When the merge queue runs the commit check on `merge_group` as a required check, the check blocks scope violations in authored commits in `enforce` mode. The queue checks the group against the base it uses for the merge.
+- **Enforce authored-commit scopes in `alpha merge`.** Rejected. The base can advance after the command fetches it. The GitHub merge button and GitHub auto-merge bypass the command. [Renovate auto-merge policy](../../adrs/0024-renovate-pull-requests-automerge-after-approval-and-ci.md)
