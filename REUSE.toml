@@ -68,3 +68,10 @@ path = [
 ]
 SPDX-FileCopyrightText = "Tony Burns"
 SPDX-License-Identifier = "Apache-2.0"
+
+# Decision records start with frontmatter on line 1, so they cannot hold a
+# header. adrs/README.md and adrs/TEMPLATE.md carry their own.
+[[annotations]]
+path = ["adrs/[0-9]*.md"]
+SPDX-FileCopyrightText = "Tony Burns"
+SPDX-License-Identifier = "Apache-2.0"
