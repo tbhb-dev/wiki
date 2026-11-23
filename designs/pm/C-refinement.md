@@ -10,11 +10,11 @@ parent: README.md
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
-# Project management issue refinement
+# Refining issues for pm
 
 Back to [the design](README.md).
 
-Every issue and every service request passes refinement before anyone starts work on it, under the operator's ruling recorded as D6 in [decisions](decisions.md). A refinement run checks the item against the Definition of Ready (DoR) and fixes what it may.
+Nobody starts work on an issue or service request until the item passes refinement under [decision D6](decisions.md#d6-must-issues-pass-refinement-before-work-starts). A refinement run checks the item against the Definition of Ready (DoR) and fixes what it may.
 
 It then records one of four outcomes with evidence. The whole process is new, and none of it exists yet.
 
@@ -32,9 +32,9 @@ The gate covers the six work item variants of [the content model](A-content-mode
 
 ## Status and the Ready signal
 
-Only the sync job writes the Status org issue field. The refine verb writes the records and issue state from which the sync job derives Status. See [decision D7](decisions.md#d7-how-does-an-item-become-ready-while-only-the-sync-job-writes-status).
+Only the sync job writes Status on the issue. To supply the inputs, the refine verb writes records and issue state. See [decision D7](decisions.md#d7-how-does-an-item-become-ready-while-only-the-sync-job-writes-status).
 
-A batch groups up to 25 items in one target repository under a batch Chore. An independent reviewer from a model family other than the refiner's posts the verdict on that Chore. The reviewer verifies that each item with a `ready` record meets the gate. All items that the reviewer examines under the [review checklist](F-refinement-runs.md#review-checklist) must also pass.
+A batch groups up to 25 items in one target repository under a batch Chore. An independent reviewer from a model family other than the refiner's posts the verdict on that Chore. For each `ready` record, the reviewer checks that the item meets the gate. All items that the reviewer examines under the [review checklist](F-refinement-runs.md#review-checklist) must also pass.
 
 | Status | The sync job sets it when |
 | --- | --- |
@@ -51,21 +51,21 @@ No Status means the org issue field is empty. Only the latest refinement record 
 
 For a tracker import, the kernel writes the staging result for each created issue on the batch Chore. The sync job can use that result as the issue's refinement record until ordinary refinement writes a newer record or returns the issue to the queue. The batch review must have passed, and the issue link and body hash must match. A `ready` result still requires check 5 to pass on live data. See [E. Tracker import](E-import.md#review-and-creation).
 
-A failed check 5 leaves a current `needs-info` record in place. An unrelated comment does not change whether a record is current. An assigned, refined item stays In progress after a routine progress comment.
+When check 5 fails, a current `needs-info` record still applies. Unrelated comments leave the record current. An assigned, refined item stays In progress after a routine progress comment.
 
-The sync job reruns check 5 for a `ready` record when live fields, labels, or relations change. Relations include the parent, sub-issues, and dependencies.
+When live fields, labels, or relations change, the sync job reruns check 5 for a `ready` record. Relations include the parent, sub-issues, and dependencies.
 
-Ticking a check triggers a new readiness evaluation. The sync job rereads the body, including the check text and each checkbox state. It rereads the live labels and relations. It also rereads the org issue fields that check 5 uses for the variant, including Priority, Severity, Work type, Source, and Handler. A changed body hash makes the record stale.
+Ticking a check triggers a new readiness evaluation. The sync job rereads the body, including the check text and each checkbox state. It rereads the live labels and relations. It also rereads the org issue fields that check 5 uses for the variant. A changed body hash makes the record stale.
 
 Removing a required parent from a Ready or In progress item makes its `ready` record stale. An item with a current `needs-info` record stays at Needs info after losing a required parent.
 
 Ready and In progress still require a current record when the item has an assignee or a linked open pull request. After an ordinary refinement split, the refiner checks the parent again once the children together cover its outcome. The parent needs its own current `ready` record to show Ready or In progress.
 
-The administrator turns off built-in Status workflows on both boards during setup. The sync job writes the org issue field.
+During setup, the administrator turns off built-in Status workflows on both boards.
 
 Issue, issue comment, and pull request events start the sync job, and so does a schedule. GitHub doesn't start a new workflow run for an event that a workflow's own token caused, and the schedule catches those changes.
 
-Ordinary refinement supplies the Ready signal through the refine verb. Work items go to a run of the pm role, and service-management issues go to a run of the `sm` role. The run that wrote an item's body can't refine that item, and the reviewer of a batch can't refine items in it, which keeps the maker and the checker apart as the agent roles registry requires.
+Ordinary refinement supplies the Ready signal through the refine verb. Work items go to a run of the pm role, and service-management issues go to a run of the `sm` role. The agent roles registry keeps the maker and checker apart. The run that wrote an item's body can't refine it. A reviewer can't refine an item in the batch they review.
 
 A worker who finds a Ready item unclear returns it with `tbhbdev pm refine --return` and gives the gap in a comment. The return makes the record stale and puts the item back at Needs refinement.
 
@@ -84,11 +84,11 @@ Each item below says how its check runs and what runs it, using these kinds of c
 2. **The context makes sense to a stranger.** It lacks retired notes, run names, process dates, line numbers, bare issue references, and mapping notes. It identifies the repository, the component, and the current behavior. Checked by a schema check of patterns in the issue base for the mechanical forms, plus judgment that someone new to the work could act on it.
 3. **Each check states an observable result, within the variant's caps.** Each check states one result that a person or another system can see, and how to see it, such as a command and its output or a path and its content. A check fails when it says only that the work exists or that someone did it, as in a spike that exists, a pull request that merged, or a doc that changed. Vague words such as works well, cleaner, or improved fail it too. Checked by a schema check for the task list, the caps, and the existence and vague-result patterns of D, plus judgment that a second person could run each check and agree on the result.
 4. **Nobody has done the work, and no other open issue covers it.** A search at the target repository's current commit doesn't find a merged change that already meets the outcome. The refiner also searches open issues in the target repository, in its twin when the run can read it, and in the central work repository. For a command Request, the refiner searches only for an open duplicate Request. The record cites each search command and its result count.
-5. **Relations, org issue fields, and labels are valid for the variant.** The item is in the repository that the [routing order](B-routing-and-taxonomy.md#routing-order-for-create) picks. It has a parent if the variant requires one. A parent must have a type the variant allows. A Defect's parent is optional. If it has a parent, the type must be Problem or Epic. Each blocked-by link points at an issue that exists. Priority, Severity, Work type, Source, and Handler use the allowed values where they apply. This check fails when the Source org issue field on an imported issue is empty or has a value other than `Import`. An Agent Request has exactly one `area/<subsystem>` label. Among Requests, only an Agent Request has an area label. Before closing a decision Request, the workflow checks for an `adr` link. The sync job sets Status. Issues have no owner field. A `role/<role kind>` label identifies the owning role kind from the agent roles registry. Security work carries `concern/security`. The merged global and repository configuration lists the allowed labels and field values per issue type. An item about internal security is in a private repository, as the [internal security](#internal-security-topics) section describes. The kernel checks live data, including the [parent-type check](A-content-model.md#checks-outside-the-schema). The [owner-line and security-topic checks](D-issue-writing.md#content-checks) also run. The refiner judges any value they fill in.
+5. **Relations, org issue fields, and labels are valid for the variant.** The item is in the repository that the [routing order](B-routing-and-taxonomy.md#routing-order-for-create) picks. It has a parent if the variant requires one. A parent must have a type the variant allows. Each blocked-by link points at an issue that exists. Before closing a decision Request, the workflow checks for an `adr` link. Check fields and labels against the [shared taxonomy](B-routing-and-taxonomy.md#one-home-per-fact). An item about internal security is in a private repository, as the [internal security](#internal-security-topics) section describes. The kernel checks live data, including the [parent-type check](A-content-model.md#checks-outside-the-schema). The [owner-line and security-topic checks](D-issue-writing.md#content-checks) also run. The refiner judges any value they fill in.
 6. **One pull request can deliver it under the size limits.** The refiner lists the paths the change likely touches and estimates its size against the target repository's `pr_size` limits, which in this repository are 400 code lines and 1,500 raw lines. Work that spans repositories fails it, and an estimate over half a limit fails it too. An Epic or Initiative passes when its children together cover its outcome. Checked by judgment, backed by a repo read of the listed paths. For a command Request, check that the text gives the command and its target host or repository. Check who approves it.
 7. **The text answers what the reader needs to know.** The text lacks markers such as TBD or TODO. Use a Spike's Question section for the question the Spike investigates. In a decision Request, put the question to the operator in the decision text. If the reader needs an answer before work begins, move the item to Needs info and specify who can answer. Only the operator answers questions about their intent. Assign other questions to a role. Split off a Spike when the work needs exploration before it can start. The schema checks for markers. The refiner judges what the reader needs to know.
 8. **Every sentence states one fact about the work.** Each sentence states one fact in plain subject-verb order, and no semicolon or comma splice joins two facts. Each list item is a full sentence that ends with a period. No sentence describes the issue itself or its tracking, links, or history. GitHub's sub-issue and dependency links record those. The [Vale pass](#vale-pass) with the org configuration doesn't report an error on the body. Checked by the semicolon, final-period, and meta-exposition patterns of D and by the Vale pass. Judgment covers comma splices and whether a stranger reads each sentence once.
-9. **The Request identifies the approver.** The refiner checks the Handler field and the area label rule in item 5.
+9. **The Request identifies the approver.** The refiner checks the metadata for the Request variant under item 5.
 10. **The Request specifies how to check the result.** The refiner checks that the Request says where to find the result and what shows success. A command Request uses the exit status and the output tail that the run posts on the Request.
 11. **The title and outcome follow rule 7 of [D. Issue writing](D-issue-writing.md#the-rules).** The schema checks how the title starts. The refiner judges whether both describe the end state.
 12. **Context follows rule 8 of [D. Issue writing](D-issue-writing.md#the-rules).** The refiner checks it by judgment.
@@ -204,7 +204,7 @@ The run writes the record and any fixes only after the move, so no record repeat
 
 ## Service requests
 
-The shared refinement record belongs to the pm role. For Requests, the `sm` role maintains the mapping from checks to record fields. An Agent Request goes to an agent role. The operator handles command Requests and decision Requests. See the [Request kinds](../itsm-records/D-operator-requests.md#kinds-of-request) for the command and approval records.
+The shared refinement record belongs to the pm role. For Requests, the `sm` role maintains the mapping from checks to record fields. An Agent Request goes to an agent role. The operator handles command Requests and decision Requests. See the [Request kinds](../itsm-records/D-operator-requests.md#kinds-of-request) for the command and approval records. Apply check 5 to every Request variant.
 
 | Item | Agent Request | Decision Request | Command Request |
 | --- | --- | --- | --- |
@@ -212,36 +212,28 @@ The shared refinement record belongs to the pm role. For Requests, the `sm` role
 | 2. Context | Applies. | Applies. | The reason an agent can't run the command makes sense on its own. |
 | 3. Checks | Applies when the ask is a change. | Each option states an effect that someone can verify. | Checks first, Exit codes, Undo, and Dry run are each testable. |
 | 4. Duplicates | Applies. | The search includes a past Decision on the same question. | The search checks only for an open duplicate Request. |
-| 5. Fields | Handler is `Agent`. The Request has one `area/<subsystem>` label and a Priority. | Handler is `Operator`. The Request has a Priority. It needs an `adr` link before it can close. | Handler is `Operator`. The Request has a script hash. |
+| 5. Fields | Apply item 5. | Check the `adr` link before closing. | Check the script hash. |
 | 6. Size | Apply the size limit if the ask requires a change. | This check doesn't apply. | Apply the command Request check in item 6. The command also fits the pattern in the [command Request schema](../itsm-records/D-operator-requests.md#what-a-command-request-contains). |
 | 7. Questions | Applies. | State the question for the operator and list the options. Recommend one. State what happens for each answer. | Applies. |
 | 8. Sentences | Applies. | Applies. | This check applies to the prose. |
-| 9. Approver | Handler identifies an agent as the approver. The worker loads the context for the subsystem in the `area/<subsystem>` label. | The operator decides. | The operator approves the command. |
+| 9. Approver | An agent approves the Request. The worker loads the subsystem context. | The operator decides. | The operator approves the command. |
 | 10. Result check | Specify the evidence to check after the work. | Check the answer in the linked decision record. | Check the exit status and output tail on the Request. |
 
-Severity and Work type never apply to a Request, and parent and blocked-by links apply only when they exist. Also, an operator Request whose body doesn't give a reason that an agent account can't do the work fails item 5 and goes back to its author.
+Check any parent and blocked-by links on a Request. An operator Request must explain why an agent account can't do the work. If the explanation is missing, fail item 5 and return the Request to its author.
 
 For an operator Request, refinement runs while the Request is open, before the workflow moves it to waiting on operator. That workflow gains one condition for that move: a current ready record. The `sm` role makes that change in the service-management records design.
 
 ## Limits of refinement
 
-- Refinement doesn't set or rank Priority. It fills only an empty Priority with `Standard`, and any other change needs the priority verb with a work note.
+- Refinement leaves existing Priority values in place. It follows the shared taxonomy when filling an empty Priority.
 - It doesn't estimate effort, assign anyone, add an owner, or start work.
 - Approving or denying a Request stays with the operator's request commands.
 - Operator intent comes from the operator. Refinement asks.
-- The Status field belongs to the sync job alone.
-- GitHub issues hold the refinement state. The org Projects display that state.
 
 ## Changes to the rest of the design
 
-- The administrator creates the Status org issue field with the options in the [Status table](#status-and-the-ready-signal). No Status means an empty field.
-- Both org Projects turn off their built-in Status workflows at setup.
-- The kernel sets the Source org issue field to `Import` on each issue the tracker import creates.
-- Issues have no owner field. The `role/<role kind>` label identifies the owning role kind.
 - The verbs gain `refine` with an edit operation and a return operation. The variants gain the refinement record variant.
-- The [parent-type kernel check](A-content-model.md#checks-outside-the-schema) accepts a Problem, an Epic, or no parent for a Defect.
-- The tools role validates labels and org issue field values against the allowed values per issue type in the merged global and repository configuration.
-- The tools role makes [readiness check 5](#readiness-checks) check the live Source org issue field on imported issues.
+- The tools role validates labels and fields against the merged global and repository configuration for the issue type.
 - The pm role adds an optional Context block of up to 60 words to the Task schema. The pm role uses the current Task template until the schema change merges.
 - The [routing order](B-routing-and-taxonomy.md#routing-order-for-create) sends each internal-security item to a private repository.
 - The kernel runs the Vale pass for every issue body and comment write. D10 proposes sharing the pass through the content check.
@@ -260,7 +252,7 @@ The web research pass of 2026-11-23 read these sources. Each line says what chan
 - [GitHub's Copilot coding agent guidance](https://docs.github.com/en/copilot/tutorials/coding-agent/get-the-best-results) asks for a clear problem, acceptance criteria, and file pointers, and keeps exploratory work for people. Added the Spike split to item 7 and confirmed items 3 and 6.
 - [Kubernetes issue triage](https://www.kubernetes.dev/docs/guide/issue-triage/) uses bot labels that change only by a command from a member, the author, or an assignee. It informed the use of authorized commands to change refinement state.
 - [GitLab's handbook on how product work flows](https://handbook.gitlab.com/handbook/product-development/how-we-work/product-development-flow/) returns work to refinement when someone finds it incomplete after ready. Added the worker's return operation.
-- [GitHub's issue form syntax](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-issue-forms) sets type, labels, and Project but checks only its own inputs. Added the paragraph on issues written outside the kernel.
+- [GitHub's issue form syntax](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-issue-forms) can set the type, labels, and Project. Each form checks only its own inputs. Added the paragraph on issues written outside the kernel.
 - [GitHub's built-in Project workflows](https://docs.github.com/en/issues/planning-and-tracking-with-projects/automating-your-project/using-the-built-in-automations) include two that set Done and start enabled. Added the setup step that turns them off. Also added a failure mode in F and a change line.
 - [GitHub's workflow token docs](https://docs.github.com/en/actions/concepts/security/github_token) say events the token causes don't start a new run. Added the scheduled run of the sync job.
 - [GitHub's REST rate limits](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api) cap content creation at 80 a minute and 500 an hour. Replaced the unmeasured limit in E with these figures and added the per-minute budget and the backoff rule.

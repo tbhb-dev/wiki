@@ -10,7 +10,7 @@ parent: README.md
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
-# Project management refinement runs
+# Refinement runs for pm
 
 Back to [the design](README.md).
 
@@ -20,7 +20,7 @@ Everything here is new.
 
 ## Run brief
 
-The launching run fills the placeholders in angle brackets and pastes the text as the refinement run's prompt.
+The launching run fills the placeholders in angle brackets and pastes the text as the prompt for the refinement run.
 
 ```text
 You are a refinement run for the <pm | sm> role. Refine the items below
@@ -77,7 +77,7 @@ Rules:
 - Move an internal-security item out of a public repository first,
   by a transfer to its private twin. If it has no private twin, transfer
   it to the central work repository.
-- Add no owner line. A Defect's parent is a Problem or an Epic, or none.
+- Add no owner line. Check parent links under item 5.
 - Give the answerer of each question. Ask the operator only about
   operator intent.
 - Resume from current records. Retry the close of an open item with a
@@ -110,7 +110,7 @@ For the tracker import, the reviewer samples staged files and their evidence bef
 - [ ] A sampled record covers each applicable readiness check with a result and evidence that meets the [evidence rules](C-refinement.md#evidence-rules).
 - [ ] The reviewer runs at least one cited command per sampled item again, at the cited commit, and gets the same result.
 - [ ] For item 4, the reviewer's own search doesn't turn up done work or a duplicate that the refiner missed. For a command Request, the reviewer checks only for an open duplicate Request.
-- [ ] Context on each sampled item omits status claims that age. It keeps the fixed facts described in the [run brief](#run-brief).
+- [ ] Context omits claims about status that age. It keeps the fixed facts described in the [run brief](#run-brief).
 - [ ] On each sampled Ready item or staged file, every outcome and acceptance check states a result a reader can see. A check that says only that work exists or that someone did it fails review.
 - [ ] On each sampled item, a Reproduction section gives steps a reader can follow. The exact placeholder `Find a reproduction and add it here.` requires Status `Needs info` or a staged `needs-info` outcome.
 - [ ] Each sampled item follows rules 7 through 9 in [D. Issue writing](D-issue-writing.md#the-rules).
@@ -118,15 +118,15 @@ For the tracker import, the reviewer samples staged files and their evidence bef
 - [ ] The reviewer runs Vale with the org configuration again on each sampled Ready item and its record. The rerun shows the warnings the record lists and, outside a short text, zero errors.
 - [ ] Each sampled item sits in the repository the routing order picks. An internal-security item sits in a private repository.
 - [ ] Each sampled item follows the [owner and role label rule in D. Issue writing](D-issue-writing.md#the-rules).
-- [ ] A sampled Defect has a Problem, an Epic, or no parent.
+- [ ] The parent links on each sampled item pass readiness check 5.
 - [ ] For each fix, the edit history shows that the item's scope didn't change.
 - [ ] Each Needs info question gives an answerer, and none asks the operator about something a role could answer.
 - [ ] Each `drop` cites the change, the duplicate, or the reason that has gone. For ordinary refinement, the close reason matches the record. For the import, the dropped item stays in staging.
-- [ ] Each `split` child fits one pull request and goes to the right repository. For ordinary refinement, the child links to the original. For the import, only approved replacement items are created.
+- [ ] Each `split` child fits one pull request and goes to the right repository. For ordinary refinement, the child links to the original. For the import, the kernel creates only approved replacements.
 
 A rubber-stamp Ready leaves signs, and one of them sends the reviewer to read the whole batch:
 
-- Over three in four staged tracker items pass every readiness check without a fix.
+- More than three quarters of the drafts show a passing result for each readiness check without a fix.
 - Two or more records share the same evidence text, or cite a commit without a command.
 - A Ready item still matches a pattern of item 2, 3, 7, or 8 when checked again.
 - An item 4 pass lacks an issue search.
