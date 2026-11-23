@@ -36,6 +36,8 @@ A Defect is one code fix, and a Chore is one configuration or runbook fix. A cod
 
 **Rule:** a Problem is the sub-issue parent of each Defect and Chore that fixes its cause. Any fix that already has a parent, such as an Epic or a second Problem, joins as a "blocked by" dependency instead, because an issue takes one parent. Together, the sub-issues and the "blocked by" dependencies make up the Problem's tracked fixes, and every rule below that names tracked fixes means both kinds.
 
+A fix is shared when it has a parent other than the Problem or blocks any other open issue. A shared fix stays under the control of the other item, so a Problem never closes it, as the Accepted procedure below states.
+
 An Incident cites its Problem in a body line, and the Problem lists the Incident under Related incidents. Both ends link by text alone, which keeps the Incident free of a sub-issue link or a dependency.
 
 **Rejected:** a "blocked by" dependency as the default link to each fix, because it lacks a progress count and pm requires a parent on every Chore. Also rejected: an Incident as a sub-issue or a dependency of its Problem. The Incident closes on restore, well before the Problem, and GitHub would mark it Blocked.
@@ -49,10 +51,10 @@ An Incident cites its Problem in a body line, and the Problem lists the Incident
 | Type | Native issue type | Problem | The open verb |
 | Problem status | Org issue field | Investigating, Known error, Verifying, Resolved, Accepted | See transitions |
 | Source | Body metadata | Incident, Recurrence, Check, Review, Import | The open verb, once |
-| Category | Body metadata | The existing category list | The open verb |
+| Category | Body metadata | The existing category list | The open verb, or the importer from the candidate list |
 | Owner | `role:<name>` label | One agent role from the list sm keeps | Refinement |
 | Priority | pm's Project field | Expedite, Standard, Intangible | Refinement weighs impact and recurrence |
-| Area | `area:<repo>` label | The affected repository | The open verb |
+| Area | `area:<repo>` label | The affected repository | The open verb, or the importer as the migration maps it |
 
 Problem status stays apart from pm's Status, which only pm's sync job writes from GitHub state. A state label would let two states coexist, and body metadata would make each move edit the body and rerun the content check.
 
@@ -77,34 +79,50 @@ Each state has an entry rule. A verb refuses a move that breaks it, and the Prob
 | --- | --- |
 | Investigating | Source set. Cause may be empty or list candidate causes, numbered |
 | Known error | Cause states one confirmed root cause, and Workaround describes a workaround or says None |
-| Verifying | Meets the Known error rule, every tracked fix has closed as completed, Resolution criteria list at least one item, and Recurrence check names a check and a window |
-| Resolved | Closed as completed. The owner has checked every Resolution criterion with a link to its evidence, and the recurrence check passed every run in the window |
-| Accepted | Closed as not planned, with a decision line and a review date, or a note that the component retired. Each tracked fix has closed |
+| Verifying | Meets the Known error rule, every tracked fix has closed as completed, Resolution criteria list at least one item of positive evidence, and Recurrence check names a check, its schedule, and a window |
+| Resolved | Closed as completed. The owner has linked positive evidence for every Resolution criterion, and the window has passed under the window rule below |
+| Accepted | Closed as not planned, with a decision line and a review date, or a note that the component retired. Each tracked fix that is not shared has closed, and each shared fix has lost its link to the Problem |
 
 | From | To | Who moves it | Condition |
 | --- | --- | --- | --- |
 | (new) | Investigating | The open verb or the importer | Source set. This is the only entry state |
 | Investigating | Known error | The owner | Meets the Known error rule |
-| Known error | Verifying | The Problem workflow | Meets the Verifying rule, and every recurrence run has passed since the latest tracked fix closed, or since the Problem opened when it has zero tracked fixes |
-| Verifying | Resolved | The Problem workflow, closing as completed | Meets the Resolved rule, counting only runs after the Problem entered Verifying |
-| Verifying | Known error | The Problem workflow, or the owner | A recurrence run failed, or the owner found a Resolution criterion unmet. The window count resets to zero |
+| Known error | Verifying | The Problem workflow | Meets the Verifying rule. After a failed verification, a tracked fix has also closed since that failure. The window starts at this move |
+| Verifying | Resolved | The Problem workflow, closing as completed | Meets the Resolved rule |
+| Verifying | Known error | The Problem workflow, or the owner | A recurrence run in the window failed, or the owner found a Resolution criterion unmet. The workflow discards the window |
 | Known error or Verifying | Investigating | The owner | Evidence shows the confirmed cause is wrong |
 | Investigating, Known error, or Verifying | Accepted | The owner, closing as not planned | Meets the Accepted rule |
 | Resolved or Accepted | Investigating | Any role reopens the issue, and the Problem workflow sets the status | A recurrence after close, or an Accepted review that finds a fix now justifies its cost |
 
 Resolved comes from Verifying alone, through the Problem workflow. If a role closes a Problem as completed first, the workflow reopens it and restores the earlier status.
 
-After a failed verification, the Problem waits in Known error until the owner adds or reopens a fix and that fix closes. That close satisfies the move to Verifying again, and the window starts over.
+## The window and its evidence
 
-A tracked fix closed as not planned also blocks Verifying. In that case the owner replaces that fix or closes the Problem as Accepted.
+The window starts when the Problem enters Verifying, and no run from before that moment counts. A run that fails while the Problem waits in Known error therefore leaves no mark on the next window, and the owner reads it as evidence about the cause instead.
 
-Any open state can end in Accepted when the owner closes the Problem as not planned, after closing each open tracked fix as not planned or removing its link. An agent role may do so on its own decision line. A workaround that loosens a guard or a trust boundary needs an approval Request first.
+The check's schedule splits the window into periods, one for each scheduled run. The window passes only when each period holds a recorded run, every run passed, and the window holds at least seven runs. A period without a recorded run, as when GitHub drops a scheduled job, restarts the window at the next period, and the Problem workflow comments on each restart so the owner can check the schedule.
+
+A schedule too sparse for seven runs lengthens the window until it holds seven. By default the window lasts 14 days, and a Problem whose check runs at least daily may set a shorter one.
+
+Each Resolution criterion names positive evidence that the failing thing now works, such as a run that completed or a scheduled job that ran in each period. The absence of an error, an alert, or a failure never satisfies a criterion, because a check that never ran shows none either.
+
+After a failed verification, the Problem waits in Known error until the owner adds or reopens a fix and that fix closes. That close satisfies the move to Verifying again, and a new window starts at that move.
+
+## Ending without a fix
+
+A tracked fix closed as not planned blocks Verifying. In that case the owner replaces that fix or closes the Problem as Accepted.
+
+Any open state can end in Accepted when the owner closes the Problem as not planned. Before that close, the owner closes each open tracked fix that is not shared as not planned. The owner removes the Problem's link from each shared fix and leaves it open, so the Epic or second Problem that also tracks it keeps its fix.
+
+An agent role may accept a Problem on its own decision line. A workaround that loosens a guard or a trust boundary needs an approval Request first.
 
 Open Problems in Known error and closed Problems marked Accepted form the known-error database. An Incident responder searches them for a Workaround.
 
-In the private records repository, the Problem template changes in four places. Suspected cause becomes Cause, which states either the root cause or a numbered list of candidate causes. The template also gains a Workaround section, a Resolution criteria section (a list of the shared `#Criterion` items), and a Recurrence check section (one command or query, its expected result, its window, and a last-run line).
+## The template
 
-Summary, Related incidents, and Next step keep their names. By default the window lasts 14 days, and a Problem whose check runs daily may set a shorter one.
+In the private records repository, the Problem template changes in four places. Suspected cause becomes Cause, which states either the root cause or a numbered list of candidate causes. The template also gains a Workaround section, a Resolution criteria section (a list of the shared `#Criterion` items), and a Recurrence check section (one command or query, its expected result, its schedule, its window, and a last-run line).
+
+Summary, Related incidents, and Next step keep their names.
 
 ## Refinement
 
@@ -125,37 +143,38 @@ Refinement also writes the Cause of an imported Problem. Once the owner confirms
 
 Each split starts from the staged import candidate list and shows the Problem after refinement, beginning in Investigating with Source Import.
 
-Rows and repositories appear by role, without identifiers.
+Rows and repositories appear by role, without identifiers. In every split the importer opens the Problem in the private records repository and closes each staged item that became it as a duplicate of the Problem, which leaves a pointer on the staged item.
 
-**P1: a cluster with one cause and a workaround.** A staged item in the tools repository becomes the Problem "Launcher builds drift across hosts and accounts." Refinement confirms the cause: builds go onto each host by hand, so hosts and accounts drift apart.
+**P1: a cluster with one cause and a workaround.** The importer opens the Problem "Launcher builds drift across hosts and accounts" from a staged item in the tools repository. Refinement confirms the cause: builds go onto each host by hand, so hosts and accounts drift apart.
 
 - Workaround: a manual reinstall on the failing host, which adds to the drift. The owner then moves P1 to Known error.
 - Sub-issues: two staged Defects from tracker rows, and a new Chore that pins one build for every host and account.
-- Dependency: a third staged Defect already has a parent, so P1 tracks it as a "blocked by" dependency. P1 waits in Known error until that Defect closes too.
+- Dependency: a third staged Defect already has a parent, so P1 tracks it as a "blocked by" dependency. P1 waits in Known error until that Defect closes too. If P1 ends Accepted, that Defect only loses its link to P1 and stays open under its parent.
 - Related, closed as duplicate: a tracker row in the private operations repository that records a second instance of the drift.
-- Resolved when every host and account reports one build on every run in the window and the Resolution criteria pass.
+- Resolution criteria: the pinning Chore's install ran on every host and account, with a link to each run. The recurrence check reads the build on every host and account once a day, and passes only when each run reports the pinned build from each of them.
 
-**P2: rows that are really Chores.** Staged items in the rules repository become the Problem "macOS continuous integration (CI) legs fail or queue on shared hosted runners." Refinement confirms the cause, the shared hosted macOS runners, and records a rerun of the leg as the Workaround.
+**P2: rows that are really Chores.** The importer opens the Problem "macOS continuous integration (CI) legs fail or queue on shared hosted runners" from a staged item in the rules repository. Refinement confirms the cause, the shared hosted macOS runners, and records a rerun of the leg as the Workaround.
 
 - The owner moves P2 to Known error.
 - One staged item is the recurrence check itself. It becomes the Recurrence check section and closes as completed.
 - A second staged item becomes a Chore sub-issue whose outcome decides whether the macOS leg blocks a merge.
 - Tracker rows that repeat the failure close as duplicates, and their dates go under Related incidents.
-- When the Chore closes, the Problem workflow moves P2 to Verifying. The workflow closes it as Resolved if the tar write error stays away for the whole window.
+- When the Chore closes, the Problem workflow moves P2 to Verifying, and the window starts.
+- Resolution criteria: every macOS leg that started in the window completed and passed, with at least one completed leg linked for each day. The recurrence check runs daily and fails on a leg that failed, was cancelled, or still waits in the queue from the day before.
 - If the Chore instead records a decision to make the leg non-blocking, the owner closes P2 as Accepted from Verifying, citing that decision with a review date.
 
 **P3: an unknown cause.** The Problem "Scheduled or queued work silently stalls" stays in Investigating. Candidate causes: (1) the schedule trigger stopped, (2) the run fired without writing a record, or (3) no alert reports either case.
 
-- Sub-issue: a new Chore that alerts when a scheduled run misses its window, because every candidate needs it.
+- Sub-issue: a new Chore that alerts when a scheduled run misses its window, because every candidate needs it. That Chore adds detection alone, so its close never resolves P3.
 - Related only: two tracker rows in different repositories that report schedules not firing. Each becomes a sub-issue once evidence ties it to the confirmed cause.
-- P3 stays in Investigating while Cause lists candidates, even after the alert Chore closes. When evidence rules out all candidates but one, the owner rewrites Cause as that root cause and moves P3 to Known error.
-- Resolved once the alert has fired zero times across the whole window.
+- P3 stays in Investigating while Cause lists candidates, even after the alert Chore closes. When evidence rules out all candidates but one, the owner rewrites Cause as that root cause, adds a fix for it as a sub-issue, and moves P3 to Known error.
+- Resolution criteria: each affected schedule recorded a run in each of its periods across the window, with a link to each run, and the alert fired on a test schedule that the owner skipped on purpose. Zero alerts in the window counts for nothing, because a stalled alert raises none either.
 
-**One item.** A staged item in the rules repository becomes the Problem "Diagram proof fails on some build hosts."
+**One item.** The importer opens the Problem "Diagram proof fails on some build hosts" from a staged item in the rules repository.
 
 - Refinement confirms a stale cache on the host as the cause, and the owner moves the Problem to Known error.
 - Sub-issues: a Chore for the host runbook step and a Defect so the proof refreshes the cache itself.
-- Resolved when both merge and the proof passes on each affected host for the window.
+- Resolution criteria: both fixes merged, and on each day of the window the proof ran and passed on each affected host, with a link to each run.
 
 **A rejected item.** A staged Defect in the tools repository stays a Defect, without a Problem link. Its line describes one deterministic failure with one code fix, and nothing recurs. The other rejected lines keep their staged types for the same reason.
 
@@ -173,6 +192,8 @@ The importer (planned) is a one-time job that the records role runs through the 
 | Last check | A dated history line under Recurrence check |
 | Hotfix | Workaround |
 | Lasting fix | A Defect or Chore sub-issue when not yet built, or a Resolution criterion when landed |
+| None | Category, set for each row in the import candidate list from the existing category list. The importer refuses a row without one |
+| None | Area, the repository that holds the row's check or staged item, or else the repository the candidate list names |
 
 | Row state | Imported as |
 | --- | --- |
@@ -185,7 +206,9 @@ No row state maps to Known error or Verifying, because no row meets the Known er
 
 Each row's executable check remains in its current repository, and the Problem cites it under Recurrence check. A row without a check imports with a Chore sub-issue that writes one. That Chore is a tracked fix, and the Problem workflow moves the Problem to Verifying only after it closes.
 
-A row with one code fix and no recurrence imports as a staged Defect in the responsible repository instead of a Problem. A configuration or runbook row imports as a Chore under a Problem or an Epic. Where a staged issue already exists for a row, the importer converts it to a Problem in place, so its history and links move with it.
+A row with one code fix and no recurrence imports as a staged Defect in the responsible repository instead of a Problem. A configuration or runbook row imports as a Chore under a Problem or an Epic.
+
+Every Problem lives in the private records repository, where the Problem workflow runs. Where a staged issue already exists for a row that becomes a Problem, the importer opens the Problem there, copies the staged body, and moves the staged issue's sub-issues and dependencies to it. The importer then closes the staged issue as a duplicate of the Problem, so its history stays in place behind a pointer.
 
 ## Requests and decisions
 

@@ -52,7 +52,7 @@ Operator Requests are the first part written up. A Request that only the operato
 
 Problems are the second part. A Problem records a cause behind Incidents or a recurring failure and tracks the Defects and Chores that fix it, then ends Resolved once its fixes merge and its Resolution criteria and recurrence check pass, or Accepted on a recorded decision to live with the failure. [Problems](problems.md) gives the fields, the states, the worked splits from the import, and the migration.
 
-The record kinds, their schema variants, and the decision records are built in the private repository today. Public-safe appendices describing them will be written here later.
+The record kinds, the schema variants other than the planned Problem variant, and the decision records are built in the private repository today. Public-safe appendices describing them will be written here later.
 
 ## Risks and unknowns
 
