@@ -33,7 +33,7 @@ Repository commits to read: <owner/repo@sha for each target repository>
 Label configuration: <path@sha of the tools label configuration>
 Write budget: <writes per hour and per minute>, shared with other runs
 
-For each item, in the order given:
+For each item, including every staged file, in the order given:
 1. Read the item, its comments, its parent, its children, and its
    blocked-by links.
 2. Run `tbhbdev pm refine --check <item>` and read every finding and
@@ -50,8 +50,18 @@ For each item, in the order given:
 Rules:
 - Fix wording, stale context, empty fields, and links. Never change the
   item's scope. Ask instead, as needs-info.
-- Each outcome and check states a result someone can observe. A check
-  that says only that work exists or was done fails item 3.
+- Context omits status claims that age. Look for "still", "as of",
+  "currently", "confirmed on <date>", and "checked on <date>". Remove
+  claims that use an ISO date or HH:MMZ time to say when a state was true.
+  Keep fixed facts such as a config date, a version, or a decision date
+  with its link.
+- Each outcome and acceptance check states a result a reader can see.
+  A check that says only that work exists or that someone did it fails
+  item 3. Change "Ops rotated the token" to "The setup notes carry the
+  new token."
+- A Reproduction section gives steps a reader can follow. Use the exact
+  placeholder "Find a reproduction and add it here." only when the issue
+  carries flag:needs-info.
 - Each sentence states one fact. Each list item is a full sentence that
   ends with a period.
 - Delete each sentence about the issue itself, its tracking, or its
@@ -99,7 +109,9 @@ For the tracker import, the reviewer samples staged files and their evidence bef
 - [ ] A sampled record covers each applicable readiness check with a result and evidence that meets the [evidence rules](C-refinement.md#evidence-rules).
 - [ ] The reviewer runs at least one cited command per sampled item again, at the cited commit, and gets the same result.
 - [ ] For item 4, the reviewer's own search doesn't turn up done work or a duplicate that the refiner missed. For a command Request, the reviewer checks only for an open duplicate Request.
-- [ ] Each outcome and check on a sampled Ready item states an observable result, and none says only that the work exists or that someone did it.
+- [ ] Context on each sampled item omits status claims that age. It keeps the fixed facts described in the [run brief](#run-brief).
+- [ ] On each sampled Ready item or staged file, every outcome and acceptance check states a result a reader can see. A check that says only that work exists or that someone did it fails review.
+- [ ] On each sampled item, a Reproduction section gives steps a reader can follow. The exact placeholder `Find a reproduction and add it here.` requires `flag:needs-info`.
 - [ ] A sampled Ready item has no semicolon in its prose, each of its list items ends with a period, and none of its sentences describes the issue itself.
 - [ ] The reviewer runs Vale with the org configuration again on each sampled Ready item and its record. The rerun shows the warnings the record lists and, outside a short text, zero errors.
 - [ ] Each sampled item sits in the repository the routing order picks. An internal-security item sits in a private repository.

@@ -43,7 +43,7 @@ The kernel creates the issue in the chosen repository, then the work item. A sub
 | Severity | Defect field in the body metadata | The create verb |
 | Handler | Project field, Requests only | The IT service management side |
 | Work type | Field with the value `Planned` or `Unplanned` where the variant uses it | The create verb |
-| Source | Project field (single select, value `Import`) | The kernel sets Source when it creates an imported issue. |
+| Source | The issue body's `source` metadata field records `Import`. An imported issue without this field fails `cue vet`. | The kernel sets the single-select Project Source field to match at creation. |
 | Area and role | Labels | The create verb, with a check against live lists |
 | Import outcome for owner follow-up | `flag:split`, `flag:drop`, or `flag:needs-info` label | The kernel at [tracker import creation](E-import.md#review-and-creation) |
 

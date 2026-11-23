@@ -52,7 +52,7 @@ On retry, the import checks for a GitHub issue already created from the same sou
 
 1. Order by destination type. Initiatives and Epics come first, then Features and Spikes, then Defects and Chores.
 2. Within a level, take `Expedite`, then `Standard`, then `Intangible`. Take the oldest first within each Priority.
-3. Wait to refine a child until its parent has a staged outcome. A child whose parent has a `drop` outcome gets a new parent or the `flag:drop` label at creation. A required parent link must pass the kernel check before creation.
+3. Wait to refine a child until its parent has a staged outcome. If the parent has a `drop` outcome, give the child a new parent or set the child's staged outcome to `drop`. The sync job leaves Status blank until the responsible role resolves the child's `flag:drop` label. A required parent link must pass the kernel check before creation.
 4. Keep each batch to one target repository and at most 25 items.
 
 ## Throttling
