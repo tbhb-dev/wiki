@@ -12,6 +12,13 @@ generated:
     surface: exec
     session: sha-256-64:4f00750704d1bb6e
     at: "2026-11-23T02:44:49Z"
+  - role: generated
+    harness: codex:0.166.0
+    model: openai:gpt-6.2-sol
+    effort: high
+    surface: exec
+    session: sha-256-64:15c30f9d922d6894
+    at: "2026-11-23T02:46:10Z"
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
@@ -68,3 +75,16 @@ Add each new record's entry at the end of this list, as `[title](NNNN-slug.md)` 
 - [tbhb-dev has one definition of done](0027-tbhb-dev-has-one-definition-of-done.md). The rules repository owns a shared definition of done and issue types define the shape of their acceptance criteria.
 - [CI status records check results](0028-ci-status-records-check-results.md). Pull request bodies, issue bodies and acceptance criteria leave CI results and CI-enforced items to the checks themselves.
 - [Wording-only follow-ups join the next needed pull request](0029-wording-only-follow-ups-join-the-next-needed-pull-request.md). A follow-up that changes wording alone joins the next needed pull request for the same work.
+- [Work tracking uses GitHub Issues and Projects](0001-work-tracking-uses-github-issues-and-projects.md). GitHub Issues hold backlog items from intake onward, and organization Projects show their priority and status.
+- [Work issues live in the repositories responsible for them](0002-work-issues-live-in-the-repositories-responsible-for-them.md). Repository issues hold local work, and a central planning repository holds Initiatives, Epics, and Stories.
+- [Issues use the public repository when their text can be public](0003-issues-use-the-public-repository-when-their-text-can-be-public.md). For a public and private repository pair, issue text determines which repository receives the issue.
+- [Service workflows run on GitHub issues](0004-service-workflows-run-on-github-issues.md). Service workflows use issues, while reviewed pull requests preserve final reports and configuration records.
+- [Operator and agent requests use GitHub issues](0005-operator-and-agent-requests-use-github-issues.md). Requests make asks durable and use the Handler field, area, and suggested capabilities to route them.
+- [Change issues use three approval classes](0006-change-issues-use-three-approval-classes.md). Change issues come from change Requests and follow Standard, Normal, or Emergency approval rules.
+- [Normal Changes follow the scope of delegated authority](0007-normal-changes-follow-the-scope-of-delegated-authority.md). The responsible role, the coordinator, or the operator handles a Normal Change according to its scope and the authority it requires.
+- [Service issue comments are append-only work notes](0008-service-issue-comments-are-append-only-work-notes.md). Structured work notes record updates, evidence, and state transitions on service issues.
+- [Managed content writes use a shared command path](0009-managed-content-writes-use-a-shared-command-path.md). Service and project management commands use one content module for templates, validation, and GitHub writes.
+- [Content must pass its CUE schema](0010-content-must-pass-its-cue-schema.md). CUE validates normalized content and metadata, and the shared content module handles a named list of supplemental checks.
+- [Service and project management designs live in the public wiki](0011-service-and-project-management-designs-live-in-the-public-wiki.md). The public wiki is the home for the service-management and project-management designs.
+- [Project management maintains architecture decision records](0012-project-management-maintains-architecture-decision-records.md). Project management maintains the format and commands for decision records, and service management handles optional approval Requests.
+- [Project management defines the format for review verdicts](0013-project-management-defines-the-format-for-review-verdicts.md). Project management maintains the templates and mechanical checks for review verdicts in the shared content module.
