@@ -4,14 +4,6 @@ title: Decision records
 description: Which decisions this repository records, the record layout, and the index of records.
 tags: [adrs, decisions, index]
 status: draft
-generated:
-  - role: generated
-    harness: claude-code:2.1.330
-    model: anthropic:claude-sonnet-5-5
-    effort: medium
-    surface: cli
-    session: sha-256-64:c581062e61e4c416
-    at: "2026-11-23T00:26:49Z"
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
@@ -29,7 +21,7 @@ Each record is `adrs/NNNN-<slug>.md`: the next free number, zero-padded to four 
 
 ## Rules
 
-- A record never names a host, the tailnet, a vault, an internal path, an account, a private repository or a public IP address. It uses role labels such as "the Linux build host".
+- A record never names a host, the tailnet, a vault, an internal path, an account or a public IP address. It uses role labels such as "the Linux build host". It may name a private repository.
 - A record never cites a Decisions note or links to a private repository.
 - A record never quotes anyone or says who decided. Acceptance is the pull request's approval and merge, and the pull request cites the source of the decision.
 - The `decided` field is the date of the decision, not of the record.
