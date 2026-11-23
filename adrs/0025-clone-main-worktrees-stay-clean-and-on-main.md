@@ -11,14 +11,16 @@ decided: "2026-11-11"
 
 ## Context
 
-The main worktree gives contributors a clean copy of the remote default branch. An agent run launched there can dirty that checkout or replace the clone's shared hooks.
+A Git clone is a local copy of a remote repository. Its main worktree, the checkout created with the clone, gives contributors an unmodified copy of the default branch, `main`. An agent run there can leave local changes or replace the clone's shared hooks, which run on Git events. The rule protects the main checkout and leaves work on other branches to separate checkouts.
+
+The launcher starts agent runs. The harness guard enforces what the software running the agent may write. A Git directory stores Git metadata. References, or refs, record branch positions. The index is Git's staging area for the next commit. A fast-forward advances a branch without rewriting its history. The managed hook installer sets up the approved Git hooks.
 
 ## Decision
 
-The launcher runs agents in dedicated worktrees and uses the run worktree and its own Git directory as the writable workspace. It refuses the main worktree or its Git directory as a workspace or writable root. The harness guard blocks file writes and Git commands that move refs or change the index in the main worktree. It permits fetches, fast-forward-only updates on the default branch, worktree creation and the managed hook installer.
+The launcher starts agents in dedicated worktrees. Each run can write to its worktree and Git directory. The launcher refuses the main worktree and its Git directory as workspace or writable roots. The guard blocks file writes, ref moves and index changes in the main worktree. It permits fetches, fast-forward-only default-branch updates, worktree creation and the managed hook installer.
 
-The installed Git reference-transaction hook keeps the checkout on the default branch. It allows that branch to advance only to the fetched remote default tip or one of its ancestors. The harness guard provides enforcement for runs that share a user account with the checkout.
+The reference-transaction hook runs when Git updates refs. It keeps the checkout on the default branch. That branch can advance only to the remote branch's latest fetched commit or one of its ancestors. The harness guard enforces the rule for runs sharing the checkout's user account.
 
 ## Consequences
 
-A scheduled clone audit checks the branch, working tree, remote alignment and installed hooks. It reports drift and can restore the managed hooks. Contributors create and switch branches in separate worktrees.
+A scheduled clone audit checks the checked-out branch, local file changes, agreement with the remote branch and installed hooks. It reports departures from the required state. It can restore the managed hooks. Contributors create and switch branches in separate worktrees.
