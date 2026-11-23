@@ -70,8 +70,10 @@ SPDX-FileCopyrightText = "Tony Burns"
 SPDX-License-Identifier = "Apache-2.0"
 
 # Decision records start with frontmatter on line 1, so they cannot hold a
-# header. adrs/README.md and adrs/TEMPLATE.md carry their own.
+# header. REUSE globs support only * and **, so the pattern is every
+# Markdown file in adrs/. adrs/README.md and adrs/TEMPLATE.md carry their
+# own headers, which take precedence over this annotation.
 [[annotations]]
-path = ["adrs/[0-9]*.md"]
+path = ["adrs/*.md"]
 SPDX-FileCopyrightText = "Tony Burns"
 SPDX-License-Identifier = "Apache-2.0"
