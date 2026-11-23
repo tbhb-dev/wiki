@@ -127,7 +127,7 @@ The reviewer checks that every `ready` result records a pass or fix for each app
 | A fix changes the item's scope | The work no longer matches the author's intent | The fix rules, and the reviewer's look at the edit history |
 | The DoR turns into a phase gate | Work waits for detail a worker could find while working | The DoR doesn't require a design or an estimate, exploration splits off as a Spike, and fixes happen in place |
 | A check says only that someone did the work | Someone closes the item without a result anyone saw | Item 3, the existence patterns of D, and the review checklist |
-| Someone edits a Ready item or ticks a check | The record no longer describes the body | The body hash, which returns the item to Needs refinement |
+| Someone edits a Ready item or ticks a check | The record no longer describes the body | A change to the body hash makes the record stale. The sync job shows Needs refinement for an unflagged item. It leaves Status blank for a flagged item. |
 | Someone adds the ready label by hand | An item looks ready without a record | The sync job ignores a label without a current record |
 | An assignee or open pull request appears before refinement | An item could appear to be in progress before it passes the gate | In progress requires the item's own current `ready` record, and any batch it belongs to must pass review |
 | A built-in Project workflow writes Status | Status disagrees with the records | The sync job's setup turns off each built-in workflow that sets Status |

@@ -40,7 +40,7 @@ The content check runs the scans and the destination type's writing checks. It r
 
 The independent reviewer uses the [batch review checklist](F-refinement-runs.md#review-checklist) with the staged files and evidence. For `split`, `drop`, and `needs-info`, the reviewer checks that the flag matches the evidence and gives the responsible role enough information to follow up. The reviewer posts the verdict on the batch Chore.
 
-Once the batch passes review, the kernel repeats the checks. Each issue gets one write. The creation write supplies the vetted body and the destination type. If the staged outcome is `ready` and the issue has no owner flag, that write adds the `ready` refinement label. When a staged outcome calls for owner follow-up, the kernel adds `flag:split`, `flag:drop`, or `flag:needs-info` in that write. An owner flag appears alongside the labels for the issue type.
+Once the batch passes review, the kernel repeats the checks. Each issue gets one write. The creation write supplies the vetted body and the destination type. If the staged outcome is `ready`, that write adds the `ready` refinement label. When a staged outcome calls for owner follow-up, the kernel adds `flag:split`, `flag:drop`, or `flag:needs-info` in that write. An owner flag appears alongside the labels for the issue type.
 
 On the batch Chore, the kernel records the created issue link and the vetted body hash beside its staging result. The sync job uses the [Ready signal](C-refinement.md#status-and-the-ready-signal) to match a staged `ready` result to the created issue.
 

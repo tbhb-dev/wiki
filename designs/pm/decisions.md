@@ -54,6 +54,7 @@ The design relies on D1 to D4 and D6 as requirements. D5 only places the design.
 
 - **Decided.** tbhb, 2026-11-23, approved direct creation in the destination issue type.
 - **Rule.** The imports role maps each staged file in one run. A separate run of the imports role refines and vets the file. The kernel writes each issue once in its destination type with Source `Import`. The creation write includes the [label for the staged outcome](E-import.md#review-and-creation).
+- **Follow-up.** The responsible role removes the import flag before it writes the item's `ready` record. See [the Ready signal](C-refinement.md#status-and-the-ready-signal).
 - **Why.** Staging already produces the sections each type requires. Direct creation keeps those sections and avoids about 2,000 follow-up writes.
 - **Undo.** Change the mapping and creation path for a future import. Two-way door.
 - **Record.** The [tracker import design](E-import.md) gives the approved procedure.

@@ -71,7 +71,7 @@ The shared rule bars tables, HTML blocks, block quotes, extra headings, thematic
 
 Floors are low or absent. A forced section produces filler text, so only sections that give the type its meaning need text.
 
-A Task always has a parent. It requires a Verification section. Its optional Context section has a limit of 60 words.
+A Task always has a parent. It requires a Verification section. A Task may carry a Context section of up to 60 words once the pm role changes the Task schema (proposed). Until then, the Task schema refuses a Context section.
 
 ## Refusals and the guide
 

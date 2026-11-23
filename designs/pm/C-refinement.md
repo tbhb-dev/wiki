@@ -50,7 +50,7 @@ Only the latest refinement record from the kernel's account can be current. Ordi
 
 For a tracker import, the kernel writes the staging result on the batch Chore. The sync job accepts a staged `ready` result as the issue's refinement record if the batch review passed and the created issue link, body hash, and refinement label match. Check 5 must still pass on live data. See [E. Tracker import](E-import.md#review-and-creation).
 
-The responsible role removes an import flag when ordinary refinement resolves it.
+The responsible role removes an import flag when ordinary refinement resolves it. The role removes the flag before it writes the item's `ready` record.
 
 A failed check 5 leaves a `needs-info` record current while the body hash and label match. Comments never change whether a record is current. An assigned, refined item stays In progress after a routine progress comment.
 
@@ -68,7 +68,7 @@ Issue, issue comment, and pull request events start the sync job, and so does a 
 
 Ordinary refinement supplies the Ready signal through the refine verb. Work items go to a run of the pm role, and service-management issues go to a run of the `sm` role. The run that wrote an item's body can't refine that item, and the reviewer of a batch can't refine items in it, which keeps the maker and the checker apart as the agent roles registry requires.
 
-A worker who finds a Ready item unclear doesn't start it. Then the worker removes the ready label with `tbhbdev pm refine --return` and one comment that states the gap. After that, the record stops counting as current, and the sync job shows Needs refinement.
+A worker who finds a Ready item unclear doesn't start it. Then the worker removes the ready label with `tbhbdev pm refine --return` and one comment that states the gap. The label removal makes the record stale. The sync job shows Needs refinement for an unflagged item with a stale record. It leaves Status blank for a flagged item with a missing or stale record.
 
 Deriving Ready from GitHub state leaves one writer for the field and one audit trail in the issue itself. Anyone who edits the field by hand sees the next sync run put it back. Labels and records remain readable in GitHub while the Project is down.
 
@@ -241,6 +241,8 @@ For an operator Request, refinement runs while the Request is open, before the w
 - The verbs gain `refine` with an edit operation and a return operation. The variants gain the refinement record variant.
 - The [parent-type kernel check](A-content-model.md#checks-outside-the-schema) accepts a Problem, an Epic, or no parent for a Defect.
 - The tools role adds `flag:split`, `flag:drop`, and `flag:needs-info` to the label configuration. The tools role includes these import flags in the kernel's readiness check 5.
+- The tools role makes [readiness check 5](#readiness-checks) fail any issue that carries `flag:split`, `flag:drop`, or `flag:needs-info`.
+- The pm role adds an optional Context block of up to 60 words to the Task schema. The pm role uses the current Task template until the schema change merges.
 - The [routing order](B-routing-and-taxonomy.md#routing-order-for-create) sends each internal-security item to a private repository.
 - The kernel runs the Vale pass for every issue body and comment write. D10 proposes sharing the pass through the content check.
 - The block model exposes the text of each paragraph and list item without its code spans, which the checks of D read.
