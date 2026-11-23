@@ -50,16 +50,16 @@ Back to [the design](README.md).
 ### D8. Where does the rollout mode live?
 
 - **Decided:** 2026-11-23, by the rules maintainer, in this design.
-- **Rule:** `mode = "evaluate" | "enforce"` goes in the global file, and `#Repo` rejects it in a repository file. The `evaluate` mode turns only allow-list problems into `evaluate:` lines with exit 0. The checks that fail today keep failing, and configuration errors fail closed in both modes.
+- **Rule.** `mode = "evaluate" | "enforce"` goes in the global file, and `#Repo` rejects it in a repository file. Evaluate mode reports policy findings, including generic summaries, without blocking a subject or title. The absolute title limit and usage and configuration errors can still block a run in either mode. [D. Checker](D-checker.md#exit-codes) defines the exit codes.
 - **Undo:** set `mode = "evaluate"` again in one rules pull request and sync it. Two-way door.
 - **Record:** this design's pull request.
 
 ### D7. Which commit's configuration does a pull request check read?
 
 - **Decided:** 2026-11-23, by the rules maintainer, in this design.
-- **Rule:** the checker reads the files in the checked-out head, so a pull request can add a repository scope and use it in the same change. The scope list isn't a trust control, and the reviewers see the configuration diff beside the commits that use it. Record 0011 has the review tool take its policy from the base branch. This rule stays outside that record, because a scope grants nothing.
-- **Undo:** pass the base branch's files to the loader. Two-way door.
-- **Record:** this design's pull request, and [record 0011](../../adrs/0011-the-review-tool-reads-repository-policy-from-the-base-branch.md) for the contrast.
+- **Rule.** CI and the merge command read the commit configuration from the exact pull request head SHA. This lets a pull request add a scope and use it in the same change. The callers use the same resolution rule in [D. Checker](D-checker.md#pull-request-configuration).
+- **Undo.** Pass the base branch's files to the loader. Two-way door.
+- **Record.** This design's pull request.
 
 ### D6. How do scope spellings outside the grammar resolve?
 

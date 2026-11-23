@@ -100,25 +100,19 @@ Repository values extend the global list and can't narrow it. The global file st
 
 ### Checking a subject
 
-`check_subject` parses the subject as `type(scope)!: summary`, then checks it against the merged list. It reports one problem per line, and for a near miss such as a backtick-wrapped or `snake_case` spelling, it suggests the nearest listed scope. The existing checks for form, length, work-in-progress markers, rewrite prefixes, and generic summaries stay, with their values read from the global file.
+`check_subject` parses the subject as `type(scope)!: summary`, then checks it against the merged list. It reports one problem per line, and for a near miss such as a backtick-wrapped or `snake_case` spelling, it suggests the nearest listed scope. It reads the limits and word lists from the global file. A duplicate scope adds a notice and leaves the subject checks in control of the result.
 
-| Exit | Meaning |
-| --- | --- |
-| 0 | The subject passes, or the mode is `evaluate` and every problem is an allow-list problem |
-| 1 | The subject fails |
-| 2 | Usage or configuration error: the loader failed, and the check fails closed |
-
-Tools and CI call `bazelisk run @tbhb_rules//lint:commit_subject -- --repo-root <root> [--title] <subject>`, a new target over the same script. The existing range target, `@tbhb_rules//lint:commit_messages`, passes the workspace as the repository root. Both targets take the loader from the tools source that rules already pins for its review policy test, and CI and the local command run the same code. [D. Checker](D-checker.md) gives the messages, the arguments, and the test plan.
+Tools and CI call `bazelisk run @tbhb_rules//lint:commit_subject -- --repo-root <root> [--title] <subject>`, a new target over the same script. The existing range target, `@tbhb_rules//lint:commit_messages`, also accepts a configuration root and defaults to the workspace for local reports. Both targets take the loader from the tools source that rules already pins for its review policy test. [D. Checker](D-checker.md) gives the messages, arguments, exit codes, and test plan.
 
 ### Pull request titles
 
-A pull request title becomes the first line of the merge commit. The checker runs on it with `--title`, which applies the title limit from the global file: 64 characters today, leaving room for the `(#N)` suffix within the 72-character subject limit. The breaking marker `!` goes after the scope and before the colon, as in `feat(mcp)!: require a relay endpoint`. Every type accepts it.
+A pull request title becomes the first line of the merge commit with a `(#N)` suffix. With `--title`, the checker always applies the global title limit of 64 characters, including for Renovate titles. The merge command still checks the actual subject, including its suffix, against its 72-character limit. The breaking marker `!` goes after the scope and before the colon, as in `feat(mcp)!: require a relay endpoint`. Every type accepts it.
 
-Tools' `pr check` and `pr create` swap their `cog verify` call and their own 64-character test for the checker. `tbhbdev alpha merge` already runs `cog verify` on the merge subject and stops past 72 characters, and it calls the checker on the title the same way. A title edited after CI still meets the check at merge time. A new step in the shared CI workflow checks the title on each pull request run.
+Tools' `pr check` and `pr create` add the checker alongside their existing title checks. Shared CI and `tbhbdev alpha merge` both check the title against configuration from the pull request head SHA under [D7](decisions.md#d7-which-commits-configuration-does-a-pull-request-check-read). The merge command rechecks the latest title so a title edit after CI goes through the checker too.
 
 ### Rollout
 
-The global file's `mode` starts as `evaluate`. In that mode the checker prints each allow-list problem with an `evaluate:` prefix and exits 0, while the checks that exist today still fail. Each repository's maintainer runs the range check in `evaluate` mode over the last 60 days and adds the repository scopes that pass the class tests. After a seven-day report across the repositories comes back clean, the rules maintainer sets `mode = "enforce"` and the sync copies the change out.
+The global file starts in `evaluate` mode. The checker reports policy findings, including generic summaries, with an `evaluate:` prefix. The title cap and operational errors can still block a run. Each repository's maintainer runs the range check with `--evaluate` over the last 60 days and adds the repository scopes that pass the class tests. The range report counts findings even when the checker succeeds. After a complete seven-day report across the repositories shows zero findings, the rules maintainer sets `mode = "enforce"` and the sync copies the change out.
 
 Nobody rewrites history. The checks read only the commits of an open pull request and its title, and the reports read history without changing it. `git revert` of an old commit writes `Revert "<subject>"`, which passes unchanged.
 
@@ -126,11 +120,12 @@ Nobody rewrites history. The checks read only the commits of an open pull reques
 
 | Risk or unknown | Effect if it goes wrong | What handles it | Evidence |
 | --- | --- | --- | --- |
-| A repository bumps its rules pin before the sync copies the global file | Each check in that repository exits 2 | Step 2 copies the file into each repository before step 4 reads it, and the error message gives the missing file and the sync step | New |
+| A repository bumps its rules pin before the sync copies the global file | Each check in that repository fails with a configuration error | Step 2 copies the file into each repository before step 4 reads it, and the error message gives the missing file and the sync step | New |
 | Agents now invent repository scopes in `.tbhb/commits.toml` | The list grows as fast as scopes did | Each addition is a reviewed diff with a description, and the checker's message states the class tests | New |
 | The issue taxonomy design defines a different loader contract | Two loaders, or a rework | Appendix C defines the contract for any section, and whichever design merges second adopts the first one's contract | Unverified: that design isn't written yet |
 | The installed tools version differs from the tools source pinned in rules | The local check and CI disagree | Both run through the same Bazel target, which uses the pinned source | Existing |
 | The CI title step doesn't rerun after a title edit | CI shows a pass for an old title | The merge command checks the title again before it merges | Existing: the seeded CI workflow listens to the default `pull_request` events, which leave out `edited` |
+| The pull request head changes between the title check and the merge | The title check used an older revision's configuration | The merge request requires the checked head SHA, so the operator retries the check on the new revision | New |
 | The seed list misses a common shared scope | Reports in `evaluate` mode fill with one value | The seven-day report shows it, and the rules maintainer adds it under D3 | New |
 | One repository's automation writes the `sync` type | Its commits fail after enforcement | That automation moves to `chore(sync)`, and the repository lists `sync` | Existing: 11 subjects |
 
@@ -142,9 +137,9 @@ Nobody rewrites history. The checks read only the commits of an open pull reques
 | 2 | Baseline sync pull requests that copy both files into each repository, rules included | Each repository's main has `.tbhb/global/commits.toml` byte-equal to the rules source | Rules maintainer |
 | 3 | `load(section, repo_root)` in tools with the contract in appendix C | The loader tests in [D. Checker](D-checker.md#test-plan) pass under mutation testing | Tools maintainer |
 | 4 | `check_subject` reads the merged list, the `commit_subject` target, and the rules pin of that tools source | The rules test plan in appendix D passes | Rules maintainer |
-| 5 | Tools' `pr check`, `pr create`, and `merge` call `commit_subject` for titles, and the shared CI workflow checks the title | A draft titled `feat(nope): add x` reports `evaluate:` and exits 0, and a title of 65 characters fails | Tools maintainer, rules maintainer |
-| 6 | Each repository's `.tbhb/commits.toml`, seeded from its 60-day report in `evaluate` mode | Over 60 days, the range check in `evaluate` mode reports only subjects whose scope fails the class tests | Each repository's maintainer |
-| 7 | `mode = "enforce"` | A seven-day report in `evaluate` mode across the repositories comes back clean, and then the global file says `enforce` | Rules maintainer |
+| 5 | Tools' `pr check`, `pr create`, and `merge` call `commit_subject` for titles, and the shared CI workflow checks the title | In evaluate mode, `feat(nope): add x` reports an unlisted scope and `feat: update` reports a generic summary without blocking either title. A 65-character title still fails. | Tools maintainer, rules maintainer |
+| 6 | Each repository's `.tbhb/commits.toml`, seeded from its 60-day report in `evaluate` mode | Each maintainer reviews the range report's recorded findings and uses its scope counts to seed the repository list. | Each repository's maintainer |
+| 7 | `mode = "enforce"` | Every repository completes its seven-day range scan with zero policy findings, and then the global file says `enforce`. | Rules maintainer |
 
 ## Appendices
 

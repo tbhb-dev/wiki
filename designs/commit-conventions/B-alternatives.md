@@ -15,6 +15,7 @@ generated:
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
+<!-- cspell:ignore Cocogitto -->
 
 # Commit types and scopes alternatives
 
@@ -37,7 +38,7 @@ Back to [the design](README.md).
 
 ## Mechanisms
 
-- **`cog.toml` scopes and types in each repository.** Rejected. The `cog.toml` format can't express a policy for each type or merge a global file with a repository file, and each repository would copy the global list. Whether the installed `cog` version supports a scope list at all is unverified.
+- **`cog.toml` scopes and types in each repository.** Rejected. Pinned Cocogitto 7.0.0 supports a top-level `scopes` list. Its tagged tests show that `cog verify` accepts a listed scope and rejects an unlisted scope. The checker enforces the merged list and each type's scope policy. Existing `cog verify` callers keep their syntax checks without adding a second scope list. [Cocogitto 7.0.0 verification tests](https://github.com/cocogitto/cocogitto/blob/7.0.0/crates/cocogitto/tests/cog_tests/verify.rs#L63-L111)
 - **A second checker in tools for pull request titles.** Rejected. Separate checkers drift, and today the 64-character title rule already sits apart from the 72-character subject rule. One target serves both.
 - **Reading the configuration from the base branch.** Rejected for now, under [decision D7](decisions.md#d7-which-commits-configuration-does-a-pull-request-check-read). A scope grants nothing, and a pull request may add one and use it.
 - **Enforcing at once with no `evaluate` period.** Rejected. About 1,500 scoped subjects in the spot check used a scope outside the seed. Day one would fail most pull requests until each repository wrote its file.

@@ -30,10 +30,10 @@ Every section that the loader serves follows one contract. The commits section a
 - **Signature.** `load(section: str, repo_root: Path) -> Loaded`. `section` matches `^[a-z][a-z0-9-]*$`, and the loader rejects any other value before it touches a path.
 - **Files.** The global file is `<repo_root>/.tbhb/global/<section>.toml`, the schema is `<repo_root>/.tbhb/schema/<section>.cue`, and the repository file is `<repo_root>/.tbhb/<section>.toml`.
 - **Schema.** Each schema file declares `package schema` and two closed definitions, `#Global` and `#Repo`. `#Repo` holds `schema_version` and only the tables a repository may extend.
-- **Extendable tables.** Each table that `#Repo` declares maps a name to a one-line description. The loader merges it by key, global entries first, and records each key's class as `global` or `repo`.
+- **Extendable tables.** Each table that `#Repo` declares maps a name to a one-line description. The schema rejects line breaks. The loader merges by key, global entries first, and records each key's class as `global` or `repo`.
 - **Result.** `Loaded` contains `values`, the merged mapping, `classes`, the class of each key in each extendable table, and `notices`, the duplicate keys the repository file repeats.
 - **Errors.** The loader raises `ConfigError(path, finding)` for a missing or unreadable global file, a missing schema, a missing `cue` binary, any schema finding, a TOML parse error, and a repository file that exists but that the loader can't read. An absent repository file isn't an error.
-- **Versions.** Both files declare `schema_version = 1`. A different value fails the schema, and a version change releases a new schema and global file together.
+- **Versions.** Both files must declare `schema_version = 1`. The schema rejects a missing or different version. A version change releases a new schema and global file together.
 
 The loader doesn't contain section-specific code. A new section needs only its three files.
 
@@ -44,8 +44,8 @@ The rules source is `repo/baseline/files/tbhb/global/commits.toml`. The seed bel
 ```toml
 schema_version = 1
 
-# evaluate: allow-list problems print as "evaluate:" lines and exit 0.
-# enforce: they fail like every other problem.
+# Evaluate reports policy findings with an "evaluate:" prefix.
+# Enforce makes policy findings block the check.
 mode = "evaluate"
 
 [limits]
@@ -85,19 +85,19 @@ uv = "The uv toolchain and its lockfile."
 workflows = "GitHub Actions workflow files."
 
 [subjects]
-# Git writes these, and they pass unchanged when followed by a quoted subject.
+# Git writes these commit subjects with a quoted subject. They pass unchanged.
 passthrough = ["Revert", "Reapply"]
 # Git's autosquash markers, which must be reworded before review.
 rewrite_prefixes = ["fixup!", "squash!", "amend!"]
 # Markers of unfinished work, matched as whole words in any case.
 unfinished = ["wip"]
-# Summaries too generic to say what changed, compared after normalizing.
+# Evaluate reports generic summaries. Enforce rejects them. Both normalize first.
 generic = [
   "address feedback", "address review", "address review comments", "change",
   "changes", "fix", "fixes", "misc", "review feedback", "tweak", "tweaks",
   "update", "updates", "wip",
 ]
-# Renovate's update and pin subjects name a package, so they may pass the limits.
+# These prefixes lift the length cap for commit subjects only.
 long_prefixes = [
   "chore(deps): update ", "chore(deps): pin ",
   "chore(deps-dev): update ", "chore(deps-dev): pin ",
@@ -128,12 +128,12 @@ package schema
 
 import "strings"
 
-#Name: =~"^[a-z][a-z0-9]*(-[a-z0-9]+)*$" & strings.MaxRunes(24)
-#Description: =~"\\S" & strings.MaxRunes(120)
+#Name:        =~"^[a-z][a-z0-9]*(-[a-z0-9]+)*$" & strings.MaxRunes(24)
+#Description: =~"\\S" & !~"[\\r\\n]" & strings.MaxRunes(120)
 
 #Global: {
-	schema_version: 1
-	mode:           "evaluate" | "enforce"
+	schema_version!: 1
+	mode:            "evaluate" | "enforce"
 	limits: {
 		subject: int & >=40 & <=100
 		title:   int & >=40 & <=subject
@@ -153,12 +153,25 @@ import "strings"
 }
 
 #Repo: {
-	schema_version: 1
+	schema_version!: 1
 	scopes?: [#Name]: #Description
 }
 ```
 
 Both definitions are closed, so a repository file that sets `mode`, `limits`, `types`, or `subjects` fails `cue vet`. A repository can't remove a global scope, because it has no way to name one for removal.
+
+### Schema verification
+
+Save the samples above as `commits.cue`, `global.toml`, and `repo.toml`. Copy `repo.toml` to `missing-version.toml` and remove `schema_version`. Make another copy named `multiline-description.toml` and set `alpha = "First line.\nSecond line."` so the TOML value contains a newline.
+
+```bash
+cue vet -c -d '#Global' commits.cue global.toml
+cue vet -c -d '#Repo' commits.cue repo.toml
+cue vet -c -d '#Repo' commits.cue missing-version.toml
+cue vet -c -d '#Repo' commits.cue multiline-description.toml
+```
+
+Pinned CUE 0.17.1 accepts both good files. It rejects the third file because `schema_version` is required and rejects the fourth because `scopes.alpha` contains a line break.
 
 ## The global seed
 
