@@ -18,7 +18,7 @@ Back to [the design](README.md).
 
 A launching run starts a headless agent to refine one work item or a batch. The pm role refines work items and the service-management role (`sm`) refines Problems. GitHub stores refinement state, including edits, links, and records. See [service requests and problems](B-definition-of-ready.md#service-requests-and-problems) for the workflow check on Requests and the record types that skip refinement.
 
-Assign a refiner who didn't write the body. The reviewer also works independently of the refiner.
+Assign a refiner who didn't write the body. Keep the reviewer independent of the refiner. Choose a reviewer who did no refinement work on the batch.
 
 Record batch results in the Chore. On resumption, retry each pending close for an open item with a current `drop` record. Skip other current records. A follow-up run can revisit a split parent once the children together cover its outcome.
 
@@ -92,7 +92,7 @@ Cite evidence for each claim in the record.
 - A path appears at a commit, as `path@sha`.
 - A command appears with the commit or query it ran against, and with its result count or a one-line result.
 
-For check 4, cite the searches and their results. When only private evidence supports a claim about a public item, write the citation on the private twin and acknowledge it on the public item. The reviewer fails a claim that lacks evidence.
+For check 4, cite the searches and their results. Keep private repository citations out of public records. When only private evidence supports a claim about a public item, write the citation on the private twin and acknowledge it on the public item. The reviewer fails a claim that lacks evidence.
 
 ## Internal security topics
 
@@ -115,7 +115,7 @@ The web research pass of 2026-11-23 read these sources. Each line says what chan
 - [Kubernetes issue triage](https://www.kubernetes.dev/docs/guide/issue-triage/) uses bot labels that change only by a command from a member, the author, or an assignee. It informed the use of authorized commands to change refinement state.
 - [GitLab's handbook on how product work flows](https://handbook.gitlab.com/handbook/product-development/how-we-work/product-development-flow/) returns work to refinement when someone finds it incomplete after ready. Added the worker's return operation.
 - [GitHub's issue form syntax](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-issue-forms) can set the type, labels, and Project. Each form checks only its own inputs. Added the paragraph on issues written outside the kernel.
-- [GitHub's built-in Project workflows](https://docs.github.com/en/issues/planning-and-tracking-with-projects/automating-your-project/using-the-built-in-automations) include two that set Done and start enabled. Added the setup step that turns them off. Also added a failure mode in F and a change line.
+- [GitHub's built-in Project workflows](https://docs.github.com/en/issues/planning-and-tracking-with-projects/automating-your-project/using-the-built-in-automations) include two that set Done and start enabled. Added the administrator's [setup step](D-status-transitions.md#sync-triggers-and-setup) and the corresponding [failure mode](../pm/F-refinement-runs.md#failure-modes).
 - [GitHub's workflow token docs](https://docs.github.com/en/actions/concepts/security/github_token) say events the token causes don't start a new run. Added the scheduled run of the sync job.
 - [GitHub's REST rate limits](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api) cap content creation at 80 a minute and 500 an hour. Replaced the unmeasured limit in [the tracker import](../pm/E-import.md#throttling) with these figures and added the per-minute budget and the backoff rule.
 - [GitHub's sub-issue docs](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/adding-sub-issues) allow 100 sub-issues per parent. Added the line in [the tracker import](../pm/E-import.md#order-and-batches) that the batch Chores fit under the import Epic.
