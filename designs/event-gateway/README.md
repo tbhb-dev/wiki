@@ -15,6 +15,13 @@ generated:
     surface: cli
     session: sha-256-64:2220073242f73359
     at: "2026-11-22T23:11:10Z"
+  - role: generated
+    harness: claude-code:2.1.330
+    model: anthropic:claude-opus-5-5
+    effort: high
+    surface: sdk-cli
+    session: sha-256-64:1a832a02df3ab163
+    at: "2026-11-23T08:02:35Z"
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
@@ -60,7 +67,7 @@ Every source produces the same envelope. It extends awrel's `event` message, so 
 | `provider` | `github` or `grafana`, set by the route and never read from the body. `internal` is reserved for events published from inside, which [D16](decisions.md#d16-may-workflows-agent-runs-and-sm-publish-events-into-the-gateway) defers |
 | `event` | GitHub's event name, or `alert.firing` and `alert.resolved` |
 | `delivery` | GitHub's delivery ID, or a deterministic hash for Grafana, as awrel does |
-| `scope` | `owner/repo` for GitHub, `kind/id` for alerts. awrel calls this `repository` |
+| `repository` | `owner/repo` for GitHub, `kind/id` for alerts, as in awrel |
 | `received_at` | Commit time |
 | `payload` | Raw body for GitHub. Allowlisted fields for Grafana, as awrel does |
 
@@ -86,7 +93,7 @@ Adding a target type means adding one package and one config block. Adding a rou
 
 ### Sessions
 
-The session protocol is awrel's `awrel.v1` protocol with two additions, served under the subprotocol `gateway.v1`. The client sends `resume_after` with its last `seq` and its subscriptions in a `hello` when it connects, split across frames when the set exceeds awrel's 4096-byte frame cap. The server replays matching events from the stream, sends a `caught_up` marker, and then goes live. awrel's message types, filter fields, size limits, and error codes stay the same ([appendix C](C-protocol.md#session-protocol)).
+The session protocol is awrel's `awrel.v1` protocol with additions, served under the subprotocol `gateway.v1`. The client sends `resume_after` with its last `seq` and its subscriptions in a `hello` when it connects, split across frames when the set exceeds awrel's 4096-byte frame cap. The server replays matching events from the stream, sends a `caught_up` marker, and then goes live. When retention has already deleted events the client missed, the server sends a `gap` message first. Subscriptions take optional `number` and `label` filters on issue and pull request events ([D13](decisions.md)). awrel's message types, size limits, and error codes stay the same, and its filter fields keep their rules beside the new ones ([appendix C](C-protocol.md#session-protocol)).
 
 The MCP client stores its subscriptions and its last `seq` per session key in its state directory, as awrel's client stores subscriptions today. A Claude Code session still needs the development channels flag. That's a harness constraint and stays the same.
 
