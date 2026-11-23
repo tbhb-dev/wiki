@@ -14,7 +14,7 @@ parent: README.md
 
 Back to [the design](README.md).
 
-These rules apply to every work item variant and every service request. Refinement checks them as items 1, 3, and 8 of the Definition of Ready (DoR) in [C. Refinement](C-refinement.md). Everything here is new.
+These rules apply to every work item variant and every service request. Refinement checks them as items 1, 3, 5, and 8 of the Definition of Ready (DoR) in [C. Refinement](C-refinement.md). Everything here is new.
 
 ## The rules
 
@@ -22,6 +22,8 @@ These rules apply to every work item variant and every service request. Refineme
 2. **Each sentence states one fact.** It reads as a plain subject-verb sentence that a stranger takes in once. A semicolon or a comma splice never joins two facts, and separate facts become separate sentences or bullets.
 3. **Each list item is a full sentence that ends with a period.** Task-list checks follow the same rule. No list item is a fragment.
 4. **No sentence describes the issue itself.** Sentences about the issue's structure, tracking, relations, or history don't belong. GitHub's sub-issue and dependency links record those. Each sentence says something about the work or the system.
+5. **An issue has no owner line.** Neither the body nor the metadata has an owner field. The repository implies the responsible role, and a `role/<role>` label marks work that belongs to another role.
+6. **An internal-security topic stays out of public repositories.** An issue about a weakness in the organization's own systems goes in a private repository. Refinement transfers one it finds in a public repository, as [C. Refinement](C-refinement.md#internal-security-topics) describes.
 
 ## Good and bad pairs
 
@@ -39,12 +41,17 @@ The bad examples appear in code spans, which keeps this page's own prose checks 
 | 4 | `Its parts live under the gateway rollout epic.` | Delete it. The sub-issue link already shows the parent. |
 | 4 | `This issue covers the cache work split from the storage epic.` | A repeated read returns from the cache without a call to the storage backend. |
 | 4 | `See the sub-issues for details.` | Delete it. GitHub lists the sub-issues under the body. |
+| 4 | `Tracked in the umbrella issue for the release.` | Delete it. The parent link says the same thing. |
+| 4 | `Split from the storage epic during planning.` | Delete it. GitHub records the split as a sub-issue relation. |
+| 5 | `Owner: tools role.` | Delete it. The tools repository already implies the responsible role. |
+| 5 | `The sm role owns this work.`, in an issue in the tools repository | Delete it, and add the `role/sm` label. |
+| 6 | `The webhook endpoint accepts unsigned payloads.`, filed in a public repository | The same sentence, filed in the private twin of that repository. |
 
 Rule 1 rewrites an existence claim into the result the work makes visible. Ask what someone would run or look at to know the work succeeded, and write that down.
 
 ## Content checks
 
-Matching is case-insensitive and reads the text of every paragraph and list item without code spans or code blocks, which the block model doesn't expose yet. The normalizer gains that text before any of these checks can run.
+Matching is case-insensitive and reads the text of every paragraph and list item without code spans or code blocks, which the block model doesn't expose yet. Before any of these checks can run, the normalizer has to gain that text.
 
 | Check | What it flags | Level |
 | --- | --- | --- |
@@ -53,22 +60,33 @@ Matching is case-insensitive and reads the text of every paragraph and list item
 | Vague result | Works well, cleaner, improved, better, and faster without a number | Warn |
 | Semicolon | A semicolon in prose | Refuse |
 | Missing final period | A list item whose text doesn't end with a period | Refuse |
-| Meta exposition | `tracked under`, `this issue covers`, `this issue tracks`, `this issue is`, and `see the sub-issues` | Refuse |
-| Possible meta exposition | `tracked in`, `split from`, `parent issue`, `child issue`, `umbrella`, and `this epic` | Warn |
+| Meta exposition | `tracked in`, `tracked under`, `this issue covers`, `this issue tracks`, `this issue is`, `see the sub-issues`, `split from`, `parent issue`, `child issue`, `umbrella`, and `this epic` | Warn |
+| Owner line | A line that opens with `Owner:` or `Owned by`, or an owner key in the metadata | Refuse |
+| Security topic in a public repository | In a public repository: `vulnerability`, `exploit`, `CVE-`, `privilege escalation`, `auth bypass`, and `leaked credential` | Warn |
 
-A comma splice has no reliable pattern. The refiner judges it under item 8. Each warn phrase can be legitimate. An issue about the pm tools may need to say parent issue, and a Helm chart can be an umbrella chart.
+A comma splice has no reliable pattern. The refiner judges it under item 8.
+
+Each warn phrase can be legitimate. An issue about the pm tools may need to say parent issue, and a Helm chart can be an umbrella chart. A fix for a public advisory about a dependency can cite its Common Vulnerabilities and Exposures (CVE) number in a public repository.
 
 Each refuse check becomes a constraint in the variant schema, which keeps the rule in one home as D4 requires. A warn check is part of the schema too, as data beside the hints. The kernel refuses no write for a warning, and `tbhbdev pm refine --check` lists each match for the refiner to clear with a written reason.
 
-The imported variant reports every check here as a warning. Refinement clears each one when it converts the item into its real variant.
+Refinement clears every meta-exposition warning before Ready, by deleting the sentence or by giving a reason under item 8.
+
+## Vale
+
+A Vale pass with the organization's configuration runs beside these checks on every body and comment, as the [Vale pass](C-refinement.md#vale-pass) of C describes. Some Vale rules overlap the checks here, such as its semicolon rule, and each still reports on its own.
+
+A short text turns Vale errors into warnings. It leaves every refuse check here as a refusal.
 
 ## Templates and the guide
 
-- Each template's sample text follows the four rules and passes each check of its variant.
+- Each template's sample text follows the six rules and passes each check of its variant.
 - Each sample list item in a template is a full sentence that ends with a period.
-- `tbhbdev pm guide <type>` prints the four rules with one good and bad pair each, from hint data in the schema.
+- `tbhbdev pm guide <type>` prints the six rules with one good and bad pair each, from hint data in the schema.
 - A refusal from one of these checks gives the rule as its hint, with the good example of its pair.
 
 ## Imports
 
-The import in [E. Tracker import](E-import.md) maps each original issue into the Context section of the imported variant. While it maps, it strips each sentence that describes the issue itself, such as a note on which tool tracks the work or which issue it came from. Where the earlier tracker recorded that relation as data, the import writes it as a sub-issue or dependency link instead.
+The import in [E. Tracker import](E-import.md) maps each original issue into the Context section of the imported variant. That variant reports every check here as a warning, and refinement clears each one when it converts the item into its real variant.
+
+While it maps, it strips each sentence that describes the issue itself, such as a note on which tool tracks the work or which issue it came from. Where the earlier tracker recorded that relation as data, the import writes it as a sub-issue or dependency link instead.

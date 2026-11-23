@@ -30,7 +30,9 @@ generated:
 
 Work items are GitHub issues in the repository responsible for the work, and one org Project gathers them with Priority and Status fields. The pm repository supplies the templates, the schemas, and the `tbhbdev pm` verbs.
 
-Every write goes through one content kernel in the tools repository. The kernel renders the text and normalizes it into a block model. It validates the model against a schema for the type, then scans the text for secrets before any write. A refusal gives the section, the rule, the limit, the actual value, and a hint.
+Every write goes through one content kernel in the tools repository. The kernel renders the text and normalizes it into a block model.
+
+Next, the kernel validates the model against a schema for the type, then scans the text for secrets before any write. A refusal gives the section, the rule, the limit, the actual value, and a hint.
 
 For the operator, the change is one backlog with checked text. Templates stay drafts until the operator says go.
 
@@ -54,14 +56,18 @@ Each issue and service request passes refinement against a Definition of Ready b
 1. A caller picks a type and variant, then supplies metadata and Markdown that begins with a level-one title.
 2. Next, the kernel normalizes the Markdown into the GitHub-flavored block model of sections, blocks, inline counts, and metrics.
 3. `cue vet` then checks the model against the schema for that variant and reports every finding in one pass.
-4. After that, the kernel runs the secret scan, the quote check, and the prose check on the exact rendered text. A finding in any of them refuses the write.
+4. After that, the kernel runs the secret scan, the quote check, and the prose check on the exact rendered text. A finding in any of them refuses the write, and refinement adds a Vale pass, as C describes.
 5. The kernel creates the issue and sets its type and fields. Then it adds the issue to the Project.
 
 Each issue template starts with the title line. The kernel takes it as the issue title and removes it from the body.
 
 ### Writing guides
 
-The schema is the home for rules about text shape. The few CUE can't express stay in the kernel's named list, and they report in the same refusal format. The generator builds each guide from the schema. `tbhbdev pm guide <type>` prints the sections in order and marks which ones need text. It also lists caps, metadata rules, and a hint for each section, then shows a rendered example. Reviewers read the same guide. A refusal uses the guide's wording, which lets a drafter fix the text in one pass.
+The schema is the home for rules about text shape. The few CUE can't express stay in the kernel's named list, and they report in the same refusal format.
+
+A generator builds each guide from the schema. `tbhbdev pm guide <type>` prints the sections in order and marks which ones need text. It also lists caps, metadata rules, and a hint for each section, then shows a rendered example.
+
+Reviewers read the same guide. A refusal uses the guide's wording, which lets a drafter fix the text in one pass.
 
 ### Taxonomy
 
@@ -73,7 +79,9 @@ The schema is the home for rules about text shape. The few CUE can't express sta
 
 ### Routing
 
-An issue goes in the repository responsible for the work, or in its private twin when the text needs private detail. The private-detail scan picks the twin before any write. Larger units go in the central work repository, and a Defect or Chore links to its parent as a sub-issue. The org Project gathers every item, and only people with access to a private repository see its items.
+An issue goes in the repository responsible for the work, or in its private twin when the text needs private detail. The private-detail scan picks the twin before any write. Larger units go in the central work repository.
+
+A Chore links to its parent as a sub-issue, and a Defect links to a Problem or an Epic when it has a parent. An issue about internal security always goes in a private repository. The org Project gathers every item, and only people with access to a private repository see its items.
 
 ## Risks and unknowns
 
@@ -99,10 +107,11 @@ An issue goes in the repository responsible for the work, or in its private twin
 
 ## Appendices
 
-- [Decisions](decisions.md): 2 open, then the decided record.
-- [A. Content model](A-content-model.md): what the block model counts and why the schemas have this structure.
-- [B. Routing and taxonomy](B-routing-and-taxonomy.md): routing, labels, and fields.
-- [C. Refinement](C-refinement.md): the Definition of Ready and the refinement procedure.
-- [D. Issue writing](D-issue-writing.md): the writing rules for every issue and the content checks that enforce them.
-- [E. Tracker import](E-import.md): how the earlier tracker's issues enter and pass refinement.
+- [Decisions](decisions.md) holds 2 open items, the decided record, and one ask of the tools role.
+- [A. Content model](A-content-model.md) says what the block model counts and why the schemas have this structure.
+- [B. Routing and taxonomy](B-routing-and-taxonomy.md) covers routing, labels, and fields.
+- [C. Refinement](C-refinement.md) gives the Definition of Ready, the refinement procedure, and the Vale pass.
+- [D. Issue writing](D-issue-writing.md) gives the writing rules for every issue and the content checks that enforce them.
+- [E. Tracker import](E-import.md) says how the earlier tracker's issues enter and pass refinement.
+- [F. Refinement runs](F-refinement-runs.md) gives the run brief, the batch review checklist, and the failure modes of refinement.
 - A private appendix covers the private specifics for this design.
