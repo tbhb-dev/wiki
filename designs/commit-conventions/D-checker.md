@@ -93,13 +93,19 @@ The rollout report retains each repository's commit and title results and sums b
 
 | Caller | Invocation | Stage |
 | --- | --- | --- |
-| Shared CI workflow | `@tbhb_rules//lint:commit_messages -- --repo-root "$PR_CONFIG_ROOT" --base-repo-root "$BASE_CONFIG_ROOT" --pr-number "$PR_NUMBER" --title="$PR_TITLE" "$BASE_SHA" "$PR_HEAD_SHA"`, with the title in an environment variable | Each pull request run |
+| Shared CI workflow | `@tbhb_rules//lint:commit_messages -- --repo-root "$PR_CONFIG_ROOT" --base-repo-root "$BASE_CONFIG_ROOT" --pr-number "$PR_NUMBER" --title="$PR_TITLE" "$BASE_SHA" "$PR_HEAD_SHA"`, with the event's title in an environment variable | `pull_request` events `opened`, `edited`, `synchronize`, and `reopened` |
 | `tbhbdev alpha pr check` and `pr create` | `bazelisk run @tbhb_rules//lint:commit_subject -- --repo-root <worktree> --title -- <title>` | Before opening. The checker supplies the title length check from `limits.title`. |
 | `tbhbdev alpha merge` | `commit_subject -- --repo-root <head-config> --base-repo-root <live-base-config> --title -- <latest-title>` | Before merging, alongside validation of the final subject with `limits.subject` |
 | A future tools commit command | `commit_subject` without `--title` | Before a commit or a push |
 | The `commit-msg` hook | `commit_subject` through a `bazel_env` shim, with `--file` | At commit creation, before push. A later change after title enforcement. |
 
 Both Bazel targets bundle `check_subject.py` with the loader from the pinned tools source, `tbhb_rules_tbhbdev_src`, and the pinned `cue` binary. CI, `pr check`, and `pr create` all apply the same `limits.title` key through that loader and checker. `pr check` and `pr create` remove their hard-coded title cap and keep their other pull request checks.
+
+### Required title check
+
+The title job runs the range target on all four pull request events and passes only after the target checks the title and succeeds. On those events, `conclusion` runs even if a dependency fails and requires an explicit `success` from the title job. A skipped or missing title result fails `conclusion`.
+
+The ruleset requires `conclusion` for the GitHub merge button and GitHub auto-merge. At checker release, the administrator account applies the ruleset as a [rollout dependency](README.md#plan).
 
 ### Pull request configuration
 
@@ -109,9 +115,15 @@ Both callers copy the tracked files `.tbhb/global/commits.toml`, `.tbhb/schema/c
 
 The loaded head configuration supplies the scope lists and the other checker settings. The base configuration supplies only its mode. Both callers apply the stricter mode to the title. CI also checks the authored commits in `BASE..HEAD` from the event, with advisory scope findings in both modes.
 
-CI reruns use the base from the original event. The merge command checks the latest title in the fetched base mode if that mode is stricter. A blocking title finding or a check error stops the merge.
+CI reruns use the base from the original event. The merge command checks the latest title against the stricter of the head mode and the fetched base mode for early warning. A blocking title finding or a check error stops the command.
 
 The merge request requires the hash of the checked head. A head change requires a fresh check.
+
+### Base mode flip
+
+**Accepted technical debt (`TECH-DEBT`).** During the `evaluate` to `enforce` flip, GitHub can accept a passing check from `evaluate` on a head behind the base. The merge command can also fetch an `evaluate` base and submit the merge after the flip while the head hash still matches. The [rollout precondition](README.md#rollout) requires the operator to list and fix open pull requests with titles that would fail in the new mode before the flip.
+
+Option B resolves the race by running the required check on `merge_group` against the base the queue uses for the merge. [B. Alternatives](B-alternatives.md#where-to-enforce-scopes)
 
 ## Failure modes
 
@@ -126,7 +138,9 @@ The merge request requires the hash of the checked head. A head change requires 
 | The repository file repeats a global scope | The loader keeps the global entry, and the checker prints a `notice:` line and continues checking the subject. |
 | The checker's own code raises an unexpected error | The gate reports an execution error and fails closed. |
 | The subject is empty | The checker reports a blocking form finding in both modes. |
+| CI skips the title check or omits its result on a pull request event | The required `conclusion` fails. |
 | A pull request head predates the enforce sync | If the base says `enforce`, CI and the merge command enforce the title's scope rules using the head's scope lists. |
+| The base rolls back to `evaluate` while an open head still declares `enforce` | Title scope findings continue to block on that head until both modes are `evaluate`. |
 | CI or the merge command cannot read the base revision, schema, or mode | The check fails with a configuration error. |
 
 ## Test plan
@@ -167,9 +181,11 @@ The rules maintainer writes the checker tests under `lint/private/commit_message
 - **Range failures.** A range containing an authored `fixup!` commit exits 1 in both modes. A missing global file causes exit 2 and an incomplete report even for an empty range.
 - **Rollout title finding.** Create a pull request fixture with title `feat(nope): add export` and one authored commit `feat: add export`. Merge it with subject `feat(nope): add export (#42)`. In evaluate mode the runner checks one commit and one title, exits 0, and records one advisory under pull request 42 and zero commit findings. The seven-day scan recovers the title from the merge subject and blocks step 7.
 - **CI title caller.** Use an enforce-mode fixture where the pull request head adds a scope and its title uses it. Leave the scope out of the checked-out test merge tree and verify that CI still passes the title using the event's head SHA.
+- **Required title check.** Trigger `opened`, `edited`, `synchronize`, and `reopened` and verify that every run checks the event's title. Edit a passing title to one with a blocking finding and verify that the failing `conclusion` blocks the GitHub merge button and auto-merge. Verify that skipped and missing title results also fail `conclusion`.
 - **Merge title caller.** Use the same pull request fixture from a worktree without the added scope. Verify that the merge command checks the title using the API's head SHA and sends that SHA as the merge precondition. If the head changes, the merge fails until the command checks the new revision.
 - **Title mode at the two revisions.** Set the pull request head to `evaluate` and the base and checked-out merge tree to `enforce`. Put a repository scope only in the head and a global scope only in the base. Verify that CI and the merge command accept a title with the head-only scope and reject one with the base-only scope. Reverse the modes and verify the same results. With both modes set to `evaluate`, the base-only scope yields an advisory.
 - **Base configuration errors.** An unavailable base revision or invalid base mode blocks CI and the merge command.
-- **Base advances after CI.** Start in `evaluate` with an unlisted scope in the title. Advance the base to `enforce` and leave the head unchanged. Verify that CI still passes on a rerun of the original event and the merge command blocks on the latest title.
+- **Base advances after CI and before the merge command fetches it.** Start in `evaluate` with an unlisted scope in the title. Advance the base to `enforce` and leave the head unchanged. Verify that CI still passes on a rerun of the original event and the merge command blocks on the latest title.
+- **Known gap after the merge command fetches the base.** If the same flip happens after the fetch, the merge command can pass the title using the fetched `evaluate` mode, and GitHub can still accept the passing CI result on the unchanged head. The required `merge_group` check in option B resolves this race.
 - **The `commit-msg` hook.** In both modes, a commit with an unlisted scope or a scope outside its type's policy produces an advisory before push. A `fixup!` subject or empty description still blocks the commit.
 - **Mutation testing.** The checker and the loader run under the repositories' mutation test setup, and every surviving mutant gets a test or a recorded reason.

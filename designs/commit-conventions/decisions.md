@@ -29,10 +29,12 @@ None.
 ### D10. Which commit check governs the merge?
 
 - **Decided.** Coordination chose option A on 2026-11-23 in the design review follow-up. The choice is reversible.
-- **Rule.** In `enforce` mode, the checker blocks titles with scope allow-list or per-type scope findings and reports advisories for authored commits. `tbhbdev alpha merge` rechecks the latest title using D7's live base mode before writing the merge subject and requiring the hash of the checked head. Existing syntax findings keep their behavior.
-- **Why.** The base can advance after the merge command fetches it. The GitHub merge button and GitHub auto-merge also bypass the command. A merge can still include a commit with an unlisted scope. [Renovate auto-merge policy](../../adrs/0024-renovate-pull-requests-automerge-after-approval-and-ci.md)
-- **Upgrade.** Move to option B when the merge queue runs the commit check on `merge_group` as a required check. Then authored-commit scope findings block in `enforce` mode. [B. Alternatives](B-alternatives.md#where-to-enforce-scopes)
-- **Undo.** Set `mode = "evaluate"` to make title scope findings advisory again. To roll back option B, restore advisories for authored-commit scope findings in `enforce` mode.
+- **Rule.** In `enforce` mode, the checker blocks titles with scope allow-list or per-type scope findings and reports advisories for authored commits. Existing syntax findings keep their behavior.
+- **Merge gate.** CI checks the title on `pull_request` events `opened`, `edited`, `synchronize`, and `reopened`. The ruleset requires the `conclusion` check, which requires a successful title check and fails on skipped or missing results. `tbhbdev alpha merge` rechecks the latest title with D7's fetched base mode for early warning before writing the merge subject.
+- **Why.** The GitHub merge button and GitHub auto-merge bypass `alpha merge` and need the required CI check to block a merge on title findings. A merge can still include a commit with an unlisted scope. [Renovate auto-merge policy](../../adrs/0024-renovate-pull-requests-automerge-after-approval-and-ci.md)
+- **Accepted technical debt (`TECH-DEBT`).** During the `evaluate` to `enforce` flip, GitHub can accept a passing title check on a head behind the base. The merge command can also fetch the base before the flip and submit the merge after it. The operator checks [open pull requests before the flip](README.md#rollout).
+- **Upgrade.** Move to option B when the merge queue runs the commit check on `merge_group` as a required check. The queue checks against the base it uses for the merge, resolving the race and blocking authored-commit scope findings in `enforce` mode. [B. Alternatives](B-alternatives.md#where-to-enforce-scopes)
+- **Undo.** Sync `mode = "evaluate"` to the base, then update open heads that still declare `enforce` to make their title scope findings advisory. To roll back option B, restore advisories for authored-commit scope findings in `enforce` mode.
 - **Record.** This design's pull request.
 
 ### D3. Who may add a scope to the global list?
@@ -62,13 +64,14 @@ None.
 
 - **Decided:** 2026-11-23, by the rules maintainer, in this design.
 - **Rule.** `mode = "evaluate" | "enforce"` goes in the global file, and `#Repo` rejects it in a repository file. Scope allow-list and per-type scope findings for titles block in `enforce` mode, and those for authored commits remain advisory in both modes under D10. Existing blocking commit checks and the title cap apply in both modes. [D. Checker](D-checker.md#exit-codes)
-- **Undo:** set `mode = "evaluate"` again in one rules pull request and sync it. Two-way door.
+- **Undo.** Set `mode = "evaluate"` again in one rules pull request and sync it. Update any open heads still in `enforce` as described in D7.
 - **Record:** this design's pull request.
 
 ### D7. Which commit's configuration does a pull request check read?
 
 - **Decided:** 2026-11-23, by the rules maintainer, in this design.
 - **Rule.** Continuous integration (CI) and the merge command read the scope lists from the exact head of the pull request so a change can add and use a scope together. Both apply the stricter of the head and base modes to the title, with CI using the event's base and the merge command fetching the live base. CI checks authored commits using the head's scope lists and reports scope findings as advisories under D10. [D. Checker](D-checker.md#pull-request-configuration)
+- **Rollback.** An open head that still declares `enforce` keeps blocking title scope findings after the base returns to `evaluate`. Both revisions must declare `evaluate` for those findings to become advisory.
 - **Undo.** Pass the base branch's files to the loader. Two-way door.
 - **Record.** This design's pull request.
 
@@ -96,6 +99,6 @@ None.
 ### D1. Do commit types and scopes come from an allow list?
 
 - **Decided:** 2026-11-23, by the operator.
-- **Rule:** yes. The type and scope of a commit subject must appear on an allow list. This design defines the list and how a check enforces it.
+- **Rule.** Commit subjects and pull request titles must use a listed type. The checker evaluates any scope against the allow list and per-type policy. Scope findings block titles in `enforce` mode and remain advisory for authored commits under D10.
 - **Undo:** the operator decides again, and the checker stops reading the type and scope lists.
 - **Record:** the operator's decision of 2026-11-23, relayed in the brief that commissioned this design.

@@ -30,6 +30,8 @@ Commit subjects across the organization use 11 fixed types and any scope a write
 
 This design moves the types and scopes into a global file, with repository-specific scopes in `.tbhb/commits.toml`. The tools loader merges the two files, and `check_subject` starts in `evaluate` mode. When `enforce` begins, scope findings block pull request titles and remain advisory for authored commits.
 
+The ruleset requires a passing title check through continuous integration (CI), including for GitHub auto-merge. The merge command rechecks the title for early warning.
+
 ## Proposal
 
 The built system has five parts, and git stores their state.
@@ -38,7 +40,7 @@ The built system has five parts, and git stores their state.
 - **The repository file**, `.tbhb/commits.toml`, lists the scopes for the repository's own parts. The role that maintains the repository edits it, and the baseline sync leaves it alone.
 - **The schema**, `.tbhb/schema/commits.cue`, defines both files in the Configure Unify Execute (CUE) language. The rules maintainer edits it, and the baseline copies it the same way as the global file.
 - **The loader**, `load(section, repo_root)` in tbhb-dev/tools, validates the global file and then the repository file against the schema and merges them. The tools maintainer, the role that maintains tbhb-dev/tools, writes it. The issue taxonomy design calls the same loader with `section = "taxonomy"`.
-- **The checker**, `check_subject` in tbhb-dev/rules, checks a subject or a title against the merged list. Continuous integration (CI) checks each authored commit and the pull request title. Tools' pull request commands check the title before they open or merge a pull request.
+- **The checker**, `check_subject` in tbhb-dev/rules, checks a subject or a title against the merged list. CI checks each authored commit and the pull request title. Tools' pull request commands check the title before they open or merge a pull request.
 
 A *global scope* refers to something that the shared baseline or a rules gate puts in each repository, or in each repository of a kind, with one meaning across repositories. Each *repository scope* refers to a part of one repository, such as a package, a directory, or another repository it writes about. The *merged list* is the union of the two, and each entry keeps its class.
 
@@ -112,7 +114,9 @@ The merge command validates the final subject against `limits.subject`, so a 65-
 
 Shared CI and tools' `pr check` and `pr create` use `limits.title` through the same loader and checker. For the title, CI and `tbhbdev alpha merge` load the scope lists from the exact head of the pull request and use the stricter of the head and base modes. [D7](decisions.md#d7-which-commits-configuration-does-a-pull-request-check-read)
 
-The merge command fetches the live base and rechecks the latest title. If the title passes, the command appends a space and `(#N)` to form the merge subject and requires the hash of the checked head in the merge request.
+CI checks the title on `pull_request` events `opened`, `edited`, `synchronize`, and `reopened`. The ruleset requires `conclusion`, which fails unless CI reports a successful title check. This blocks the GitHub merge button and auto-merge on failed, skipped, or missing title results. [D. Checker](D-checker.md#required-title-check)
+
+The merge command fetches the live base and rechecks the latest title for early warning. If the title passes, the command appends a space and `(#N)` to form the merge subject and requires the hash of the checked head in the merge request.
 
 ### Rollout
 
@@ -120,7 +124,11 @@ The global file starts in `evaluate` mode, with scope advisories for commits and
 
 The planned `commit-msg` hook flags scope findings when authors create commits, before they push. A merge can still include a commit with an unlisted scope. Authored-commit scope findings become blocking in `enforce` mode once the merge queue runs the commit check on `merge_group` as a required check. [B. Alternatives](B-alternatives.md#where-to-enforce-scopes)
 
-Each repository's maintainer scans the last 60 days with `--evaluate` and adds the repository scopes that pass the class tests. The scan covers authored commits and pull request titles from merge-commit subjects. The report counts both blocking findings and advisories. After every repository completes a seven-day scan with zero findings in commits and titles, the rules maintainer sets `mode = "enforce"` and the sync copies the change out.
+Each repository's maintainer scans the last 60 days with `--evaluate` and adds the repository scopes that pass the class tests. The scan covers authored commits and pull request titles from merge-commit subjects. The report counts both blocking findings and advisories.
+
+Before a repository's base flips to `enforce`, the operator checks the titles of open pull requests with the proposed base mode and the scope lists from each head. The operator lists the failing pull requests and fixes the scope configuration or changes the titles before the flip. Once every repository completes the seven-day scan with zero findings and passes the check of open titles, the rules maintainer sets `mode = "enforce"` and the sync copies the change out.
+
+To roll back title scope enforcement, sync `mode = "evaluate"` to the base and update open heads that still declare `enforce`. Those heads keep blocking title scope findings until both revisions declare `evaluate`.
 
 Nobody rewrites history. The checks read only the commits of an open pull request and its title, and the reports read history without changing it. `git revert` of an old commit writes `Revert "<subject>"`, which passes unchanged.
 
@@ -132,9 +140,9 @@ Nobody rewrites history. The checks read only the commits of an open pull reques
 | Agents now invent repository scopes in `.tbhb/commits.toml` | The list grows as fast as scopes did | Each addition is a reviewed diff with a description, and the checker's message states the class tests | New |
 | The issue taxonomy design defines a different loader contract | Two loaders, or a rework | Appendix C defines the contract for any section, and whichever design merges second adopts the first one's contract | Unverified: that design isn't written yet |
 | The installed tools version differs from the tools source pinned in rules | The local check and CI disagree | Both run through the same Bazel target, which uses the pinned source | Existing |
-| The CI title step doesn't rerun after a title edit | CI shows a pass for an old title | The merge command checks the title again before it merges | Existing: the seeded CI workflow listens to the default `pull_request` events, which leave out `edited` |
+| The seeded CI workflow leaves out `edited` | CI can show a pass for an old title | Step 5 adds `edited` and requires a successful title check through `conclusion` | Existing: the seeded CI workflow listens to the default `pull_request` events |
 | The pull request head changes between the checks and the merge | The checks used an older revision and its configuration | The merge request requires the checked head SHA, so the operator retries the checks on the new revision | New |
-| The base advances to `enforce` after CI passes in `evaluate` | CI can still show a pass for a title with scope findings | The merge command rechecks the latest title using the fetched base mode and the head's scope lists | New |
+| The base flips to `enforce` after CI passes in `evaluate` | GitHub can accept a passing result on a head behind the base. The merge command can also use the old mode if it fetches the base before the flip | The operator checks the titles of open pull requests before the flip. In option B, `merge_group` checks the base that GitHub uses for the merge | New. Accepted `TECH-DEBT` during the mode flip |
 | An authored commit has an unlisted scope | A merge can include the commit | The `commit-msg` hook flags the scope before push. The required check in the merge queue will block commits with scope findings in `enforce` mode | New |
 | The seed list misses a common shared scope | Reports in `evaluate` mode fill with one value | The seven-day report shows it, and the rules maintainer adds it under D3 | New |
 | One repository's automation writes the `sync` type | Its commits fail after enforcement | That automation moves to `chore(sync)`, and the repository lists `sync` | Existing: 11 subjects |
@@ -147,9 +155,10 @@ Nobody rewrites history. The checks read only the commits of an open pull reques
 | 2 | Baseline sync pull requests that copy both files into each repository, rules included | Each repository's main has `.tbhb/global/commits.toml` byte-equal to the rules source | Rules maintainer |
 | 3 | `load(section, repo_root)` in tools with the contract in appendix C | The loader tests in [D. Checker](D-checker.md#test-plan) pass under mutation testing | Tools maintainer |
 | 4 | `check_subject` reads the merged list, the `commit_subject` target, and the rules pin of that tools source | The rules test plan in appendix D passes | Rules maintainer |
-| 5 | Tools and shared CI check titles, and the merge command rechecks the title using the live base mode | An unlisted scope in an authored commit remains advisory in CI in both modes. After the base advances to enforce mode, the merge command blocks a title with an unlisted scope even with earlier passing CI. `feat: update` and a title beyond the configured limit both fail. | Tools maintainer, rules maintainer |
+| 5 | Tools and CI check titles. Update the seed and existing workflows to run the required title check. The merge command rechecks the title for early warning. | An unlisted scope in an authored commit remains advisory in CI in both modes. The merge command blocks a title with an unlisted scope if the base flips to `enforce` before the fetch, even with earlier passing CI. `feat: update` and a title beyond the configured limit both fail. | Tools maintainer, rules maintainer |
+| 5a | At checker release, the administrator account applies the ruleset that requires `conclusion` with the title check as a required input. Step 5 depends on this change. | CI checks titles on `opened`, `edited`, `synchronize`, and `reopened`. Failed, skipped, and missing title results fail `conclusion` and block the GitHub merge button and auto-merge. | Administrator account |
 | 6 | Each repository's `.tbhb/commits.toml`, seeded from its 60-day report in `evaluate` mode | Each maintainer reviews the range report's recorded findings and uses its scope counts to seed the repository list. | Each repository's maintainer |
-| 7 | `mode = "enforce"` | Every repository completes its seven-day scan with zero findings in authored commits and in pull request titles recovered from merge-commit subjects. The rules maintainer then sets the global file to `enforce`. | Rules maintainer |
+| 7 | `mode = "enforce"` | Every repository completes its seven-day scan with zero findings in authored commits and in titles recovered from merge-commit subjects. The operator lists open pull requests whose titles fail with the proposed base mode and corrects them before the flip. Each open title passes on a rerun. | Operator, rules maintainer |
 
 ## Appendices
 
