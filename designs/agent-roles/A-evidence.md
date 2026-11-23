@@ -5,6 +5,22 @@ description: The sources behind each claim in the agent roles design, labeled ex
 tags: [agent-roles, evidence, design]
 status: draft
 parent: README.md
+generated:
+  - role: generated
+    harness: claude-code:2.1.330
+    model: anthropic:claude-opus-5-5
+    effort: medium
+    surface: cli
+    session: sha-256-64:e48956ec8ffa792a
+    subagent: sha-256-64:63469a419533009b
+    at: "2026-11-22T23:16:43Z"
+  - role: assisted
+    harness: claude-code:2.1.330
+    model: anthropic:claude-sonnet-5-5
+    effort: medium
+    surface: cli
+    session: sha-256-64:e48956ec8ffa792a
+    at: "2026-11-22T23:16:43Z"
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->

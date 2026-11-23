@@ -1,3 +1,19 @@
+---
+type: Writing Checklist
+title: Runbook writer checklist
+description: The rules a runbook author follows before asking for review.
+tags: [runbooks, writing, checklist]
+status: draft
+generated:
+  - role: generated
+    harness: claude-code:2.1.330
+    model: anthropic:claude-sonnet-5-5
+    effort: medium
+    surface: cli
+    session: sha-256-64:50691a4df0360088
+    at: "2026-11-22T05:45:15Z"
+---
+
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
@@ -9,12 +25,12 @@ Follow this list before asking for review of a runbook. Use the skeleton in [TEM
 
 - [ ] The runbook is one file at `runbooks/<role>/<procedure>.md`, or in `runbooks/process/` when it spans roles. The filename states the procedure.
 - [ ] It follows the skeleton: frontmatter, then Purpose, Trigger, Preconditions, Steps, What each outcome means, Failure handling and undo, and Related.
-- [ ] The frontmatter is complete: `type: Runbook`, `title`, `description`, `owner`, `updated`, and `last_verified`.
+- [ ] The frontmatter is complete: `type: Runbook`, `title`, `description`, `tags`, `status`, `owner`, and `updated`. A `Last verified:` line follows the title.
 - [ ] The file stays well under 30,000 bytes. A longer procedure splits into runbooks that link each other.
 
 ## Truth
 
-- [ ] You ran every step against the live host or tool, and `last_verified` carries that date, or `never` when nobody has run it. A step you couldn't run says so beside the step.
+- [ ] You ran every step against the live host or tool, and the `Last verified:` line carries that date, or `never` when nobody has run it. A step you couldn't run says so beside the step.
 - [ ] Each command sits on its own line in a code block, exact enough to copy and run, with each placeholder named.
 - [ ] Each step says what the output looks like when it worked.
 - [ ] A helper script is a real file beside the runbook, not a snippet that the reader retypes.

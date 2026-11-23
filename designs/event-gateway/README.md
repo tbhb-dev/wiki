@@ -7,6 +7,14 @@ status: draft
 owner: Gateway maintainer
 updated: "2026-11-22"
 decisions_open: 0
+generated:
+  - role: generated
+    harness: claude-code:2.1.330
+    model: anthropic:claude-sonnet-5-5
+    effort: medium
+    surface: cli
+    session: sha-256-64:2220073242f73359
+    at: "2026-11-22T23:11:10Z"
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->

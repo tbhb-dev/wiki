@@ -1,3 +1,19 @@
+---
+type: Readme
+title: Runbooks
+description: How runbooks are written, reviewed, and indexed in this repository.
+tags: [runbooks, index]
+status: draft
+generated:
+  - role: generated
+    harness: claude-code:2.1.330
+    model: anthropic:claude-sonnet-5-5
+    effort: medium
+    surface: cli
+    session: sha-256-64:50691a4df0360088
+    at: "2026-11-22T06:44:57Z"
+---
+
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 

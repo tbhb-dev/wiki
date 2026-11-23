@@ -1,3 +1,19 @@
+---
+type: Content Template
+title: Decision record template
+description: The skeleton for a decision record in the adrs folder.
+tags: [adrs, decisions, template]
+status: draft
+generated:
+  - role: generated
+    harness: claude-code:2.1.330
+    model: anthropic:claude-sonnet-5-5
+    effort: medium
+    surface: cli
+    session: sha-256-64:c581062e61e4c416
+    at: "2026-11-23T00:26:49Z"
+---
+
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 

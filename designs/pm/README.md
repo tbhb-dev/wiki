@@ -7,6 +7,14 @@ status: draft
 owner: pm
 updated: "2026-11-22"
 decisions_open: 0
+generated:
+  - role: generated
+    harness: claude-code:2.1.330
+    model: anthropic:claude-sonnet-5-5
+    effort: medium
+    surface: cli
+    session: sha-256-64:5b8e83e63b1f7072
+    at: "2026-11-22T21:39:34Z"
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->

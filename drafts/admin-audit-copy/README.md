@@ -1,3 +1,45 @@
+---
+type: Design Draft
+title: Off-host copy of the administrator audit log
+description: A draft design for copying the administrator audit log off its host.
+tags: [drafts, audit, logging]
+status: draft
+owner: Platform engineering
+updated: "2026-11-14"
+generated:
+  - role: generated
+    harness: claude-code:2.1.322
+    model: anthropic:claude-sonnet-5-5
+    effort: medium
+    surface: cli
+    session: sha-256-64:a906bd79703e4c35
+    at: "2026-11-14T23:09:50Z"
+  - role: generated
+    harness: claude-code:2.1.322
+    model: anthropic:claude-opus-5-5
+    effort: medium
+    surface: cli
+    session: sha-256-64:a906bd79703e4c35
+    subagent: sha-256-64:e6e02981223d8cc0
+    at: "2026-11-14T23:09:50Z"
+  - role: generated
+    harness: claude-code:2.1.322
+    model: anthropic:claude-opus-5-5
+    effort: medium
+    surface: cli
+    session: sha-256-64:a906bd79703e4c35
+    subagent: sha-256-64:30c58cfa961c8d1a
+    at: "2026-11-14T23:09:50Z"
+  - role: generated
+    harness: claude-code:2.1.322
+    model: anthropic:claude-opus-5-5
+    effort: medium
+    surface: cli
+    session: sha-256-64:a906bd79703e4c35
+    subagent: sha-256-64:fb84a1ddeaff7893
+    at: "2026-11-14T23:09:50Z"
+---
+
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 

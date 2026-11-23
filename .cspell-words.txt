@@ -64,6 +64,7 @@ toplevel
 tricolon
 tskey
 uncomparables
+unkeyed
 unmatch
 venv
 worktrees

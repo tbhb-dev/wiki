@@ -1,3 +1,19 @@
+---
+type: Reference
+title: Model observations
+description: The findings behind the model roster, grouped by model.
+tags: [models, observations]
+status: draft
+generated:
+  - role: generated
+    harness: claude-code:2.1.325
+    model: anthropic:claude-sonnet-5-5
+    effort: medium
+    surface: cli
+    session: sha-256-64:15e9cbd0d8f3c40f
+    at: "2026-11-22T16:05:26Z"
+---
+
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
