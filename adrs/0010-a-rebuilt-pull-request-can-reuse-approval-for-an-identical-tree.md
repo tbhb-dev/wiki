@@ -15,9 +15,9 @@ A pull request sometimes needs rebuilding after its content already passed revie
 
 ## Decision
 
-The review worker, the service that handles queued reviews, can approve a rebuilt replacement when its Git tree matches the tree covered by the earlier approval. The match replaces the fresh model review and satisfies the earlier verdict’s [revision limit](0004-review-runs-publish-verdicts-on-the-pull-request.md) by establishing that the reviewed tree is unchanged.
+The review worker can approve a rebuilt pull request when its Git tree matches the earlier approved tree. Tree identity stands in for [reviewer evidence for the exact head and the independent approver’s read of the full diff](0009-the-reviews-app-posts-approvals-for-an-independent-approver.md). The match satisfies the earlier verdict’s [revision limit](0004-review-runs-publish-verdicts-on-the-pull-request.md) by establishing that the reviewed tree is unchanged.
 
-For the replacement’s exact head, the independent approver reads the full diff, confirms passing CI and uses the tree-identity result in place of reviewer evidence. All other [approval checks](0009-the-reviews-app-posts-approvals-for-an-independent-approver.md) apply at that head, the latest commit on the pull request’s source branch. The worker holds the replacement if it changes the review template, which sets the required format for review results.
+At the replacement’s head, the `conclusion` check must pass, GitHub must mark every listed commit’s signature as verified, and the service must reject approval from the opener’s root identity. The worker holds the replacement if it changes the review template, which sets the required format for review results.
 
 ## Consequences
 
