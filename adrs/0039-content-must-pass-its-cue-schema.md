@@ -11,14 +11,16 @@ decided: "2026-11-22"
 
 ## Context
 
-A starter template helps an author write. Validation also needs to count the content GitHub renders and check metadata and relationships.
+Validation needs to count the content GitHub renders. It also needs to check metadata and links between records.
+
+These validation rules govern content ready for a GitHub write and leave starter wording to templates.
 
 ## Decision
 
-Templates provide starting text. The content module normalizes GitHub Flavored Markdown into blocks and section metrics, adds frontmatter or issue metadata, and validates the result against the content type's CUE variant and shared policy. The schema defines the applicable headings, limits, metadata, and taxonomy.
+The [content module](0038-managed-content-writes-use-a-shared-command-path.md) converts GitHub Flavored Markdown, GitHub's text format, into blocks such as paragraphs. It measures each section. It adds metadata from the file header or the issue fields. It validates the result against shared content rules and the record type's schema in Configure Unify Execute (CUE). The schema sets headings, limits, metadata rules, and allowed categories.
 
-The module defines checks beyond CUE in an explicit list. They cover links-only sections, flooding an issue with work notes, approval of a cited Request, and the existence of a required retrospective request for comments. These checks report refusals in the same format as schema checks.
+The module lists supplemental checks for links-only sections, excessive [work notes](0037-service-issue-comments-are-append-only-work-notes.md), approval of a cited [Request](0034-operator-and-agent-requests-use-github-issues.md), and the existence of a required retrospective request for comments. A retrospective request for comments solicits feedback on completed work. These checks report refusals in the same format as schema checks.
 
 ## Consequences
 
-Authors get consistent feedback about the rule and the affected section or field. Coordination can reverse the amendment by deferring the supplemental checks.
+Authors get consistent feedback about the rule and the affected section or field. The [coordinator](0036-normal-changes-follow-the-scope-of-delegated-authority.md) can reverse the amendment that allowed supplemental checks by deferring them.

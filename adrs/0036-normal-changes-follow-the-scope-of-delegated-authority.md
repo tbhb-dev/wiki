@@ -11,13 +11,15 @@ decided: "2026-11-22"
 
 ## Context
 
-Normal Changes need an approval path that accounts for how far each role's authority extends.
+[Normal Changes](0035-change-issues-use-three-approval-classes.md) need an approval path that accounts for how far each role's authority extends. The constitution sets the limits on delegated authority. The Laws govern information exposure and authority over decisions.
+
+This rule assigns approval authority for Normal Changes and leaves Standard and Emergency Changes to their own approval classes.
 
 ## Decision
 
-The role responsible for the change decides and records reversible work within its authority. The coordinator approves a change that crosses roles. Send matters reserved by the constitution to the operator as Requests. The operator handles changes to the Laws and any creation or expansion of a kind of decision authority. This also covers destruction of the last working copy and irreversible destruction of anything the organization didn't create.
+The responsible role decides and records reversible work within its authority. The coordinator, the role responsible for cross-role matters, approves changes that cross roles. Send matters reserved by the constitution to the operator, who holds final authority, as [Requests](0034-operator-and-agent-requests-use-github-issues.md). Reserved matters include changes to the Laws. They include creating or expanding a kind of authority over decisions. They also include destroying the last working copy or permanently destroying anything the organization did not create.
 
-Each approval records its authority under the constitution. Cite the role definition or a recorded decision when either grants authority. If the rules leave the change to the role's discretion, record that basis.
+Record each approval's basis under the constitution. Cite the role definition or recorded decision granting authority. Record discretion when the rules leave the decision to the role.
 
 ## Consequences
 

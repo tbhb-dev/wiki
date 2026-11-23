@@ -11,12 +11,14 @@ decided: "2026-11-22"
 
 ## Context
 
-A backlog kept in separate documents makes people reconcile progress and wait for a build slot before giving new work a durable record.
+People must reconcile progress when separate documents hold the backlog, the list of work to do. That setup delays recording new work until someone has time to build it.
 
 ## Decision
 
-A GitHub issue can enter the backlog at any point, including before anyone can start the work. The organization Project shows its priority and status. Use the shared Priority field and record the reason for a priority change in a work note. Refine the issue when someone picks it up, and give each fact one authoritative home.
+A GitHub issue, the record for a work item, can enter the backlog at any point, including before work can start. An organization Project, the shared GitHub board for these issues, shows their priority and status. Use the shared Priority field to show which work should come first. Record the reason for a priority change in a [work note](0037-service-issue-comments-are-append-only-work-notes.md). Refine the issue when someone picks it up. Keep each fact in one authoritative place.
+
+This rule governs how to record and track work from intake onward and leaves start dates open.
 
 ## Consequences
 
-Routine progress is visible on the issue or Project. Keep using the trackers until the initial templates are ready for import. Use the existing security debt list until the affected private repositories take over those entries.
+Readers can see routine progress on the issue or Project. Keep using the current trackers until the first issue templates are ready for import. Keep using the existing list of deferred security fixes until the affected private repositories take over those entries.

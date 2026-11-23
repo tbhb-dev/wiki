@@ -11,13 +11,15 @@ decided: "2026-11-22"
 
 ## Context
 
-Service issues need a history of updates and evidence that explains how the issue reached its current state.
+[Service issues](0033-service-workflows-run-on-github-issues.md) need a history of updates and evidence that explains how the issue reached its current state.
+
+The work-note rule governs comments and state changes on service issues and leaves comments on other issues outside its scope.
 
 ## Decision
 
-Post service issue comments through the service-management `note add` command. The template records the author role, the note kind, and the body with evidence for its claims. Note kinds cover updates, evidence, handoffs, blockers, decisions, and answers.
+Use the service-management `note add` command to post a work note, a structured comment on a service issue. The work-note template records the author's role, the note's purpose, and the text with evidence for its claims. Note kinds cover progress updates, supporting evidence, transfers of responsibility, obstacles, decisions, and answers.
 
-Work notes are append-only. A correction is a new note that refers to the earlier one. Every state transition adds a note with the actor, the previous state, the new state, and the reason.
+Append-only notes keep earlier entries as written. Add a new note that refers to the earlier one when making a correction. For every state transition, add a note that records who made the change, the previous state, the new state, and the reason.
 
 ## Consequences
 

@@ -13,12 +13,14 @@ decided: "2026-11-22"
 
 Repeatable work, planned changes that need approval, and emergency fixes need different approval timing and a common history.
 
+The Change workflow governs how to document a change and when it needs approval or review, with [Normal Change approvers](0036-normal-changes-follow-the-scope-of-delegated-authority.md) set by the delegated authority rules.
+
 ## Decision
 
-Create an organization Change issue from a Request for a change. For a Standard Change, use a repeatable model with advance approval. Approve a Normal Change before carrying it out. An Emergency Change can proceed immediately, with review afterward.
+Create a Change issue to track work proposed in a [Request](0034-operator-and-agent-requests-use-github-issues.md). A Standard Change follows a repeatable procedure with advance approval. A Normal Change needs approval before the work starts. An Emergency Change can proceed immediately and receives review afterward.
 
-Use the corresponding template. Record the plan, risk, and rollback, plus the approver for a Normal Change. After the change, add evidence of the work and how it was verified.
+Use the template for that approval class. Record the plan, the risk, and how to undo the change. For a Normal Change, record the approver. After the change, add evidence of the work and how you verified it.
 
 ## Consequences
 
-Change issues replace the interim ledgers when the workflow goes live. Any pull request that backports a live change links to the Change issue.
+Change issues replace the temporary change logs when the workflow goes live. A pull request that brings an already deployed change back into the repository links to the Change issue.

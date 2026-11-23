@@ -13,9 +13,11 @@ decided: "2026-11-22"
 
 The service-management and project-management designs explain how work moves across repositories. Readers need one place to find them and follow their changes.
 
+This rule governs publication of the two designs and leaves the location of their implementations open.
+
 ## Decision
 
-Maintain the [service-management design](../designs/itsm-records/README.md) and [project-management design](../designs/pm/README.md) in the public wiki. Identify private components by their role. Apply the public-content checks before publication.
+Maintain the [service-management design](https://github.com/tbhb-dev/wiki/blob/main/designs/itsm-records/README.md) and [project-management design](https://github.com/tbhb-dev/wiki/blob/main/designs/pm/README.md) in this public wiki repository. Identify private components by what they do. Check the designs against the [public-content rules](https://github.com/tbhb-dev/wiki/blob/main/AGENTS.md#standing-rules) before publication.
 
 ## Consequences
 

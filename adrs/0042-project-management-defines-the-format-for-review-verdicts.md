@@ -11,11 +11,15 @@ decided: "2026-11-23"
 
 ## Context
 
-An approver reading a review needs to know which revision it covers and how each finding affects the verdict.
+An approver, the role that accepts a revision for merge, needs to know which commit a review covers. Each finding needs to show how it affects the verdict, the review's pass or fail result.
+
+This rule covers formats and checks for reviews and pull request descriptions and leaves approval authority to the existing review and merge rules.
 
 ## Decision
 
-Project management maintains the templates and checks for review submissions in `tbhbdev.content`. The review records the verdict, the exact commit reviewed, the review tier, and the findings marked `BLOCK`, `TECH-DEBT`, or `SECURITY-DEBT`.
+[Project management](0031-work-issues-live-in-the-repositories-responsible-for-them.md) maintains the review submission templates and format checks in [`tbhbdev.content`](0038-managed-content-writes-use-a-shared-command-path.md). Record the verdict, the exact commit reviewed, and the review tier, a numbered level from 1 to 3.
+
+Mark findings that prevent a passing review with `BLOCK`. Mark deferred maintenance work with `TECH-DEBT`. Mark deferred security work with `SECURITY-DEBT`.
 
 ## Consequences
 

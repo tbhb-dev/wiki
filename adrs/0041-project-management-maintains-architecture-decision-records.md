@@ -11,14 +11,16 @@ decided: "2026-11-23"
 
 ## Context
 
-Architecture decisions guide designs and planning work. Some decisions also need a question and approval workflow before the rule is ready to publish.
+Architecture decision records state rules that guide designs and planning work. Some decisions need discussion or approval before the rule is ready to publish.
+
+This rule covers decision-record maintenance and its optional approval handoff and leaves the command-line framework and pull request checks with their maintainers on the tooling team.
 
 ## Decision
 
-Project management maintains the architecture decision record format, the rules for superseding records, and the `tbhbdev adr` commands for listing, showing, creating, superseding, and checking records. The tooling team provides the command-line framework and pull request checks. Store the records under `adrs/` in the public wiki by default. Use `--private` for decisions that require details unsuitable for publication.
+[Project management](0031-work-issues-live-in-the-repositories-responsible-for-them.md) maintains the record format and the rules for replacing an old decision with a new one. It maintains the `tbhbdev adr` commands for listing, showing, creating, superseding, and checking records. Store the records under `adrs/` in the public wiki by default. Use `--private` to select private storage when the details cannot be public.
 
-Use the decision Request variant when a decision needs discussion or approval. Service management runs that issue workflow. Approval hands off to `tbhbdev adr new --from-request N`, and the Request closes when the record's pull request merges.
+Use the decision form of a [Request](0034-operator-and-agent-requests-use-github-issues.md) for discussion or approval. Service management runs that issue workflow. After approval, create the record with `tbhbdev adr new --from-request N`, where `N` is the Request's issue number. Close the Request when the record's pull request merges.
 
 ## Consequences
 
-Existing service-management decision files move into the wiki collections, where they follow the wiki's pull request process. Decisions that don't need a Request can start as pull requests for the record.
+Move existing service-management decision files into the wiki's decision record collections. They follow the wiki's pull request process. Decisions that need no Request can start as pull requests for the record.
