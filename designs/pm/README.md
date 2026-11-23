@@ -5,7 +5,7 @@ description: How issues, one org Project, and a checked content kernel give the 
 tags: [pm, issues, projects, content]
 status: draft
 owner: pm
-updated: "2026-11-22"
+updated: "2026-11-23"
 decisions_open: 2
 generated:
   - role: generated
@@ -24,7 +24,7 @@ generated:
 
 | Status | Owner | Updated | Needs from the operator |
 | --- | --- | --- | --- |
-| Draft | pm | 2026-11-22 | 2 open decisions in [decisions.md](decisions.md), about 2 minutes |
+| Draft | pm | 2026-11-23 | 2 open decisions in [decisions.md](decisions.md), about 2 minutes |
 
 ## Summary
 
@@ -45,7 +45,7 @@ Building the design yields these components, each with one role as owner.
 - **The org Project** (owner pm, with the administrator creating the App) has Priority, Status, and Handler fields and a basic backlog view. Only a sync job writes Status, from GitHub state.
 - **The central work repository** (private, owner pm) stores Initiatives and Epics. Bugs and tasks stay with the repositories that contain their code.
 
-Each issue and service request passes refinement against a Definition of Ready before work starts, and the tracker import passes through the same gate. [C. Refinement](C-refinement.md) gives the checks and the procedure.
+Each issue and service request passes refinement against a Definition of Ready before work starts, and the tracker import passes through the same gate. [C. Refinement](C-refinement.md) gives the checks and the procedure, and [E. Tracker import](E-import.md) gives the import.
 
 ## How it works
 
@@ -102,5 +102,7 @@ An issue goes in the repository responsible for the work, or in its private twin
 - [Decisions](decisions.md): 2 open, then the decided record.
 - [A. Content model](A-content-model.md): what the block model counts and why the schemas have this structure.
 - [B. Routing and taxonomy](B-routing-and-taxonomy.md): routing, labels, and fields.
-- [C. Refinement](C-refinement.md): the Definition of Ready and the procedure, including the import gate.
+- [C. Refinement](C-refinement.md): the Definition of Ready and the refinement procedure.
+- [D. Issue writing](D-issue-writing.md): the writing rules for every issue and the content checks that enforce them.
+- [E. Tracker import](E-import.md): how the earlier tracker's issues enter and pass refinement.
 - A private appendix covers the private specifics for this design.
