@@ -48,10 +48,10 @@ Building the design yields these components, each with one role as owner.
   - **Priority** accepts `Expedite`, `Standard`, or `Intangible`.
   - **Status** uses the values in the [Status table in C. Refinement](C-refinement.md#status-and-the-ready-signal). Only the sync job writes Status.
   - **Handler** accepts `Operator` or `Agent` and applies only to Requests.
-  - **Source** accepts only `Import`. The kernel sets Source when it creates an imported issue.
+  - **Source** accepts only `Import`. The `source` field in the issue body's metadata is the record. An imported issue without that field fails `cue vet`. The kernel sets the Project Source field to match at creation.
 - **The central work repository** (private, owner pm) stores Initiatives and Epics. Bugs and tasks stay with the repositories that contain their code.
 
-After this amendment merges, the administrator creates a new org Project named `work` through the `admin` App. Using the same App, the administrator creates its four fields. The kernel reads the Project node ID and all four field IDs from configuration that the administrator supplies.
+The administrator creates a new org Project named `work` through the `admin` App. Through the same App, the administrator replaces the built-in Status options with the six values in the [Status table in C. Refinement](C-refinement.md#status-and-the-ready-signal) and adds Priority, Handler, and Source. Then the administrator supplies the Project node ID and each field ID in the kernel's configuration. The six existing org Projects stay as they are, and the kernel never writes to them.
 
 Each issue and service request passes the Definition of Ready before work starts. The imports role refines tracker items in staging before the kernel creates them in their destination types. See [C. Refinement](C-refinement.md) and [E. Tracker import](E-import.md).
 
