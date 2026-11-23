@@ -22,23 +22,25 @@ Back to [the design](README.md).
 
 ## Open
 
-### D2. Adopt the scope policy for each type?
+None.
 
-- **Recommendation:** yes. `build` and `ci` take only global scopes, the other types take any scope on the merged list, and a subject without a scope passes for every type.
-- **Why:** the allow list is the operator's own standing rule, and this table sets its strictness. The table in [the README](README.md#the-policy-for-each-type) shows that `feat` and `fix` need global scopes such as `deps` and `mcp`. A required scope would push writers to invent one, which is the problem the list solves.
-- **If yes:** the seed global file in step 1 uses this table, and the checker enforces it after the `evaluate` period.
-- **If no:** the operator gives a different policy for a type, such as `repo` for `feat` and `fix`. In the spot check, that policy would have failed 149 `feat` and `fix` subjects with a global scope, most of them the `fix(deps)` subjects that Renovate writes.
-- **Reversible:** yes. Each policy is one value in the global file, and a change takes one rules pull request and a sync.
+## Decided
 
 ### D3. Who may add a scope to the global list?
 
-- **Recommendation:** the rules maintainer may, without asking the operator. An ordinary rules pull request shows that the scope passes the class tests. The same rule covers the 16-scope seed in step 1.
-- **Why:** a global scope applies to each repository, and this grants standing authority over the shared list. Reviewers can check each addition against the class tests in [the README](README.md#scope-classes). A repository doesn't wait for a global addition, because it can list a repository scope at once.
-- **If yes:** the seed goes through the normal rules review, and later additions follow the same path.
-- **If no:** the operator approves each global addition, starting with the seed. Repositories keep working through repository scopes in the meantime, at the cost of duplicate entries that a later global addition retires.
-- **Reversible:** yes. The operator can take the authority back at any time, and git keeps the history of the list.
+- **Decided:** 2026-11-23, by the operator.
+- **Rule:** The rules maintainer approves new global scopes, including the 16-scope seed, through ordinary rules pull requests.
+- **Why:** Reviewers can check each addition against the [scope class tests](README.md#scope-classes).
+- **Undo:** The operator can revoke the rules maintainer's authority to approve additions.
+- **Record:** This design's pull request.
 
-## Decided
+### D2. Adopt the scope policy for each type?
+
+- **Decided:** 2026-11-23, by the operator.
+- **Rule:** `build` and `ci` accept only global scopes, and every other type accepts global scopes and that repository's scopes. No type requires a scope, and a missing scope always passes.
+- **Why:** The policy keeps global scopes such as `deps` and `mcp` available to `feat` and `fix` without forcing writers to invent scopes.
+- **Undo:** Change the policy in a rules pull request and sync the global file.
+- **Record:** This design's pull request.
 
 ### D9. Is the breaking marker allowed on every type?
 

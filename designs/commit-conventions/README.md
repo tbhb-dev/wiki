@@ -6,7 +6,7 @@ tags: [commits, conventional-commits, configuration, rules, design]
 status: draft
 owner: Rules maintainer
 updated: "2026-11-23"
-decisions_open: 2
+decisions_open: 0
 generated:
   - role: generated
     harness: claude-code:2.1.330
@@ -22,15 +22,13 @@ generated:
 
 | Status | Owner | Updated | Needs from the operator |
 | --- | --- | --- | --- |
-| Draft | Rules maintainer | 2026-11-23 | 2 open decisions in [decisions.md](decisions.md), about 10 minutes |
+| Draft | Rules maintainer | 2026-11-23 | Nothing |
 
 ## Summary
 
 Commit subjects across the organization use 11 fixed types and any scope a writer invents. Over the last 60 days, history gained 425 distinct repository-and-scope pairs, and agents keep adding more. Readers can no longer tell from a scope what changed. On 2026-11-23 the operator decided that types and scopes come from an allow list.
 
 This design moves the list into configuration. A global file from the rules baseline lists the types, a scope policy for each type, and 16 shared scopes. Each repository's `.tbhb/commits.toml` adds the scopes for its own parts. The tools loader merges the two files, and `check_subject` checks each commit subject and pull request title against the result, in an `evaluate` mode first.
-
-The operator still needs to confirm the scope rule for each type and say who may add a global scope.
 
 ## Proposal
 
@@ -58,7 +56,9 @@ Use in three or more repositories prompts a review against these tests, and the 
 
 ### The policy for each type
 
-Each type in the global file has one scope policy. `none` rejects any scope, `global` accepts global scopes, `repo` accepts repository scopes, and `any` accepts any scope on the merged list. A missing scope passes for every type. [Decision D2](decisions.md#d2-adopt-the-scope-policy-for-each-type) asks the operator to confirm this table:
+Each type in the global file has one scope policy. `none` rejects any scope, `global` accepts global scopes, `repo` accepts repository scopes, and `any` accepts any scope on the merged list. A missing scope passes for every type.
+
+The operator confirmed the table below in [decision D2](decisions.md#d2-adopt-the-scope-policy-for-each-type).
 
 | Type | Policy | Subjects with no scope in 60 days |
 | --- | --- | --- |
@@ -146,7 +146,7 @@ Nobody rewrites history. The checks read only the commits of an open pull reques
 
 ## Appendices
 
-- [Decisions](decisions.md): 2 open, then the decided record.
+- [Decisions](decisions.md) records the operator's answers and the design decisions.
 - [A. Evidence](A-evidence.md): the subject counts and the current code, each labeled.
 - [B. Alternatives considered](B-alternatives.md): the rejected policies, homes, and mechanisms, with reasons.
 - [C. Configuration](C-configuration.md): the file formats and the loader contract. It also lists the global seed and how reviewers check it.
