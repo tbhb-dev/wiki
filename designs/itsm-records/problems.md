@@ -112,7 +112,7 @@ After a failed verification, the Problem waits in Known error until the owner ad
 
 A tracked fix closed as not planned blocks Verifying. In that case the owner replaces that fix or closes the Problem as Accepted.
 
-Any open state can end in Accepted when the owner closes the Problem as not planned. Before that close, the owner closes each open tracked fix that is not shared as not planned. The owner removes the Problem's link from each shared fix and leaves it open, so the Epic or second Problem that also tracks it keeps its fix.
+Any open state can end in Accepted when the owner closes the Problem as not planned. Before that close, the owner closes each open tracked fix that is not shared as not planned. For each shared fix, the owner first moves the parent link to the Epic or second Problem that also tracks it when this Problem is the parent, so the fix never loses its required parent. The owner then removes this Problem's link and leaves the fix open, so the other item keeps its fix.
 
 An agent role may accept a Problem on its own decision line. A workaround that loosens a guard or a trust boundary needs an approval Request first.
 
@@ -193,7 +193,7 @@ The importer (planned) is a one-time job that the records role runs through the 
 | Hotfix | Workaround |
 | Lasting fix | A Defect or Chore sub-issue when not yet built, or a Resolution criterion when landed |
 | None | Category, set for each row in the import candidate list from the existing category list. The importer refuses a row without one |
-| None | Area, the repository that holds the row's check or staged item, or else the repository the candidate list names |
+| None | Area, the repository that holds the row's check. Without a check, the repository of the staged item, and without either, the repository the candidate list names |
 
 | Row state | Imported as |
 | --- | --- |
