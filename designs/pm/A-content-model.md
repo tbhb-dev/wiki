@@ -63,7 +63,7 @@ The tools role defines the issue types, field and label values, and type-by-fiel
 | --- | --- | --- |
 | Feature | 200 | Outcome, Acceptance criteria as a task list, and optional Context and Out of scope |
 | Chore | 150 | Maintenance with an end state and no user-visible change. Work that resumes, monitors, or operates a process falls outside this variant. A Chore requires a parent. |
-| Defect | 220 | Actual and Reproduction required |
+| Defect | 220 | A Defect requires Outcome, Actual, Reproduction, Acceptance criteria, and Verification and can include Context and Out of scope. |
 | Spike | 130 | A Spike is a time-boxed experiment, often a throwaway build, that answers a question to unblock a decision. The experiment yields an answer, while Research requires a written finding. Its sections include Question, Decision it unblocks, and Acceptance criteria. The Acceptance criteria list the deliverables. The shared taxonomy defines its time box. |
 | Research | 150 | See [Research](#research) for the proposed variant. |
 | Epic | 180 | Parent optional, so an Epic can belong to an Initiative |
