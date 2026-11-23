@@ -50,6 +50,8 @@ A plugin of the shared command-line tool opens, updates, and closes the records.
 
 Operator Requests are the first part written up. A Request that only the operator can act on says why, shows the exact command, and waits. The operator runs it from their own terminal, and the result returns as one comment from their own login. [Operator requests](D-operator-requests.md) gives the states, the commands, the workflow side, and the threats.
 
+Problems are the second part. A Problem records a cause behind Incidents or a recurring failure, parents the Defects and Chores that fix it, and closes after a recurrence check passes. [Problems](problems.md) gives the fields, the states, the worked splits from the import, and the migration.
+
 The record kinds, their schema variants, and the decision records are built in the private repository today. Public-safe appendices describing them will be written here later.
 
 ## Risks and unknowns
@@ -70,4 +72,5 @@ The record kinds, their schema variants, and the decision records are built in t
 ## Appendices
 
 - [Operator requests](D-operator-requests.md): how a Request only the operator can act on is opened, answered, run, and closed.
+- [Problems](problems.md): how a Problem investigates a cause, parents the Defects and Chores that fix it, and absorbs the problems tracker and the staged import.
 - [Decisions](decisions.md): none open, then the decided record.

@@ -25,6 +25,7 @@ heapdump
 hermeticity
 hprof
 hskey
+ITIL
 keepalive
 lockfiles
 mcpjson
@@ -52,6 +53,7 @@ shellcheck
 shfmt
 srcs
 starlark
+Structurizr
 subdirs
 tailnet
 tbhb
@@ -63,6 +65,7 @@ tombi
 toplevel
 tricolon
 tskey
+unbuilt
 uncomparables
 unkeyed
 unmatch
