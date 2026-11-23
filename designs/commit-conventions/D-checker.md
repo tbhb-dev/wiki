@@ -26,26 +26,29 @@ Everything here is new and proposed, except where a line says the behavior exist
 ## Arguments
 
 ```text
-check_subject --repo-root DIR [--title] [--evaluate | --enforce] [--list] [SUBJECT | --file PATH]
+check_subject --repo-root DIR [--base-repo-root DIR | --evaluate | --enforce] [--title] [--list] [SUBJECT | --file PATH]
 ```
 
-- `--repo-root` must be present. The checker passes it to `load("commits", DIR)` and reads nothing else from disk except `--file`.
-- `--title` applies the absolute `limits.title` cap to a pull request title.
-- `--evaluate` and `--enforce` override the global file's `mode` for one run. The reports in plan steps 6 and 7 use `--evaluate`, and no caller in a gate passes either flag.
+- `--repo-root` must be present. The checker passes it to `load("commits", DIR)` for the scope lists and other settings. Pull request gates supply the head's configuration root.
+- `--base-repo-root` supplies the base branch's configuration root. The checker uses the shared loader to read the base mode and applies `enforce` whenever either mode is `enforce`.
+- `--title` applies the absolute `limits.title` cap to a pull request title. The shared global file defaults to 64 characters.
+- `--evaluate` and `--enforce` override the mode for a standalone run. The reports in plan steps 6 and 7 use `--evaluate`. The checker rejects either override when the caller supplies `--base-repo-root`.
 - `--list` prints the merged list, one line per type and per scope with its class and description. An agent reads it before it writes a subject.
 - With `--file`, the checker reads the first line of the file, as the commit-msg stage passes it today. With neither a subject nor `--file`, it reads the first line of standard input, as the range target does today.
 
 ## The order of checks
 
-1. Check `limits.title` for every title, including titles that match a `long_prefixes` or `passthrough` entry. An over-limit title blocks in both modes.
-2. Pass a commit subject that starts with a `passthrough` word, a space, and a quoted subject.
-3. Report a policy finding for each `rewrite_prefixes` start, `unfinished` word, or commit subject that exceeds `limits.subject`. A matching `long_prefixes` entry exempts a commit subject from the length check alone.
-4. Parse `type(scope)!: summary`, with optional scope and `!`. Report a form finding if parsing fails. The parser accepts any characters inside the parentheses so the scope check can show the original spelling.
-5. Report a type finding if the parsed type is absent from `types`.
-6. For a parsed scope, report a finding if the scope is absent from the merged list or if the listed type's policy rejects its class. Policy `none` rejects every scope.
-7. Report a summary finding if the normalized summary matches a `generic` entry.
+| Order | Check | Evaluate | Enforce |
+| --- | --- | --- | --- |
+| 1 | Apply `limits.title` to all titles, including dependency updates and quoted reverts. | Blocks | Blocks |
+| 2 | Pass a commit subject matching the configured quoted `Revert` or `Reapply` form. | Passes | Passes |
+| 3 | Check `rewrite_prefixes` and `unfinished` words. Apply `limits.subject` to commit subjects unless a `long_prefixes` entry matches. | Blocks | Blocks |
+| 4 | Parse `type(scope)!: summary` with optional scope and `!`. Keep the current scope syntax (`[^()\s][^()]*`) and retain the spelling for the scope checks. | Blocks | Blocks |
+| 5 | Check that the parsed type appears in `types`. | Blocks | Blocks |
+| 6 | Check that a parsed scope appears in the merged list and satisfies the type's scope policy. Policy `none` rejects every scope. | Advisory | Blocks |
+| 7 | Match `generic` against the normalized subject or parsed summary. | Blocks | Blocks |
 
-Evaluate mode prefixes each policy finding from steps 3 through 7 with `evaluate:` and treats it as advisory. Enforce mode treats those findings as failures. The summary check already exists for commit subjects. Applying it to titles in step 5 of the rollout adds a finding without adding a failure during evaluation.
+Evaluate mode prefixes only the scope findings in step 6 with `evaluate:`. The shared commit gate keeps every current blocking check and applies the same checks to titles, with the title cap in place of the subject cap.
 
 ## Messages
 
@@ -69,37 +72,40 @@ A near miss is a scope that equals a listed scope after normalizing. Normalizing
 | Exit | When |
 | --- | --- |
 | 0 | The check passes with no blocking findings, or `--list` succeeds |
-| 1 | The title exceeds its limit, or enforce mode has at least one policy finding |
+| 1 | At least one finding blocks in the effective mode |
 | 2 | Usage, configuration, or execution error |
 
 A `notice:` line describes a duplicate entry and leaves the result to the subject checks.
 
 ## Range reports
 
-`commit_messages -- [--repo-root DIR] [--evaluate] BASE HEAD` checks each non-merge commit in `BASE..HEAD`. The runner defaults to the workspace for local reports and forwards the configuration root and any `--evaluate` flag to every checker invocation. Pull request CI supplies the root from the pull request head and uses the configured mode.
+`commit_messages -- [--repo-root DIR] [--base-repo-root DIR | --evaluate] [--pr-number N --title TEXT] BASE HEAD` checks each non-merge commit in `BASE..HEAD`. With a pull request number and title, it checks the title too. The runner defaults to the workspace for local reports and forwards the supplied roots and any `--evaluate` flag to every checker invocation.
 
-The runner captures the checker's standard output and error output under each commit SHA, including output from successful checks. It prints the number of checked commits and counts each policy finding once, including each `evaluate:` line. It counts `notice:` lines separately. The range returns the highest checker status. For an empty range, the runner validates the configuration before reporting zero counts. A range enumeration, configuration, or execution error makes the report incomplete.
+The runner records checker output under each commit SHA and records title output under the pull request number. It prints the numbers of commits and titles checked and the finding count for each. Each blocking or advisory finding contributes once. The runner counts `notice:` lines separately and returns the highest checker status. It checks the title even if the commit range is empty and validates configuration even if there is nothing to check.
 
-The rollout report retains each repository's range output and sums the policy finding counts across repositories. The rules maintainer requires a completed scan for every repository and zero findings for the seven-day report to qualify for step 7.
+For a rollout scan, the report walks the default branch's first-parent history in the requested window. For each pull request merge commit, the report reads the merge subject, recovers the title and number from `title (#N)` under [ADR 0020](../../adrs/0020-pull-requests-land-through-merge-commits.md), and invokes the runner with that title and the first and second parents as `BASE` and `HEAD`. It also checks any direct commits in the window. All checks use the configuration from the scanned default branch tip.
+
+The rollout report retains each repository's commit and title results and sums both finding counts. A range enumeration, title extraction, configuration, or execution error makes the report incomplete. To advance in step 7, every repository must complete the seven-day scan with zero commit findings and zero title findings, including advisories.
 
 ## Callers
 
 | Caller | Invocation | Stage |
 | --- | --- | --- |
-| Shared CI workflow, per commit | `@tbhb_rules//lint:commit_messages -- --repo-root "$PR_CONFIG_ROOT" "$BASE_SHA" "$PR_HEAD_SHA"` | Each pull request run |
-| Shared CI workflow, title | `@tbhb_rules//lint:commit_subject -- --repo-root "$PR_CONFIG_ROOT" --title -- "$PR_TITLE"`, with the title in an environment variable | Each pull request run |
-| `tbhbdev alpha pr check` and `pr create` | `bazelisk run @tbhb_rules//lint:commit_subject -- --repo-root <worktree> --title -- <title>` | Before opening, alongside the existing title checks |
-| `tbhbdev alpha merge` | The same title target as CI, with the latest title and the root for that pull request head | Before merging, alongside validation of the final subject and its 72-character cap |
+| Shared CI workflow | `@tbhb_rules//lint:commit_messages -- --repo-root "$PR_CONFIG_ROOT" --base-repo-root "$BASE_CONFIG_ROOT" --pr-number "$PR_NUMBER" --title="$PR_TITLE" "$BASE_SHA" "$PR_HEAD_SHA"`, with the title in an environment variable | Each pull request run |
+| `tbhbdev alpha pr check` and `pr create` | `bazelisk run @tbhb_rules//lint:commit_subject -- --repo-root <worktree> --title -- <title>` | Before opening. The checker supplies the title length check from `limits.title`. |
+| `tbhbdev alpha merge` | `commit_subject` with `--title`, the latest title, and both configuration roots | Before merging, alongside validation of the final subject with `limits.subject` |
 | A future tools commit command | The same, without `--title` | Before a commit or a push |
 | The commit-msg hook | The same target, through a `bazel_env` shim, with `--file` | A later change, after enforcement |
 
-Both Bazel targets bundle `check_subject.py` with the loader from the pinned tools source, `tbhb_rules_tbhbdev_src`, and the pinned `cue` binary. A local run and CI use the same checker code at the same rules pin.
+Both Bazel targets bundle `check_subject.py` with the loader from the pinned tools source, `tbhb_rules_tbhbdev_src`, and the pinned `cue` binary. CI, `pr check`, and `pr create` all apply the same `limits.title` key through that loader and checker. `pr check` and `pr create` remove their hard-coded title cap and keep their other pull request checks.
 
 ### Pull request configuration
 
-CI reads the head SHA from `github.event.pull_request.head.sha`. The merge command reads the current title and `headRefOid` together from the pull request. Both resolve that exact SHA in the target repository, fetching the pull request head ref if the object is missing and verifying that the fetch gives access to the requested SHA.
+CI reads the head and base SHAs from `github.event.pull_request.head.sha` and `github.event.pull_request.base.sha`. The merge command reads the current title, `headRefOid`, and `baseRefName` together from the pull request. It fetches `refs/heads/<baseRefName>` from the target repository and uses the fetched commit SHA for the base mode. Both callers resolve the exact head SHA, fetching the pull request head ref if the object is missing and verifying that the requested SHA is available.
 
-Both callers copy the tracked files `.tbhb/global/commits.toml`, `.tbhb/schema/commits.cue`, and the optional `.tbhb/commits.toml` from that commit tree into a temporary directory with the same relative paths. They accept regular file blobs and leave the optional file absent if the tree omits it. They pass the directory as `--repo-root` and remove it after the checks. The checked-out tree serves as the Bazel workspace and the exported blobs supply the checker's configuration. If the caller can't resolve the revision or read its configuration, the check fails. The merge request includes the checked head SHA as a precondition, so a head change requires a fresh check.
+Both callers copy the tracked files `.tbhb/global/commits.toml`, `.tbhb/schema/commits.cue`, and the optional `.tbhb/commits.toml` from the head tree into a temporary directory for `--repo-root`. They copy only the global file and schema from the base tree into a second directory for `--base-repo-root`. The exports preserve relative paths and accept regular file blobs. The checked-out tree serves as the Bazel workspace. The callers remove both exports after the checks.
+
+The loaded head configuration supplies the scope lists and the other checker settings. The base configuration supplies only its mode. The stricter of the two modes applies to both the title and the authored commits checked by CI and to the title rechecked by the merge command. Either revision or configuration failing to load blocks the check. The merge request includes the checked head SHA as a precondition, so a head change requires a fresh check.
 
 ## Failure modes
 
@@ -113,7 +119,9 @@ Both callers copy the tracked files `.tbhb/global/commits.toml`, `.tbhb/schema/c
 | `.tbhb/commits.toml` is unreadable, isn't TOML, or fails `#Repo` | The loader reports a configuration error with the file and the finding. |
 | The repository file repeats a global scope | The loader keeps the global entry, and the checker prints a `notice:` line and continues checking the subject. |
 | The checker's own code raises an unexpected error | The gate reports an execution error and fails closed. |
-| The subject is empty | The checker reports a form finding under the selected mode. |
+| The subject is empty | The checker reports a blocking form finding in both modes. |
+| A pull request head predates the enforce sync | If the base says `enforce`, CI and the merge command enforce the scope rules using the head's scope lists. |
+| CI or the merge command cannot read the base revision, schema, or mode | The check fails with a configuration error. |
 
 ## Test plan
 
@@ -128,24 +136,29 @@ The rules maintainer writes the checker tests under `lint/private/commit_message
 - A repository file that's a directory, isn't readable, has a TOML error, or sets `mode`, `limits`, `types`, or `subjects`: each raises `ConfigError`.
 - A scope name that breaks the grammar or runs past 24 characters, in either file: `ConfigError`.
 - A missing `schema_version` or `schema_version = 2` in either file raises `ConfigError`.
-- A scope description with an embedded newline raises `ConfigError`. A one-line description passes.
+- Control and separator characters in a scope name or description raise `ConfigError`. Run the [schema verification cases](C-configuration.md#schema-verification) with each configuration definition. A one-line description passes.
+- A global title limit above the subject limit raises `ConfigError`. A title limit of 65 with a subject limit of 72 passes.
 - A section name with `/` or `..`: the loader rejects it before it reads any path.
 - The same fixture driven through `load("taxonomy", …)` with a schema laid out for the taxonomy, to prove the loader doesn't contain code specific to commits.
 
 ### Checker
 
 - **Each type.** For all 11 types, a subject with no scope passes in enforce mode.
-- **Each scope class.** For each type, a subject with a global scope and one with a repository scope pass or fail exactly as the type's policy says. A test fixture sets one type to `none` and one to `repo` to cover the two policies the seed doesn't use.
+- **Each scope class.** For each type, a subject with a global scope and one with a repository scope pass or fail in enforce mode according to the type's policy. Each scope policy violation produces an advisory in evaluate mode. A test fixture sets one type to `none` and one to `repo` to cover the two policies the seed doesn't use.
 - **Unknown scope.** `feat(nope): add x` fails in enforce mode with exit 1, and prints an `evaluate:` line with exit 0 in `evaluate` mode.
-- **Unknown type.** `sync: copy the shared files` fails with the type message.
+- **Unknown type.** `sync: copy the shared files` fails with the type message in both modes.
 - **Spellings.** `_`, `` `bazel` ``, `claude_code`, `src/main.py`, `a,b`, and `e-000001` each fail, and the first three get the near-miss text where a listed scope matches.
 - **Breaking marker.** `feat(mcp)!: require a relay endpoint` passes, and `!` counts toward the length.
-- **Lengths.** A 64-character title passes with `--title` and a 65-character title fails in both modes. A 72-character commit subject passes and a 73-character subject fails in enforce mode. A 90-character Renovate `chore(deps): update …` subject passes without `--title` and fails with it in both modes. An over-limit quoted revert title also fails in both modes.
-- **Summary quality.** Pinned `cog verify` accepts `feat: update`. With `--title`, the checker emits an `evaluate:` summary finding and exits 0 in evaluate mode, then exits 1 on the same title in enforce mode. Run the same assertions on a commit subject and through the step 5 title callers.
-- **Existing behavior.** Run the cases in today's `test_check_subject.py` in enforce mode with the seed global file. Preserve the established commit results except for the scope policy and the usage and configuration status defined here.
-- **Duplicate global scope.** With `deps` repeated in the repository file, `fix(deps): repair the lockfile` prints a notice and passes. In enforce mode, `fix(deps): update` prints the same notice and fails the summary check.
+- **Lengths.** With the default limits, a 64-character title passes and a 65-character title fails in both modes. An ordinary 72-character commit subject passes. Adding one character makes it fail with exit 1 in both modes. A 90-character Renovate `chore(deps): update …` subject passes as a commit and fails as a title in both modes. An over-limit quoted revert title also fails in both modes.
+- **Shared title limit.** Set `limits.title = 65` with `limits.subject = 72`. Verify that CI, `pr check`, and `pr create` all accept the same valid 65-character title and reject it after adding one character.
+- **Rewrite prefix.** `fixup! feat: add export` fails with exit 1 in both modes and reports a rewrite-prefix finding.
+- **Summary quality.** `feat: update` fails with exit 1 and a generic-summary finding in both modes. Check it as a commit subject and as a title through each step 5 caller.
+- **Existing behavior.** Run the cases in today's `test_check_subject.py` in both modes with the seed global file. Preserve existing blocking commit results and exemptions. Use exit 2 for usage and configuration errors.
+- **Duplicate global scope.** With `deps` repeated in the repository file, `fix(deps): repair the lockfile` prints a notice and passes. In both modes, `fix(deps): update` prints the same notice and fails the summary check.
 - **Missing global file.** Exit 2 with the sync hint, in both modes.
 - **Range target.** With the global file set to enforce, a range with one good commit and one unlisted scope fails with exit 1. The same range with `--evaluate` exits 0, prints the advisory under the second commit's SHA, and reports two checked commits and one finding. The rollout report treats that scan as having a finding. A range with a missing global file exits 2 and yields an incomplete report even if the range is empty.
+- **Rollout title finding.** Create a pull request fixture with title `feat(nope): add export` and one authored commit `feat: add export`. Merge it with subject `feat(nope): add export (#42)`. In evaluate mode the runner checks one commit and one title, exits 0, and records one advisory under pull request 42 and zero commit findings. The seven-day scan recovers the title from the merge subject and blocks step 7.
 - **CI title caller.** Use an enforce-mode fixture where the pull request head adds a scope and its title uses it. Leave the scope out of the checked-out test merge tree and verify that CI still passes the title using the event's head SHA.
 - **Merge title caller.** Use the same pull request fixture from a worktree without the added scope. Verify that the merge command checks the title using the API's head SHA and sends that SHA as the merge precondition. If the head changes, the merge fails until the command checks the new revision.
+- **Mode at the two revisions.** Set the pull request head to `evaluate` and the base and checked-out merge tree to `enforce`. Put a repository scope only in the head and a global scope only in the base. Verify that CI enforces the scope rules for commits and the title, and the merge command enforces them for the title. Both accept the head-only scope and reject the base-only scope. Reverse the modes and verify that enforcement still applies. With both modes set to `evaluate`, the base-only scope yields an advisory. An unavailable base revision or invalid base mode blocks both callers.
 - **Mutation testing.** The checker and the loader run under the repositories' mutation test setup, and every surviving mutant gets a test or a recorded reason.

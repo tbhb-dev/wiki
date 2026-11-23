@@ -50,14 +50,14 @@ Back to [the design](README.md).
 ### D8. Where does the rollout mode live?
 
 - **Decided:** 2026-11-23, by the rules maintainer, in this design.
-- **Rule.** `mode = "evaluate" | "enforce"` goes in the global file, and `#Repo` rejects it in a repository file. Evaluate mode reports policy findings, including generic summaries, without blocking a subject or title. The absolute title limit and usage and configuration errors can still block a run in either mode. [D. Checker](D-checker.md#exit-codes) defines the exit codes.
+- **Rule.** `mode = "evaluate" | "enforce"` goes in the global file, and `#Repo` rejects it in a repository file. Evaluate mode makes only the scope allow-list and per-type scope findings advisory. Existing commit checks and the title cap block in both modes. [D. Checker](D-checker.md#exit-codes) defines the exit codes.
 - **Undo:** set `mode = "evaluate"` again in one rules pull request and sync it. Two-way door.
 - **Record:** this design's pull request.
 
 ### D7. Which commit's configuration does a pull request check read?
 
 - **Decided:** 2026-11-23, by the rules maintainer, in this design.
-- **Rule.** CI and the merge command read the commit configuration from the exact pull request head SHA. This lets a pull request add a scope and use it in the same change. The callers use the same resolution rule in [D. Checker](D-checker.md#pull-request-configuration).
+- **Rule.** CI and the merge command read the scope lists from the exact pull request head SHA. This lets a pull request add a scope and use it in the same change. Both apply the stricter of the head mode and the base branch mode. [D. Checker](D-checker.md#pull-request-configuration) specifies how the callers resolve both revisions.
 - **Undo.** Pass the base branch's files to the loader. Two-way door.
 - **Record.** This design's pull request.
 

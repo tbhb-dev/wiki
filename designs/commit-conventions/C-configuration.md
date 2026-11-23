@@ -30,7 +30,7 @@ Every section that the loader serves follows one contract. The commits section a
 - **Signature.** `load(section: str, repo_root: Path) -> Loaded`. `section` matches `^[a-z][a-z0-9-]*$`, and the loader rejects any other value before it touches a path.
 - **Files.** The global file is `<repo_root>/.tbhb/global/<section>.toml`, the schema is `<repo_root>/.tbhb/schema/<section>.cue`, and the repository file is `<repo_root>/.tbhb/<section>.toml`.
 - **Schema.** Each schema file declares `package schema` and two closed definitions, `#Global` and `#Repo`. `#Repo` holds `schema_version` and only the tables a repository may extend.
-- **Extendable tables.** Each table that `#Repo` declares maps a name to a one-line description. The schema rejects line breaks. The loader merges by key, global entries first, and records each key's class as `global` or `repo`.
+- **Extendable tables.** Each table that `#Repo` declares maps a name to a one-line description. The commits schema rejects control characters and line and paragraph separators in names and descriptions. The loader merges by key, global entries first, and records each key's class as `global` or `repo`.
 - **Result.** `Loaded` contains `values`, the merged mapping, `classes`, the class of each key in each extendable table, and `notices`, the duplicate keys the repository file repeats.
 - **Errors.** The loader raises `ConfigError(path, finding)` for a missing or unreadable global file, a missing schema, a missing `cue` binary, any schema finding, a TOML parse error, and a repository file that exists but that the loader can't read. An absent repository file isn't an error.
 - **Versions.** Both files must declare `schema_version = 1`. The schema rejects a missing or different version. A version change releases a new schema and global file together.
@@ -44,8 +44,8 @@ The rules source is `repo/baseline/files/tbhb/global/commits.toml`. The seed bel
 ```toml
 schema_version = 1
 
-# Evaluate reports policy findings with an "evaluate:" prefix.
-# Enforce makes policy findings block the check.
+# Evaluate makes only scope allow-list and per-type scope findings advisory.
+# Enforce makes those findings block the check.
 mode = "evaluate"
 
 [limits]
@@ -91,7 +91,7 @@ passthrough = ["Revert", "Reapply"]
 rewrite_prefixes = ["fixup!", "squash!", "amend!"]
 # Markers of unfinished work, matched as whole words in any case.
 unfinished = ["wip"]
-# Evaluate reports generic summaries. Enforce rejects them. Both normalize first.
+# Both modes normalize and reject generic summaries.
 generic = [
   "address feedback", "address review", "address review comments", "change",
   "changes", "fix", "fixes", "misc", "review feedback", "tweak", "tweaks",
@@ -105,6 +105,8 @@ long_prefixes = [
   "fix(deps-dev): update ", "fix(deps-dev): pin ",
 ]
 ```
+
+`limits.title` is the sole title cap, with a baseline default of 64 characters. CI, `pr check`, and `pr create` read it through the shared loader and checker. The schema requires `limits.title <= limits.subject`.
 
 ## A repository file
 
@@ -128,8 +130,9 @@ package schema
 
 import "strings"
 
-#Name:        =~"^[a-z][a-z0-9]*(-[a-z0-9]+)*$" & strings.MaxRunes(24)
-#Description: =~"\\S" & !~"[\\r\\n]" & strings.MaxRunes(120)
+#OneLine:     !~"[\\p{Cc}\\p{Cf}\\p{Zl}\\p{Zp}]"
+#Name:        #OneLine & =~"^[a-z][a-z0-9]*(-[a-z0-9]+)*$" & strings.MaxRunes(24)
+#Description: #OneLine & =~"\\S" & strings.MaxRunes(120)
 
 #Global: {
 	schema_version!: 1
@@ -162,16 +165,27 @@ Both definitions are closed, so a repository file that sets `mode`, `limits`, `t
 
 ### Schema verification
 
-Save the samples above as `commits.cue`, `global.toml`, and `repo.toml`. Copy `repo.toml` to `missing-version.toml` and remove `schema_version`. Make another copy named `multiline-description.toml` and set `alpha = "First line.\nSecond line."` so the TOML value contains a newline.
+Save the samples above as `commits.cue`, `global.toml`, and `repo.toml`. Run these commands with pinned CUE 0.17.1.
 
 ```bash
 cue vet -c -d '#Global' commits.cue global.toml
 cue vet -c -d '#Repo' commits.cue repo.toml
+sed '/^schema_version/d' repo.toml > missing-version.toml
 cue vet -c -d '#Repo' commits.cue missing-version.toml
-cue vet -c -d '#Repo' commits.cue multiline-description.toml
+sed 's/^title = 64/title = 73/' global.toml > title-too-long.toml
+cue vet -c -d '#Global' commits.cue title-too-long.toml
+
+for code in 0000 0009 000A 007F 0085 200D 2028 2029; do
+  printf '%s\n' 'schema_version = 1' '[scopes]' \
+    "alpha = \"First\\u${code}second\"" > "description-$code.toml"
+  printf '%s\n' 'schema_version = 1' '[scopes]' \
+    "\"alpha\\u${code}beta\" = \"One line.\"" > "scope-$code.toml"
+  cue vet -c -d '#Repo' commits.cue "description-$code.toml"
+  cue vet -c -d '#Repo' commits.cue "scope-$code.toml"
+done
 ```
 
-Pinned CUE 0.17.1 accepts both good files. It rejects the third file because `schema_version` is required and rejects the fourth because `scopes.alpha` contains a line break.
+The two original samples pass. The missing version and the title limit above the subject limit fail. The bad descriptions and scope names fail for ISO control characters, Unicode format controls, and Unicode line and paragraph separators.
 
 ## The global seed
 
