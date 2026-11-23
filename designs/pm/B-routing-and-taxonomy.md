@@ -26,8 +26,8 @@ Back to [the design](README.md).
 
 1. Before creating an issue, the kernel scans the exact rendered text. Refuse the write if the scan finds a secret. End routing.
 2. Route private details to the twin. The scan looks for private repository names, hosts, and internal paths.
-3. An item about [internal security](C-refinement.md#internal-security-topics) goes in the private twin regardless of the scan result. If the responsible repository has no private twin, the item goes in the central work repository.
-4. For other items, a Defect, Chore, Feature, or Spike goes in the responsible repository or the private twin that step 2 picked.
+3. An item about [internal security](../issue-refinement/A-refinement-procedure.md#internal-security-topics) goes in the private twin regardless of the scan result. If the responsible repository has no private twin, the item goes in the central work repository.
+4. For other items, a Defect, Chore, Feature, Spike, or Research issue goes in the responsible repository or the private twin that step 2 picked.
 5. An Initiative or Epic goes in the central work repository.
 6. Refuse a work item without a responsible repository. Ask the caller to name a parent in the central work repository.
 
@@ -41,7 +41,7 @@ Use the priority verb with a work note to change an issue's Priority.
 
 ## Project views
 
-The `work` and `work-calibration` org Projects each have four views. Both boards display the org issue fields without storing copies. See the [Status transitions in C. Refinement](C-refinement.md#status-and-the-ready-signal).
+The `work` and `work-calibration` org Projects each have four views. Both boards display the org issue fields without storing copies. See the [shared Status transitions](../issue-refinement/D-status-transitions.md).
 
 | View | Layout | Filter | Group by | Sort | Visible fields |
 | --- | --- | --- | --- | --- | --- |

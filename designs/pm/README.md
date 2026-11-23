@@ -6,7 +6,7 @@ tags: [pm, issues, projects, content]
 status: draft
 owner: pm
 updated: "2026-11-23"
-decisions_open: 2
+decisions_open: 1
 generated:
   - role: generated
     harness: claude-code:2.1.330
@@ -24,7 +24,7 @@ generated:
 
 | Status | Owner | Updated | Needs from the operator |
 | --- | --- | --- | --- |
-| Draft | pm | 2026-11-23 | 2 numbered decisions open in [decisions.md](decisions.md), about 2 minutes |
+| Draft | pm | 2026-11-23 | One numbered decision open in [decisions.md](decisions.md). |
 
 ## Summary
 
@@ -47,7 +47,7 @@ Building the design yields these components, each with one role as owner.
 - **The org Projects** `work` and `work-calibration` (owner pm) each use the [four views in B. Routing and taxonomy](B-routing-and-taxonomy.md#project-views). The calibration repository uses `work-calibration`.
 - **The central work repository** (private, owner pm) stores Initiatives and Epics. Bugs and tasks stay with the repositories that contain their code.
 
-Each issue and service request passes the Definition of Ready before work starts. The imports role refines tracker items in staging before the kernel creates them in their destination types. See [C. Refinement](C-refinement.md) and [E. Tracker import](E-import.md).
+Project management and service management use the [shared issue refinement design](../issue-refinement/README.md). See [tracker import](E-import.md) for staged items.
 
 ## How it works
 
@@ -56,7 +56,7 @@ Each issue and service request passes the Definition of Ready before work starts
 1. A caller picks a type and variant, then supplies metadata and Markdown that begins with a level-one title.
 2. Next, the kernel normalizes the Markdown into the GitHub-flavored block model of sections, blocks, inline counts, and metrics.
 3. `cue vet` then checks the model against the schema for that variant and reports every finding in one pass.
-4. After that, the kernel runs the secret scan, the quote check, and the prose check on the exact rendered text. A finding in any of them refuses the write. The kernel also runs Vale before every issue body and comment write, with errors downgraded to warnings for short text, as [C. Refinement](C-refinement.md#vale-pass) describes.
+4. After that, the kernel runs the secret scan, the quote check, and the prose check on the exact rendered text. A finding in any of them refuses the write. The kernel also runs Vale before every issue body and comment write, with errors downgraded to warnings for short text, as the [shared Vale pass](../issue-refinement/A-refinement-procedure.md#vale-pass) describes.
 5. The kernel creates the issue with its type and labels through `create_issue`. Immediately after creation, it uses the draft's `fields` map to write org issue fields on the issue. If a write to a required field fails, the kernel refuses creation. Next, the kernel adds the issue to the repository's Project. Issues in the import calibration repository go only to `work-calibration`.
 
 Each issue template starts with the title line. Use that line as the issue title. Leave it out of the body. Keep copies of metadata out of the body as well.
@@ -71,13 +71,13 @@ Reviewers read the same guide. A refusal uses the guide's wording, which lets a 
 
 ### Taxonomy
 
-See the [shared taxonomy reference in B. Routing and taxonomy](B-routing-and-taxonomy.md#one-home-per-fact).
+The tools role defines the issue types, field values, type-by-field matrix, and label families in `designs/issue-taxonomy/`. See the [proposed Research variant](A-content-model.md#research).
 
 ### Routing
 
 An issue goes in the repository responsible for the work, or in its private twin when the text needs private detail. The private-detail scan picks the twin before any write. Larger units go in the central work repository.
 
-A Chore links to its parent as a sub-issue. An issue about internal security always goes in a private repository. Only people with access to a private repository see its items on the board.
+Only people with access to a private repository see its items on the board. See the [routing order](B-routing-and-taxonomy.md#routing-order-for-create).
 
 ## Risks and unknowns
 
@@ -100,17 +100,17 @@ A Chore links to its parent as a sub-issue. An issue about internal security alw
 | 5 | The administrator creates the Source and Status org issue fields. The administrator sets up `work` and `work-calibration`. | Each board has the four views in [B. Routing and taxonomy](B-routing-and-taxonomy.md#project-views). Each view matches the table's layout, filter, grouping, sort order, and visible fields. | pm, administrator |
 | 6 | First real items under an Epic in the central work repository | The items exist and pass the kernel checks | pm |
 | 7 | Sync job | Status follows GitHub state within one run | pm |
-| 8 | [Refinement](C-refinement.md) and [batch review](F-refinement-runs.md#review-checklist) | The sync job shows Ready on a test item only with its own current record and, for a batch, a passing review | pm, `sm` |
+| 8 | [Shared refinement](../issue-refinement/README.md) and [batch review](F-refinement-runs.md#review-checklist) | The sync job shows Ready on a test item only with its own current record and, for a batch, a passing review | pm, `sm` |
 | 9 | [Tracker import](E-import.md) | Each staged item has a recorded outcome. Each item approved for creation has one issue in its destination type. The import Epic's closing comment gives the outcome counts. | imports |
 | 10 | [Remove the retired schema](A-content-model.md#the-files) | The tracker import has finished and the pm role has removed the retired schema. | pm |
 
 ## Appendices
 
-- [Decisions](decisions.md) lists two numbered questions for the operator, the decided record, and one ask of the tools role.
+- [Decisions](decisions.md) lists one numbered question for the operator, the decided record, and one ask of the tools role.
 - [A. Content model](A-content-model.md) says what the block model counts and why the schemas have this structure.
 - [B. Routing and taxonomy](B-routing-and-taxonomy.md) covers routing and the Project views.
-- [C. Refinement](C-refinement.md) gives the Definition of Ready, the refinement procedure, and the Vale pass.
-- [D. Issue writing](D-issue-writing.md) gives the writing rules for every issue and the content checks that enforce them.
+- [C. Refinement](C-refinement.md) links to shared refinement and the pm batch and import additions.
+- [D. Issue writing](D-issue-writing.md) shows how pm applies the shared writing rules and drafts Research issues.
 - [E. Tracker import](E-import.md) says how the imports role refines and vets staged files before creating issues.
 - [F. Refinement runs](F-refinement-runs.md) gives the run brief, the batch review checklist, and the failure modes of refinement.
 - A private appendix covers the private specifics for this design.
