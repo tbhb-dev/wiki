@@ -14,7 +14,7 @@ parent: README.md
 
 Back to [the design](README.md).
 
-Plan step 7 imports about 700 issues from the earlier tracker. Each one enters through the kernel in an imported variant, which keeps the title and one Context section of the original text.
+The [import plan](README.md#plan) brings in about 700 issues from the earlier tracker. Each one enters through the kernel in an imported variant, which keeps the title and one Context section of the original text.
 
 That variant runs the scans without section or cap rules, and it reports the checks of [D. Issue writing](D-issue-writing.md) as warnings.
 
@@ -29,6 +29,10 @@ The import uses issues and the org Project, without a new tracker. One Epic in t
 Before any write, the import maps each original issue into a Markdown file in the import run's working directory, outside any repository. The content check then runs over each staged file. It runs the scans and the checks of D as warnings. It runs the same [Vale pass](C-refinement.md#vale-pass) on the rendered body that the kernel runs at issue creation, with the same organization configuration and semicolon rule.
 
 The imported variant has no total-word cap, so Vale errors become warnings only for bodies under 65 prose words. Any draft that the creation check would refuse also fails staging. The import posts no finding list, because the run's logs show counts only.
+
+1. On a Vale refusal, the import run leaves the draft in staging and reads the findings.
+2. The run applies only fixes that preserve intent under the [refinement fix rules](C-refinement.md#steps-for-each-item). If the findings need a change of intent, the run stops the batch and keeps the draft in staging.
+3. The run renders the revised draft and reruns the same staging check. After a second Vale refusal for the same draft, the run stops the batch without creating that issue. It keeps the draft and findings for the pm role and reports only counts in the run log.
 
 The kernel reruns the same pass at creation and runs it again with the destination variant's threshold when refinement converts the issue.
 
@@ -57,9 +61,10 @@ Others are an item too large for one pull request, stale context, a check that s
 
 The finish checks count every staged draft. A creation refusal fails the batch. The import ends when every staged draft has passed creation, has a recorded refinement outcome, and the following checks pass:
 
-- Zero imported items show Needs refinement.
+- The sync job shows Needs refinement for zero imported items.
 - Each Needs info item gives its answerer.
-- Each batch Chore has closed after a passing review.
+- GitHub shows each item with a current `drop` record as closed.
+- Each batch Chore has closed after passing the [batch review](F-refinement-runs.md#review-checklist).
 - The import Epic's closing comment gives the outcome counts.
 
 A Needs info item without an answer after 30 days gets one reminder. After that, the pm role may drop it as not planned, citing the unanswered question in the record. Items that wait on the operator are exempt.

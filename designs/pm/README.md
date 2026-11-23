@@ -103,7 +103,9 @@ A Chore links to its parent as a sub-issue, and a Defect links to a Problem or a
 | 4 | Templates with schemas, in draft until the operator says go | Each template renders text that passes its own variant | pm |
 | 5 | Org Project with Priority, Status, and Handler, plus a backlog view | An issue added by the kernel shows its fields | pm, administrator |
 | 6 | First real items under an Epic in the central work repository | The items exist and pass the kernel checks | pm |
-| 7 | Sync job and tracker import | Status follows GitHub state within one run | pm |
+| 7 | Sync job | Status follows GitHub state within one run | pm |
+| 8 | [Refinement](C-refinement.md) and [batch review](F-refinement-runs.md#review-checklist) | The sync job shows Ready on a test item only with its own current record and, for a batch, a passing review | pm, `sm` |
+| 9 | [Tracker import](E-import.md) | Each staged issue passes creation and has a refinement outcome, and the import Epic's closing comment gives the outcome counts | pm |
 
 ## Appendices
 

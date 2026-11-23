@@ -24,12 +24,16 @@ Back to [the design](README.md).
 
 ## Open
 
+The choice between Epics as design documents and an Epic issue type remains open. References to Epic issues in this draft are provisional.
+
 ### D8. Should refinement send questions of operator intent as one approval Request per batch?
+
+On 2026-11-23, the imports role answered yes for tracker imports. The operator still needs to decide whether to use batch Requests outside the import.
 
 - **Recommendation:** yes. Each batch opens at most one Request that lists each issue with its question, and one comment answers them all.
 - **Why:** an import of about 700 issues could otherwise send the operator dozens of separate questions, and the operator already answers Requests in one known place.
-- **If yes:** refinement links each Needs info item to the batch Request, and an `sm` run copies each answer onto its issue.
-- **If no:** each question goes to the operator as a comment on its own issue, which spreads the questions across many notifications.
+- **If yes:** refinement links each item with a question for the operator to the batch Request. An `sm` run copies each answer onto its issue with the question comment link, question number, and source reply link. The `sm` run removes the issue's `needs-info` refinement label once every question has an answer. The sync job shows Needs refinement. When pm next refines the import batch, it selects items with that Status. The refiner reads the copies of the answers on the issue.
+- **If no:** the operator answers the question comment on its issue, as [C. Refinement](C-refinement.md#outcome-writes) describes.
 - **Reversible:** yes, by changing the refinement brief.
 
 ### D9. Do incidents skip refinement?
