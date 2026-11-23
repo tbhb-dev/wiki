@@ -125,6 +125,12 @@ The merge request requires the hash of the checked head. A head change requires 
 
 Option B resolves the race by running the required check on `merge_group` against the base the queue uses for the merge. [B. Alternatives](B-alternatives.md#where-to-enforce-scopes)
 
+### Title-only edit
+
+**Accepted technical debt (`TECH-DEBT`).** A title-only edit leaves the hash of the head commit unchanged, and the ruleset accepts the previous passing `conclusion` until the run for `edited` registers its replacement. In that window of a few seconds, the GitHub merge button or auto-merge can land a title that fails the checker. The gap exists in steady state, including in `enforce` mode.
+
+`alpha merge` rechecks the live title, which narrows the gap for that path. Option B prevents those merges by requiring the merge queue to check the title on `merge_group`. [B. Alternatives](B-alternatives.md#where-to-enforce-scopes)
+
 ## Failure modes
 
 | Failure | Behavior |
@@ -187,5 +193,6 @@ The rules maintainer writes the checker tests under `lint/private/commit_message
 - **Base configuration errors.** An unavailable base revision or invalid base mode blocks CI and the merge command.
 - **Base advances after CI and before the merge command fetches it.** Start in `evaluate` with an unlisted scope in the title. Advance the base to `enforce` and leave the head unchanged. Verify that CI still passes on a rerun of the original event and the merge command blocks on the latest title.
 - **Known gap after the merge command fetches the base.** If the same flip happens after the fetch, the merge command can pass the title using the fetched `evaluate` mode, and GitHub can still accept the passing CI result on the unchanged head. The required `merge_group` check in option B resolves this race.
+- **Known gap after a title-only edit.** In steady-state `enforce` mode, edit a passing title to one with a blocking finding without changing the head commit. Expect the ruleset to accept the previous passing `conclusion` for the GitHub merge button and auto-merge until the run for `edited` registers its replacement. Expect `alpha merge` to reject the title if it reads it after the edit, and the required `merge_group` check in option B to block the merge.
 - **The `commit-msg` hook.** In both modes, a commit with an unlisted scope or a scope outside its type's policy produces an advisory before push. A `fixup!` subject or empty description still blocks the commit.
 - **Mutation testing.** The checker and the loader run under the repositories' mutation test setup, and every surviving mutant gets a test or a recorded reason.
