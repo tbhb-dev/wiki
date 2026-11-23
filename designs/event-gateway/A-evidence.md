@@ -34,6 +34,13 @@ generated:
     surface: cli
     session: sha-256-64:2220073242f73359
     at: "2026-11-23T08:46:23Z"
+  - role: generated
+    harness: claude-code:2.1.330
+    model: anthropic:claude-sonnet-5-5
+    effort: medium
+    surface: cli
+    session: sha-256-64:2220073242f73359
+    at: "2026-11-23T08:56:02Z"
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
@@ -44,7 +51,7 @@ generated:
 
 Back to [the design](README.md).
 
-Each claim here was read from `main` of a public repository on 2026-11-21, except the NATS and Temporal sections, read on 2026-11-22. Two items under [awrel today](#awrel-today) have other sources: the webhook payload line cites a live awrel delivery and octokit's published examples, both read on 2026-11-22, and one observation, marked Unverified, comes from a coordinator note outside public repositories. Paths are relative to that repository.
+Each claim here was read from `main` of a public repository on 2026-11-21, except the NATS and Temporal sections, read on 2026-11-22. Three items under [awrel today](#awrel-today) differ: the protocol filter read at awrel commit `6793e94` was taken on 2026-11-22, the webhook payload line cites a live awrel delivery and octokit's published examples, both read on 2026-11-22, and one observation, marked Unverified, comes from a coordinator note outside public repositories. Paths are relative to that repository.
 
 ## awrel today
 
