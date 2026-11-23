@@ -5,14 +5,6 @@ description: GitHub Issues hold backlog items from intake onward, and organizati
 tags: [issues, projects, tracking]
 status: stable
 decided: "2026-11-22"
-generated:
-  - role: generated
-    harness: codex:0.166.0
-    model: openai:gpt-6.2-sol
-    effort: high
-    surface: exec
-    session: sha-256-64:15c30f9d922d6894
-    at: "2026-11-23T02:46:10Z"
 ---
 
 # 0030. Work tracking uses GitHub Issues and Projects
