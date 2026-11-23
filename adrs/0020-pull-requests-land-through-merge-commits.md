@@ -17,7 +17,7 @@ Squash merges replace the parent branch's commits. For a pull request based on t
 
 Repositories enable only merge commits for pull request merges. The merge commit subject uses the pull request title with its number, and the body uses the cleaned pull request description. Repository settings back up the merge command's message rules.
 
-See [Pull requests in one repository can be reviewed in parallel](0006-pull-requests-in-one-repository-can-be-reviewed-in-parallel.md) for stacked pull requests. See [Merge commits record the merger](0014-merge-commits-record-the-merger.md) for the `Merged-by` trailer.
+See record 0006 for stacked pull requests. See record 0014 for the `Merged-by` trailer.
 
 ## Consequences
 
