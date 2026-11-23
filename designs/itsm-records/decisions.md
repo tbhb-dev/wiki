@@ -36,6 +36,30 @@ None.
 
 ## Decided
 
+### D8. Where does the importer put a Problem made from a staged item?
+
+- **Decided:** 2026-11-23, by the service-management maintainer, within the Problem design direction the operator approved.
+- **Rule:** Every Problem lives in the private records repository. The importer opens the Problem there, moves the staged item's sub-issues and dependencies to it, and closes the staged item as a duplicate of the Problem, which leaves a pointer.
+- **Why:** The Problem workflow runs only in the records repository, so a staged item converted in place elsewhere would never move between states.
+- **Undo:** Close the duplicated staged items and run the Problem workflow in the private records repository only.
+- **Record:** [Problems](problems.md), the section on migration from the tracker.
+
+### D7. How long does the recurrence window last, and when does it pass?
+
+- **Decided:** 2026-11-23, by the service-management maintainer, within the Problem design direction the operator approved.
+- **Rule:** The window lasts 14 days by default and starts when the Problem enters Verifying. It passes only when every run passed, each scheduled period has a recorded run, and the window has at least seven runs. A schedule too sparse for seven runs lengthens the window, and a check that runs at least daily may set a shorter one.
+- **Why:** Two weeks suits a daily job, the seven-run floor keeps a dropped scheduled job from passing an empty window, and a weekly job waits seven weeks for its window.
+- **Undo:** Change the default length or the minimum count in the design and the Problem workflow. Each open Problem keeps the window it already names.
+- **Record:** [Problems](problems.md), the section on the window and its evidence.
+
+### D6. May an agent role close a Problem as Accepted without an approval Request?
+
+- **Decided:** 2026-11-23, by the service-management maintainer, within the Problem design direction the operator approved.
+- **Rule:** Yes, on the role's own decision line with a review date. A workaround that loosens a guard or a trust boundary needs an approval Request first.
+- **Why:** Any role can reopen an Accepted Problem, so the close is a two-way door, while a loosened guard changes a trust boundary that only the operator grants.
+- **Undo:** Require an approval Request before every Accepted close.
+- **Record:** [Problems](problems.md), the section on ending without a fix.
+
 ### D5. Where does the operator's login live?
 
 - **Decided:** 2026-11-22, by the operator.
