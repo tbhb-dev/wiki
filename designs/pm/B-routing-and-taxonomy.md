@@ -25,10 +25,11 @@ Back to [the design](README.md).
 ## Routing order for create
 
 1. The kernel scans the exact rendered text before it creates anything. A secret finding refuses the write. The kernel doesn't reroute it to a twin.
-2. A private-detail finding (a private repository name, a host, or an internal path) picks the private twin. No finding picks the public repository.
-3. A Defect, Chore, Feature, or Spike goes in the responsible repository, or in its private twin when step 2 picked it.
-4. An Initiative or Epic goes in the central work repository.
-5. A work item without a responsible repository gets a refusal, and the caller names a parent in the central work repository.
+2. A private-detail finding (a private repository name, a host, or an internal path) picks the private twin.
+3. An item about [internal security](C-refinement.md#internal-security-topics) goes in the private twin regardless of the scan result. If the responsible repository has no private twin, the item goes in the central work repository.
+4. For other items, a Defect, Chore, Feature, or Spike goes in the responsible repository or the private twin that step 2 picked.
+5. An Initiative or Epic goes in the central work repository.
+6. A work item without a responsible repository gets a refusal, and the caller names a parent in the central work repository.
 
 The kernel creates the issue in the chosen repository, then the work item. A sub-issue link ties a work item to its parent and keeps a private parent hidden from a public child.
 
@@ -38,9 +39,11 @@ The kernel creates the issue in the chosen repository, then the work item. A sub
 | --- | --- | --- |
 | Type | Native issue type | The create verb |
 | Priority | Project field | A verb, with a work note |
-| Status | Project field | The sync job only |
+| Status | Project field derived from [GitHub state](C-refinement.md#status-and-the-ready-signal) | The sync job only |
 | Severity | Defect field in the body metadata | The create verb |
 | Handler | Project field, Requests only | The IT service management side |
+| Work type | Field with the value `Planned` or `Unplanned` where the variant uses it | The create verb |
+| Source | Field with the value `Import` on imported issues | The import sets it, and refinement preserves it on conversion |
 | Area and role | Labels | The create verb, with a check against live lists |
 
 ## Scan before every write
