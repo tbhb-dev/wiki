@@ -35,6 +35,6 @@ At every tier, a fix gets one fresh run on the delta.
 
 The commissioning role merges a tier 0 pull request once its head is green. It needs no review, approval or separate merger assignment. Reviewers apply the tiers now, while the review loop design specifies the path lists.
 
-Tier 2 examples include changes to `.mcp.json` and deletion of uncommitted changes, branches or worktrees with unmerged or unpushed work, stashes, records and backups. Deleting build caches stays at tier 1.
+Tier 2 examples include changes to `.mcp.json` and deletion of uncommitted changes, branches or worktrees with work that has yet to be merged or pushed, stashes, records and backups. Deleting build caches stays at tier 1.
 
 A consumer-only pin bump to a commit already reviewed and merged upstream gets one run. A higher upstream tier applies only to code changed in the same pull request. Routine third-party version and checksum bumps stay under dependency maintenance and need only a CI signal.
