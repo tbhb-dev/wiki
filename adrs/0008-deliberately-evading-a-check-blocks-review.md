@@ -5,14 +5,6 @@ description: A change written to escape a scanner, linter or other check blocks 
 tags: [reviews, checks, allowlists]
 status: stable
 decided: "2026-11-11"
-generated:
-  - role: generated
-    harness: codex:0.171.0
-    model: openai:gpt-6.2-sol
-    effort: high
-    surface: exec
-    session: sha-256-64:4f00750704d1bb6e
-    at: "2026-11-23T02:44:49Z"
 ---
 
 # Deliberately evading a check blocks review

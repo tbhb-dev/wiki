@@ -5,14 +5,6 @@ description: Review tiers set how many runs a pull request needs, and a fix gets
 tags: [reviews, tiers, pull-requests]
 status: stable
 decided: "2026-11-23"
-generated:
-  - role: generated
-    harness: codex:0.171.0
-    model: openai:gpt-6.2-sol
-    effort: high
-    surface: exec
-    session: sha-256-64:4f00750704d1bb6e
-    at: "2026-11-23T02:44:49Z"
 ---
 
 # The changed paths and content set the review tier

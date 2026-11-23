@@ -5,14 +5,6 @@ description: Each qualifying head enters review as capacity permits, including h
 tags: [reviews, concurrency, pull-requests]
 status: stable
 decided: "2026-11-22"
-generated:
-  - role: generated
-    harness: codex:0.171.0
-    model: openai:gpt-6.2-sol
-    effort: high
-    surface: exec
-    session: sha-256-64:4f00750704d1bb6e
-    at: "2026-11-23T02:44:49Z"
 ---
 
 # Pull requests in one repository can be reviewed in parallel

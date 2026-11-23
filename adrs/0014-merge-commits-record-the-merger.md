@@ -5,14 +5,6 @@ description: The merge commit identifies the actor responsible for merging the p
 tags: [merges, provenance, git]
 status: stable
 decided: "2026-11-11"
-generated:
-  - role: generated
-    harness: codex:0.171.0
-    model: openai:gpt-6.2-sol
-    effort: high
-    surface: exec
-    session: sha-256-64:4f00750704d1bb6e
-    at: "2026-11-23T02:44:49Z"
 ---
 
 # Merge commits record the merger

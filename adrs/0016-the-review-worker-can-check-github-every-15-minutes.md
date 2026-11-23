@@ -5,14 +5,6 @@ description: The review and merge worker can use a periodic GitHub read to recov
 tags: [reviews, workers, events]
 status: stable
 decided: "2026-11-12"
-generated:
-  - role: generated
-    harness: codex:0.171.0
-    model: openai:gpt-6.2-sol
-    effort: high
-    surface: exec
-    session: sha-256-64:4f00750704d1bb6e
-    at: "2026-11-23T02:44:49Z"
 ---
 
 # The review worker can check GitHub every 15 minutes
