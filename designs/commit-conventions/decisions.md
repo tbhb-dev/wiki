@@ -26,6 +26,14 @@ None.
 
 ## Decided
 
+### D10. Which commit check governs the merge?
+
+- **Decided:** 2026-11-23, in the review follow-up for this design.
+- **Rule:** `tbhbdev alpha merge` rechecks the authored commits in the pull request range and the latest title using the live base in the mode calculation from D7. Any finding that blocks in that mode stops the merge. The earlier CI result is advisory for this decision.
+- **Why:** The ruleset continues to allow heads that are behind the base because the ruleset and the merge queue are separate decisions and the merge command already reads the live base.
+- **Undo:** Revise the merge check in a tools pull request.
+- **Record:** This design's pull request.
+
 ### D3. Who may add a scope to the global list?
 
 - **Decided:** 2026-11-23, by the operator.
