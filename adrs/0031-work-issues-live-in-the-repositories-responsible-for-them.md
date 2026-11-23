@@ -1,7 +1,7 @@
 ---
 type: Decision Record
 title: 0031. Work issues live in the repositories responsible for them
-description: Repository issues hold local work, and a central planning repository holds Initiatives, Epics, and Stories.
+description: Responsible repositories hold local work and Features, the unit of user-visible work. A central planning repository holds Initiatives and Epics.
 tags: [issues, projects, planning]
 status: stable
 decided: "2026-11-22"
@@ -17,7 +17,7 @@ This rule assigns repositories to work issues and planning items and leaves the 
 
 ## Decision
 
-File each bug or task in the repository responsible for it. Keep Initiatives, which track broad goals, in the shared planning repository. Keep Epics, which group related work, there as well. Keep Stories, which describe user-facing outcomes, in the same repository. Link each individual issue to its larger planning item as a GitHub sub-issue, including across repositories. [Organization Projects](0030-work-tracking-uses-github-issues-and-projects.md) bring the issues together.
+File each bug or task in the repository responsible for it. Keep Initiatives, which track broad goals, in the shared planning repository. Keep Epics, which group related work, there as well. A Feature is the unit of user-visible work. File it in the repository responsible for it. Link each individual issue to its larger planning item as a GitHub sub-issue, including across repositories. [Organization Projects](0030-work-tracking-uses-github-issues-and-projects.md) bring the issues together.
 
 The repository for project management supplies shared tools and workflows. Its issue queue tracks work on those tools and workflows.
 
