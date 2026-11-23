@@ -6,12 +6,12 @@ tags: [adrs, decisions, index]
 status: draft
 generated:
   - role: generated
-    harness: claude-code:2.1.330
-    model: anthropic:claude-sonnet-5-5
-    effort: medium
-    surface: cli
-    session: sha-256-64:c581062e61e4c416
-    at: "2026-11-23T00:26:49Z"
+    harness: codex:0.166.0
+    model: openai:gpt-6.2-sol
+    effort: high
+    surface: exec
+    session: sha-256-64:15c30f9d922d6894
+    at: "2026-11-23T02:46:10Z"
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
@@ -39,4 +39,16 @@ Each record is `adrs/NNNN-<slug>.md`: the next free number, zero-padded to four 
 
 Add each new record's entry at the end of this list, as `[title](NNNN-slug.md)` and the record's description. When two pull requests add a record at once, the later one rebases and takes the next number.
 
-None yet.
+- [Work tracking uses GitHub Issues and Projects](0001-work-tracking-uses-github-issues-and-projects.md). GitHub Issues hold backlog items from intake onward, and organization Projects show their priority and status.
+- [Work issues live in the repositories responsible for them](0002-work-issues-live-in-the-repositories-responsible-for-them.md). Repository issues hold local work, and a central planning repository holds Initiatives, Epics, and Stories.
+- [Issues use the public repository when their text can be public](0003-issues-use-the-public-repository-when-their-text-can-be-public.md). For a public and private repository pair, issue text determines which repository receives the issue.
+- [Service workflows run on GitHub issues](0004-service-workflows-run-on-github-issues.md). Service workflows use issues, while reviewed pull requests preserve final reports and configuration records.
+- [Operator and agent requests use GitHub issues](0005-operator-and-agent-requests-use-github-issues.md). Requests make asks durable and use the Handler field, area, and suggested capabilities to route them.
+- [Change issues use three approval classes](0006-change-issues-use-three-approval-classes.md). Change issues come from change Requests and follow Standard, Normal, or Emergency approval rules.
+- [Normal Changes follow the scope of delegated authority](0007-normal-changes-follow-the-scope-of-delegated-authority.md). The responsible role, the coordinator, or the operator handles a Normal Change according to its scope and the authority it requires.
+- [Service issue comments are append-only work notes](0008-service-issue-comments-are-append-only-work-notes.md). Structured work notes record updates, evidence, and state transitions on service issues.
+- [Managed content writes use a shared command path](0009-managed-content-writes-use-a-shared-command-path.md). Service and project management commands use one content module for templates, validation, and GitHub writes.
+- [Content must pass its CUE schema](0010-content-must-pass-its-cue-schema.md). CUE validates normalized content and metadata, and the shared content module handles a named list of supplemental checks.
+- [Service and project management designs live in the public wiki](0011-service-and-project-management-designs-live-in-the-public-wiki.md). The public wiki is the home for the service-management and project-management designs.
+- [Project management maintains architecture decision records](0012-project-management-maintains-architecture-decision-records.md). Project management maintains the format and commands for decision records, and service management handles optional approval Requests.
+- [Project management defines the format for review verdicts](0013-project-management-defines-the-format-for-review-verdicts.md). Project management maintains the templates and mechanical checks for review verdicts in the shared content module.
