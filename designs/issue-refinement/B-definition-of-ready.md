@@ -53,7 +53,7 @@ The schema checks the draft at creation and on edits through the kernel. For iss
 
 ### Observable results
 
-The Outcome describes the state of the system after the work. Initiatives, Epics, Features, and Defects list their observable results in Acceptance criteria. Chores and Tasks list them in Verification. A Spike lists its deliverables in Acceptance criteria. A Research issue uses one Verification item to confirm the report exists at the stated location.
+The Outcome describes the state of the system after the work. The result sections are Acceptance criteria and Verification, as applicable to the variant. Initiatives, Epics, Features, and Defects list their observable results in Acceptance criteria. Chores and Tasks list them in Verification. A Spike lists its deliverables in Acceptance criteria. A Research issue uses one Verification item to confirm the report exists at the stated location.
 
 Each check states one distinct result and identifies evidence a reader can inspect, such as the output of a named check or the content at a stable path. Where the variant has both Acceptance criteria and Verification, the two sections cover different conditions.
 
@@ -78,23 +78,25 @@ The title `Fix two tools check errors found in github-metrics reviews` fails spe
 
 Keep undo, rollback, and how-to steps out of every issue section, including Context, Outcome, and the result sections. Put the undo plan in the risk and rollback text of the pull request. Put standing instructions in a runbook. A check can state what to observe and where. In a Defect, use Reproduction for observed conditions and a reference to the runbook.
 
+Allow the exact Defect Reproduction placeholder `Find a reproduction and add it here.` only when the issue has Status `Needs info` or the staged item has a `needs-info` outcome.
+
 A failing Context for a fictional repository reads `Undo: delete the tunnel and remove the staged file.`
 
-### Unresolved hedges
+## Unresolved hedges
 
-A hedge on a checkable fact blocks readiness. Look for `may already`, `might`, `possibly`, `probably`, `unclear whether`, `should be checked`, and `unknown whether`. Run a read-only check that settles the fact. State the result in the issue with its evidence. If the fact remains uncertain, record `needs-info`. Ask a specific question and identify the person or role who can answer. The work's own unknown can remain in the place the table gives it.
+Apply this readiness check to pm work items and Problems. Requests use their workflow's content check. The workflow opens Incidents and Changes complete. A hedge on a checkable fact blocks readiness. Look for `may already`, `might`, `possibly`, `probably`, `unclear whether`, `should be checked`, and `unknown whether`. Run a read-only check that settles the fact. State the result in the issue with its evidence. If the fact remains uncertain, record `needs-info`. Ask a specific question and identify the person or role who can answer. The work's own unknown can remain in the place the table gives it.
 
-| Type | `Where an unknown may live` | Pass test |
+| Type | Where an unknown may live | Pass test |
 | --- | --- | --- |
 | Initiative | The variant lacks a scope section. See [decision D5](decisions.md#d5-where-do-open-scope-questions-go). | Resolve checkable facts before readiness. |
-| Epic | A scope section needs a schema change. See [decision D5](decisions.md#d5-where-do-open-scope-questions-go). | The item answers factual questions that a read can settle. |
+| Epic | Outside the issue until a scope section is available. See [decision D5](decisions.md#d5-where-do-open-scope-questions-go). | The item answers factual questions that a read can settle. |
 | Feature | Outside the issue until resolved. | State the intended behavior and settled facts. |
-| Defect | The cause can remain unknown. | The issue states observed behavior as fact and identifies the cause as unknown when necessary. |
+| Defect | Context can identify an unknown cause. | The issue states observed behavior as fact and identifies the cause as unknown when necessary. |
 | Chore | Resolve factual uncertainty during refinement. | State the maintenance facts directly. |
 | Task | Resolve unknown facts before readiness. | Give factual statements the worker can act on. |
 | Spike | Question. | Give the experiment one explicit unknown and settle its factual premises. |
 | Research | Question. | State what the report investigates once. Its premises pass the hedge check. |
-| Problem | Question, proposed. The existing variant uses Cause. | State the investigation's unknown once. Cite the observations that support it. |
+| Problem | Cause can list candidate causes. | Cite observations that support the investigation and apply the [Problem readiness check](#problems). |
 
 ## Content checks
 
@@ -128,9 +130,21 @@ A Request becomes ready when the workflow passes its content check. The base var
 | Decisions checked | Use one Decision link per item. Each link must resolve. Use at most 40 words across those items. |
 | Answer path | State where the answer goes in 1 to 25 words. |
 
-Use at most 110 words for the base body and at most 70 characters for the title. Omit a trailing period in the title. Set Priority and Handler. For Handler Agent, use one area label. Use Handler Operator only for work that requires authority or access unavailable to agents. Give the reason, such as a credential or host agents lack access to, or a one-way door that requires operator authority.
+Use at most 110 words for the base body and at most 70 characters for the title. Omit a trailing period in the title. Set Priority and Handler. For Handler Agent, use exactly one area label. For Handler Operator, omit area labels. See the [command schema conflict](decisions.md#d4-which-service-rules-conflict-with-the-shared-rules). Use Handler Operator only for work that requires authority or access unavailable to agents. Give the reason, such as a credential or host agents lack access to, or a one-way door that requires operator authority.
 
 The workflow moves `open` to `waiting on operator` when the check passes. An operator question moves it to `waiting on author`. During refinement, any author edit returns it to `open` for another check.
+
+Kind `decision` uses the sections below in order and caps the body at 150 words. Set Priority and Handler. For Handler Agent, use exactly one area label. For Handler Operator, omit area labels.
+
+| Section | Check |
+| --- | --- |
+| Question | Ask one question in 3 to 25 words. |
+| Options | Give two to four items with unique labels. Write each as `Label - tradeoff` in at most 15 words. |
+| Recommendation | Use the exact label of one option in 1 to 10 words. |
+| Answer path | Give one outcome per option as `Label - outcome` in at most 15 words per item. |
+| Approval | Ask for `approve <option label>` in 1 to 25 words. |
+
+Before closing a decision Request, the closer checks that its `adr` link points to a merged decision record pull request.
 
 Kind `command` uses the command sections Changes, Checks first, Exit codes, Undo, Dry run, Why not an agent, and Command. Its variant caps the body at 80 words. Kind `change` is a Request for Change (RFC). Its variant has What, Why, Risk, and Approver and authority sections and requires a Class of `normal` or `emergency`. On approval, the verb opens a Change and links the Change and the Request in both directions. These are the service workflow's current shapes. See [operator requests](../itsm-records/D-operator-requests.md#kinds-of-request) and the [recorded conflicts](decisions.md#d4-which-service-rules-conflict-with-the-shared-rules).
 

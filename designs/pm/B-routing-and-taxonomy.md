@@ -35,7 +35,7 @@ The kernel creates the issue in the chosen repository and uses that repository's
 
 ## One home per fact
 
-In `designs/issue-taxonomy/`, the tools role defines the issue types, fields and values, type-by-field matrix, and label families that pm and `sm` share.
+In `designs/issue-taxonomy/`, the tools role will define the issue types, fields and values, type-by-field matrix, and label families that pm and `sm` share.
 
 Use the priority verb with a work note to change an issue's Priority.
 

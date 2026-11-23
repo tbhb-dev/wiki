@@ -33,7 +33,7 @@ This decision covers ordinary refinement. The tracker import records gaps in sta
 - **Recommendation.** Open at most one approval Request per batch. The Request lists each issue with its question. One comment answers them all.
 - **Why.** A batch can contain more than one question of intent. The operator already answers approval Requests in one place.
 - **If yes.** Refinement links each item with a question for the operator to the batch Request. An `sm` run copies each answer onto its issue with the question comment link, question number, and source reply link. The `sm` run returns the issue to the queue once every question has an answer. The sync job shows Needs refinement. The next refinement run selects the issue and reads the answers there.
-- **If no.** The operator answers the question comment on its issue, as [C. Refinement](../issue-refinement/A-refinement-procedure.md#outcome-writes) describes.
+- **If no.** The operator answers the question comment on its issue, as [A. Refinement procedure](../issue-refinement/A-refinement-procedure.md#outcome-writes) describes.
 - **Reversible.** Change the refinement brief to switch between the two options.
 
 ## Decided
@@ -42,7 +42,7 @@ The operator's records behind D1 to D6 are private notes. Each entry below cites
 
 The design relies on D1 to D4 and D6 as requirements. D5 only places the design.
 
-### D9. Do incidents skip refinement?
+### D9. Do Incidents and Changes skip refinement?
 
 - **Decided.** The operator ruled on 2026-11-23.
 - **Rule.** The [service readiness checks](../issue-refinement/B-definition-of-ready.md#records-opened-complete) give the exemption for Incidents and Changes.
@@ -69,6 +69,7 @@ The design relies on D1 to D4 and D6 as requirements. D5 only places the design.
 ### D6. Must issues pass refinement before work starts?
 
 - **Decided:** 2026-11-22, by the operator through coordination.
+- **Amended.** On 2026-11-23, the operator moved the gate into the shared design. Requests use workflow validation, Problems have a readiness check, and Incidents and Changes skip refinement.
 - **Rule.** The [shared Definition of Ready](../issue-refinement/B-definition-of-ready.md) defines the gate for work items. It also gives the [service checks](../issue-refinement/B-definition-of-ready.md#service-requests-and-problems) and the types that skip refinement. The imports role applies the gate in staging.
 - **Undo:** remove the refinement condition from the sync job and the workflow. Two-way door.
 - **Record:** the operator's refinement ruling, relayed by coordination.

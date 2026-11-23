@@ -18,7 +18,7 @@ generated:
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
-# Content model for pm issues
+# Project management content model
 
 Back to [the design](README.md).
 
@@ -91,7 +91,7 @@ Write the six required sections in the order shown. Use at most 150 visible body
 
 Set Priority and Source. The sync job sets Status. Omit Work type, Severity, and Handler. A Research issue can have an Epic or Initiative as its parent, or it can have no parent. Exclude Tasks and Chores as parents.
 
-After this design merges, `admin-vm` creates the org issue type. In a later change, pm adds `issue.research.cue` using these sections and fields.
+After this design merges, the administrator creates the org issue type. In a later change, pm adds `issue.research.cue` using these sections and fields.
 
 ## Refusals and the guide
 

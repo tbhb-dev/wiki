@@ -10,7 +10,7 @@ parent: README.md
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
-# Refinement runs for pm
+# Project management refinement runs
 
 Back to [the design](README.md).
 
@@ -88,7 +88,7 @@ The reviewer checks that every `ready` result records a pass or fix for each app
 | Someone edits a Ready item or ticks a check | The record no longer describes the body | A change to the body hash makes the record stale. The sync job sets Status to `Needs refinement`. |
 | Someone sets Status to `Ready` by hand | An item looks ready without a record | The sync job derives Status from the issue state and the refinement record |
 | An assignee or open pull request appears before refinement | An item could appear to be in progress before it passes the gate | In progress requires the item's own current `ready` record, and any batch it belongs to must pass review |
-| A built-in Project workflow writes Status | Status disagrees with the records | The sync job's setup turns off each built-in workflow that sets Status |
+| A built-in Project workflow writes Status | Status disagrees with the records | During [setup](../issue-refinement/D-status-transitions.md#sync-triggers-and-setup), the administrator turns off each built-in workflow that sets Status |
 | Needs info piles up for the operator | Operator time goes to triage | The rule that the operator answers only intent, and D8 |
 | Someone answers a Needs info question in a comment. | A comment alone leaves the item at Needs info. | The [question comment](../issue-refinement/A-refinement-procedure.md#outcome-writes) gives the steps to return the item to the queue. The next refinement record cites the answer. |
 | A run stops partway through a batch | Part of a batch has records | Runs resume from current records and retry any pending drop close. |
