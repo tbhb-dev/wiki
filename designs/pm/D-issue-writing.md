@@ -87,6 +87,6 @@ A short text turns Vale errors into warnings. It leaves every refuse check here 
 
 ## Imports
 
-The import in [E. Tracker import](E-import.md) maps each original issue into the Context section of the imported variant. That variant reports every check here as a warning, and refinement clears each one when it converts the item into its real variant.
+The imports role maps each source item into the sections of its destination type. It applies these writing rules during refinement in staging. A check that would refuse issue creation also refuses the staged file. See [E. Tracker import](E-import.md#staging-and-refinement).
 
-While it maps, it strips each sentence that describes the issue itself, such as a note on which tool tracks the work or which issue it came from. Where the earlier tracker recorded that relation as data, the import writes it as a sub-issue or dependency link instead.
+The imports role strips each sentence that describes the issue itself, such as a note on which tool tracks the work. The import uses sub-issue or dependency links for relations that the earlier tracker recorded as data.

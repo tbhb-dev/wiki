@@ -24,13 +24,17 @@ Back to [the design](README.md).
 
 ## Open
 
-### D8. Should refinement send questions of operator intent as one approval Request per batch?
+The choice between Epics as design documents and an Epic issue type remains open. References to Epic issues in this draft are provisional.
 
-- **Recommendation:** yes. Each batch opens at most one Request that lists each issue with its question, and one comment answers them all.
-- **Why:** an import of about 700 issues could otherwise send the operator dozens of separate questions, and the operator already answers Requests in one known place.
-- **If yes:** refinement links each Needs info item to the batch Request, and an `sm` run copies each answer onto its issue.
-- **If no:** each question goes to the operator as a comment on its own issue, which spreads the questions across many notifications.
-- **Reversible:** yes, by changing the refinement brief.
+### D8. Should ordinary refinement send questions of operator intent as one approval Request per batch?
+
+This decision covers ordinary refinement. The tracker import records gaps in staging. At creation, the kernel adds `flag:split`, `flag:drop`, or `flag:needs-info` when the staged outcome calls for owner follow-up. See [decision D11](#d11-which-issue-types-does-the-tracker-import-create).
+
+- **Recommendation.** Open at most one approval Request per batch. The Request lists each issue with its question. One comment answers them all.
+- **Why.** A batch can contain several questions of intent. The operator already answers approval Requests in one place.
+- **If yes.** Refinement links each item with a question for the operator to the batch Request. An `sm` run copies each answer onto its issue with the question comment link, question number, and source reply link. The `sm` run removes the issue's `needs-info` refinement label once every question has an answer. The sync job shows Needs refinement. The next refinement run selects the issue and reads the answers there.
+- **If no.** The operator answers the question comment on its issue, as [C. Refinement](C-refinement.md#outcome-writes) describes.
+- **Reversible.** Change the refinement brief to switch between the two options.
 
 ### D9. Do incidents skip refinement?
 
@@ -46,6 +50,14 @@ The operator's records behind D1 to D6 are private notes. Each entry below cites
 
 The design relies on D1 to D4 and D6 as requirements. D5 only places the design.
 
+### D11. Which issue types does the tracker import create?
+
+- **Decided.** tbhb, 2026-11-23, approved direct creation in the destination issue type.
+- **Rule.** The imports role refines and vets each file in staging. The kernel writes each issue once in its destination type with Source `Import`. At creation, the kernel adds `flag:split`, `flag:drop`, or `flag:needs-info` to match the staged outcome.
+- **Why.** Staging already produces the sections each type requires. Direct creation keeps those sections and avoids about 2,000 follow-up writes.
+- **Undo.** Change the mapping and creation path for a future import. Two-way door.
+- **Record.** The [tracker import design](E-import.md) gives the approved procedure.
+
 ### D7. How does an item become Ready while only the sync job writes Status?
 
 - **Decided:** 2026-11-22, by the pm role.
@@ -56,7 +68,7 @@ The design relies on D1 to D4 and D6 as requirements. D5 only places the design.
 ### D6. Must issues pass refinement before work starts?
 
 - **Decided:** 2026-11-22, by the operator through coordination.
-- **Rule:** every issue and every service request passes the Definition of Ready before work starts. The `sm` role refines Requests, Incidents, Problems, and Changes. It applies the common readiness checks and uses each Incident, Problem, or Change template and schema for the type-specific checks. Imported issues pass the same gate and keep Source `Import` on conversion. That value meets the Source requirement in both designs for a converted Problem.
+- **Rule.** Every issue and every service request passes the Definition of Ready before work starts. The `sm` role refines Requests, Incidents, Problems, and Changes. It applies the common readiness checks and uses each Incident, Problem, or Change template and schema for the type-specific checks. For tracker imports, the imports role applies the gate in staging. The import sets Source to `Import` at creation. That value meets the [Problem Source requirement](../itsm-records/problems.md#fields).
 - **Undo:** remove the refinement condition from the sync job and the workflow. Two-way door.
 - **Record:** the operator's refinement ruling, relayed by coordination.
 

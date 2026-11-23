@@ -39,7 +39,9 @@ A check on raw Markdown counts words and lines. A table, an HTML block, or a lon
 
 A run loads core, taxonomy, the issue base, and exactly one variant, because each variant file defines the same `#Variant` name. The `#Hints` definition keys its hints by variant.
 
-The pm variant schemas use `#WorkType` from the [shared taxonomy](https://github.com/tbhb-dev/tools/blob/main/schemas/taxonomy.cue). Its values are `Planned` and `Unplanned`. The import adds the Source field with the value `Import`, which [E. Tracker import](E-import.md) preserves on conversion.
+The pm variant schemas use `#WorkType` from the [shared taxonomy](https://github.com/tbhb-dev/tools/blob/main/schemas/taxonomy.cue). Its values are `Planned` and `Unplanned`. The destination variants already accept an optional `source` field. The import sets it to `Import` at creation. See [E. Tracker import](E-import.md#staging-and-refinement).
+
+The `schemas/issue.imported.cue` variant file stays in the pm repository until the import finishes. The pm role then removes the file.
 
 ## Metric semantics
 
@@ -75,4 +77,4 @@ Floors are low or absent. A forced section produces filler text, so only section
 
 ## Checks outside the schema
 
-These rules need live data, relations between issues, or a text check CUE can't express, as D4 allows. They stay in the kernel, and this named list keeps it from becoming a second home for other text rules. They cover the parent's type (a Feature under an Epic), links-only sections, note flooding, a retrospective required at close, and the area and role label spellings against the live lists.
+The kernel keeps a named list of checks that need live data, issue relations, or text rules that CUE can't express, as [decision D4](decisions.md#d4-how-do-the-writing-rules-stay-in-one-place) allows. The list covers links-only sections and note flooding. The kernel checks that a cited Request has approval and that a required retrospective request for comments exists. It also checks parent types and validates area and role labels against the live lists. A Defect's parent is optional under [readiness check 5](C-refinement.md#readiness-checks). If it has a parent, the type must be Problem or Epic.

@@ -38,7 +38,7 @@ For each item, in the order given:
    blocked-by links.
 2. Run `tbhbdev pm refine --check <item>` and read every finding and
    warning.
-3. Walk items 1 to 8 of the DoR. For each, write pass, fixed, or fail,
+3. Walk the applicable items of the DoR. For each, write pass, fixed, or fail,
    with evidence: a SHA, a pull request, a path at a SHA, or a command
    with the commit or query it ran against and its result.
 4. Choose one outcome: ready, needs-info, split, or drop. After a fix,
@@ -56,7 +56,8 @@ Rules:
   ends with a period.
 - Delete each sentence about the issue itself, its tracking, or its
   links. Sub-issue and dependency links carry those.
-- Item 4 needs a repo search and an issue search, both cited.
+- Item 4 needs a repo search and an issue search, both cited. For a command
+  Request, cite only the search for an open duplicate Request.
 - For an Incident, Problem, or Change, apply the common readiness checks
   and use its template and schema for the type-specific checks.
 - A Vale error blocks the write. In a short text, every Vale finding
@@ -68,12 +69,12 @@ Rules:
 - Add no owner line. A Defect's parent is a Problem or an Epic, or none.
 - Give the answerer of each question. Ask the operator only about
   operator intent.
-- Skip items with a current record unless a follow-up run is rechecking
-  a split parent whose children cover its outcome.
-- Tell the answerer in the question comment to edit the issue body with
-  the resolved information or remove the `needs-info` label. Either change
-  makes the record stale. The sync job then shows Needs refinement. Pick up
-  the item on the next run. A comment alone leaves the item at Needs info.
+- Resume from current records. Retry the close of an open item with a
+  current drop record. Skip other current records unless rechecking a split
+  parent whose children cover its outcome.
+- Post the question comment as C. Refinement specifies. On requeue, read the
+  prior records and use any replies and body edits to record which questions
+  have answers. Reuse the question comment for gaps that still need answers.
 - A split parent needs its own current ready record to show Ready.
 - Never refine an item whose body you wrote.
 - Cite no private repository in a public item.
@@ -86,14 +87,16 @@ why, and any check you couldn't run.
 
 ## Review checklist
 
-A second run reviews each batch before its Chore closes. It reads as a reviewer only, from a model family other than the refiner's, and posts its verdict as a comment on the batch Chore. On a pass, a pm or `sm` run closes the Chore, and on a fail, that run removes the ready labels in the batch.
+The [batch reviewer](C-refinement.md#status-and-the-ready-signal) posts a pass or fail verdict on the batch Chore before it closes. In ordinary refinement, a pm or `sm` run closes the Chore on a pass. On a fail, that run removes the ready labels in the batch.
 
 A refinement of one new item has no batch. Its Ready shows at once. Each week, a reviewer samples those records the same way, as if the week's records formed one batch.
 
+For the tracker import, the reviewer samples staged files and their evidence before the kernel creates issues. See [E. Tracker import](E-import.md#review-and-creation).
+
 - [ ] The reviewer reads every item in a batch of 10 or fewer. In a larger batch, it takes 10 items or a fifth at random, whichever is more, and adds each Drop, each Split, and each fix that edited the outcome or the checks.
-- [ ] A sampled record covers items 1 to 8, each with a result and evidence that meets the [evidence rules](C-refinement.md#evidence-rules).
+- [ ] A sampled record covers each applicable readiness check with a result and evidence that meets the [evidence rules](C-refinement.md#evidence-rules).
 - [ ] The reviewer runs at least one cited command per sampled item again, at the cited commit, and gets the same result.
-- [ ] For item 4, the reviewer's own search doesn't turn up done work or a duplicate that the refiner missed.
+- [ ] For item 4, the reviewer's own search doesn't turn up done work or a duplicate that the refiner missed. For a command Request, the reviewer checks only for an open duplicate Request.
 - [ ] Each outcome and check on a sampled Ready item states an observable result, and none says only that the work exists or that someone did it.
 - [ ] A sampled Ready item has no semicolon in its prose, each of its list items ends with a period, and none of its sentences describes the issue itself.
 - [ ] The reviewer runs Vale with the org configuration again on each sampled Ready item and its record. The rerun shows the warnings the record lists and, outside a short text, zero errors.
@@ -107,12 +110,12 @@ A refinement of one new item has no batch. Its Ready shows at once. Each week, a
 
 A rubber-stamp Ready leaves signs, and one of them sends the reviewer to read the whole batch:
 
-- Over three in four imported items come out Ready without a fix, though imported text rarely passes items 2 and 8 unedited.
+- Over three in four staged tracker items pass every readiness check without a fix.
 - Two or more records share the same evidence text, or cite a commit without a command.
 - A Ready item still matches a pattern of item 2, 3, 7, or 8 when checked again.
 - An item 4 pass lacks an issue search.
 
-The batch passes only when every Ready item passes the gate. A single sampled item that fails review fails the batch, including a Ready item that duplicates other work. A full read that confirms a rubber stamp also fails the batch. A failed batch gets a new refinement run, never the same one.
+The reviewer checks that every item with a `ready` outcome has a current record with a pass or fix for each applicable check. The reviewer checks the sample's evidence and inspects the whole batch if there are signs of a rubber stamp. One failed check on any reviewed item fails the batch. A failed batch gets a new refinement run.
 
 ## Failure modes
 
@@ -122,13 +125,13 @@ The batch passes only when every Ready item passes the gate. A single sampled it
 | A fix changes the item's scope | The work no longer matches the author's intent | The fix rules, and the reviewer's look at the edit history |
 | The DoR turns into a phase gate | Work waits for detail a worker could find while working | The DoR doesn't require a design or an estimate, exploration splits off as a Spike, and fixes happen in place |
 | A check says only that someone did the work | Someone closes the item without a result anyone saw | Item 3, the existence patterns of D, and the review checklist |
-| Someone edits a Ready item | The record no longer describes the text | The body hash, which returns the item to Needs refinement |
+| Someone edits a Ready item or ticks a check | The record no longer describes the body | The body hash, which returns the item to Needs refinement |
 | Someone adds the ready label by hand | An item looks ready without a record | The sync job ignores a label without a current record |
 | An assignee or open pull request appears before refinement | An item could appear to be in progress before it passes the gate | In progress requires the item's own current `ready` record, and any batch it belongs to must pass review |
 | A built-in Project workflow writes Status | Status disagrees with the records | The sync job's setup turns off each built-in workflow that sets Status |
 | Needs info piles up for the operator | Operator time goes to triage | The rule that the operator answers only intent, and D8 |
-| Someone answers a Needs info question in a comment. | A comment alone leaves the item at Needs info. | The question comment tells the answerer to edit the body with the resolved information or remove the `needs-info` label. Either change makes the record stale. The sync job then shows Needs refinement. The next run picks up the item. |
-| A run stops partway through a batch | Part of a batch has records | Runs skip items with a current record and resume |
+| Someone answers a Needs info question in a comment. | A comment alone leaves the item at Needs info. | The [question comment](C-refinement.md#outcome-writes) gives the steps to return the item to the queue. The next refinement record cites the answer. |
+| A run stops partway through a batch | Part of a batch has records | Runs resume from current records and retry any pending drop close. |
 | An internal-security item sits in a public repository | Anyone can read about the weakness | The security-topic warning of D, item 5, and a transfer before any other write |
 | Vale's document-wide rules flag a short body | An honest short text can't pass | Warnings only below the short threshold |
 | A record cites private evidence on a public item | A private detail leaks | The kernel's private-detail scan refuses the write |
