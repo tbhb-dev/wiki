@@ -1,7 +1,7 @@
 ---
 type: Decision Record
 title: Reviewers come from a different provider from the builder
-description: Review coverage applies per commit, with a higher-tier model on the builder’s provider as the capacity fallback.
+description: Reviewer eligibility is checked against the provider that built each commit.
 tags: [reviews, providers, pull-requests]
 status: stable
 decided: "2026-11-23"
@@ -11,14 +11,16 @@ decided: "2026-11-23"
 
 ## Context
 
-A pull request can combine work from several build runs. Treating the entire branch as one provider’s work can either give credit for self-review or discard review that covers part of the change.
+A pull request can combine work from several build runs, which are agent runs that produce changes. A provider supplies the model an agent uses to build or review. Treating the branch as one provider’s work can give credit for self-review. It can also discard reviews that cover part of the change.
+
+The provider rule sets which reviews count for each commit and leaves the review count to the [review tier](0001-the-changed-paths-and-content-set-the-review-tier.md).
 
 ## Decision
 
-For each commit in the pull request’s head, count reviews from providers other than the one that built its change. A review of the full head contributes coverage to every commit for which its provider qualifies. The review tier sets the number of qualifying runs. When a pair is needed, two independent runs from one eligible provider can count, with distinct providers preferred when available.
+For each commit in the head, the pull request’s latest source commit, count reviews from providers other than the one that built its change. A full-head review covers every commit for which its provider qualifies. If two reviews are required, independent runs from one eligible provider can count. Prefer distinct providers when available.
 
-Prefer a model comparable to the builder’s model, using the [model roster](../models/README.md#matching-tiers). If the builder’s provider is the only one with capacity, use a reviewer model one tier higher on that provider. If a provider refuses the review, record the refusal verbatim from the run log and keep the brief intact for any replacement run.
+Prefer a model comparable to the builder’s model using the [model roster](https://github.com/tbhb-dev/wiki/blob/main/models/README.md#matching-tiers). If only the builder’s provider has capacity, use its reviewer model one tier higher. Record any provider refusal verbatim from the run log. Preserve the review instructions for any replacement run.
 
 ## Consequences
 
-For a dependency pin update, provider eligibility follows the consumer’s own commits. Upstream commits keep their review in the repository where they landed.
+For a dependency pin update, which changes the selected dependency revision, provider eligibility follows the commits in the repository that uses the dependency. Commits in the dependency itself keep their review in the repository where they landed.

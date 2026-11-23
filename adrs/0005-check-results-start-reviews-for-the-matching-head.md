@@ -1,7 +1,7 @@
 ---
 type: Decision Record
 title: Check results start reviews for the matching head
-description: A successful conclusion check starts a queued review, and an isolated size failure starts a sizing review.
+description: Automated check results start queued reviews or sizing reviews for the commits they checked.
 tags: [reviews, checks, events]
 status: stable
 decided: "2026-11-22"
@@ -11,11 +11,13 @@ decided: "2026-11-22"
 
 ## Context
 
-An owner’s message about a passing check can be late or describe an earlier head. A pull request that only needs a sizing decision can also wait indefinitely for a passing check.
+A notice from the owner responsible for the pull request may arrive late. It may describe an earlier head, the latest commit on the pull request's source branch at the time of the check. A pull request whose only failure concerns the size of its change can wait indefinitely for a passing check.
+
+These triggers start queued reviews or sizing reviews for the checked head and leave queued reviews for other heads waiting.
 
 ## Decision
 
-Queue reviews against the head to be reviewed. A successful `check_run` event for the `conclusion` check releases a queued review when the event’s commit matches that head. When the size step is the only failing check, start the sizing review as soon as that result is available.
+Queue reviews against the head to be reviewed. A GitHub `check_run` event reports an automated check result for a commit. A successful result for `conclusion`, the check that summarizes the required jobs, releases a queued review if its commit matches. When the size check alone fails, start the sizing review as soon as the result is available. The sizing review judges whether the proposed change is an acceptable size.
 
 ## Consequences
 

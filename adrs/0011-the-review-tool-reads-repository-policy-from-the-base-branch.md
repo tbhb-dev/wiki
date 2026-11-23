@@ -11,11 +11,13 @@ decided: "2026-11-11"
 
 ## Context
 
-A review needs stable criteria while the pull request is under consideration. Otherwise a change to the policy could affect the review that decides whether the policy should land.
+A review needs stable criteria while the pull request is under consideration. Otherwise a policy change could affect the review that evaluates it. The base branch is the branch the pull request targets.
+
+The base-branch rule selects repository policy for the current review and excludes policy edits proposed by the pull request under review.
 
 ## Decision
 
-The `tbhbdev` review tool reads `.github/pull_request_review.toml`, the pull request template and checklist, and the draft and semantic schemas in `.github/schemas/` from the pull request’s base branch. The shared baseline checklist still applies. A pull request that changes the checklist gets the stricter review criteria for checklist changes.
+The review command in `tbhbdev`, the pull request tooling, reads the repository policy files from the base branch. The settings live in `.github/pull_request_review.toml`. The pull request template specifies the format of a proposal. The checklist specifies the criteria reviewers apply. The draft and semantic schemas in `.github/schemas/` define what a pull request draft and a review result must contain, respectively. The shared baseline checklist, which supplies criteria across repositories, still applies. A pull request that changes the checklist gets the stricter criteria for checklist changes.
 
 ## Consequences
 

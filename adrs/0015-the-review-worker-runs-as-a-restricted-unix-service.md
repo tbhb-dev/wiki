@@ -11,11 +11,13 @@ decided: "2026-11-12"
 
 ## Context
 
-The review and merge queue needs to run unattended. The service needs access to GitHub while avoiding the cost and permissions of another GitHub user account.
+The review and merge queue, which holds pending review and merge work, needs to run unattended. Its worker needs access to GitHub. Another GitHub user account would add cost and permissions.
+
+The dedicated service identity covers the unattended worker and leaves interactive agents under their own permissions.
 
 ## Decision
 
-Run the review and merge worker under a dedicated Unix service identity on the service host, without an agent harness or sudo. The worker uses a managed secret store to obtain credentials and writes to GitHub with tokens from the existing apps. It adds no GitHub user account.
+Run the worker under a dedicated Unix account on the machine that hosts the service. The worker runs without an agent harness, software that runs an agent. It runs without `sudo`, the command that runs a process with another user’s privileges. The worker obtains credentials from a managed store that controls access to them. It writes to GitHub using tokens issued by existing GitHub Apps, the installed integrations that authorize those writes. It adds no GitHub user account.
 
 ## Consequences
 

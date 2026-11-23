@@ -11,12 +11,12 @@ decided: "2026-11-12"
 
 ## Context
 
-A missed event can leave a pull request waiting in the review or merge queue after its state changes on GitHub.
+The review and merge worker is the service that processes pending reviews and merges. A missed event, a GitHub notice of a state change, can leave a pull request waiting after its state changes.
 
 ## Decision
 
-The review and merge worker may read GitHub every 15 minutes to reconcile state after lost events. This is a standing exception to the general limit on polling.
+The worker may read GitHub every 15 minutes to bring the queue up to date after missed events. This is a standing exception to the general limit on polling, or checking GitHub on a timer. The exception covers recovery from missed events and leaves event delivery as the normal way to advance the queue.
 
 ## Consequences
 
-Events remain the normal way to advance the queue. Removing the exception returns the worker to event delivery alone.
+Removing the exception returns the worker to event delivery alone.

@@ -11,12 +11,12 @@ decided: "2026-11-12"
 
 ## Context
 
-A pull request sometimes needs rebuilding after its content already passed review. Repeating the same model read adds cost when the replacement contains the same files.
+A pull request sometimes needs rebuilding after its content already passed review. Repeating the same review by a model adds cost when the replacement contains the same files. A Git tree records the paths and contents at a commit.
 
 ## Decision
 
-The review worker can approve a rebuilt replacement without another model read if its Git tree equals the exact tree covered by the earlier approval. The worker holds cases where the rebuilt pull request changes the review template.
+The review worker, the service that handles queued reviews, can approve a rebuilt replacement without another model review if its Git tree matches the tree covered by the earlier approval. This rule covers reuse of prior approval and leaves the [approval checks](0009-the-reviews-app-posts-approvals-for-an-independent-approver.md) for the replacement’s current head in force. The head is the latest commit on the pull request’s source branch. The worker holds the replacement if it changes the review template, which sets the required format for review results.
 
 ## Consequences
 
-A new commit ID alone does not make the file tree different. The replacement still goes through the approval gates for its current head. Revoking this authorization restores a fresh model read for rebuilt replacements.
+Changing only the commit identifier leaves the file tree unchanged. Revoking this authorization restores a fresh model review for rebuilt replacements.

@@ -1,7 +1,7 @@
 ---
 type: Decision Record
 title: Merge commits record the merger
-description: The merge commit identifies the actor responsible for merging the pull request in a Merged-by trailer.
+description: A Merged-by line in the commit message identifies who merged the pull request.
 tags: [merges, provenance, git]
 status: stable
 decided: "2026-11-11"
@@ -13,9 +13,11 @@ decided: "2026-11-11"
 
 The merge command can write a commit on a maintainer’s behalf. Commit authorship alone does not always identify who took responsibility for the merge.
 
+This rule attributes the act of merging a pull request and leaves commit authorship separate.
+
 ## Decision
 
-The merge commit carries a `Merged-by` trailer that identifies the merger. The trailer accompanies the cleaned pull request body in the commit message.
+The commit that lands the pull request carries a `Merged-by` trailer, a line added to the end of the commit message to identify who merged it. The trailer accompanies the pull request description converted to plain text for the commit message.
 
 ## Consequences
 
