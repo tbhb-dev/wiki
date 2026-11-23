@@ -11,14 +11,16 @@ decided: "2026-11-23"
 
 ## Context
 
-A request for a decision, action, access, or information needs a durable record that another run can pick up.
+A Request is a GitHub issue that records an ask for a decision, action, access, or information so a later worker can pick it up.
+
+Request issues cover routine asks between roles and leave urgent stops and steering of active work to direct messages.
 
 ## Decision
 
-The organization Handler field on a Request issue distinguishes Operator from Agent. On an agent Request, the area label identifies the repository context and capability labels suggest the skills the work needs. The router matches those suggestions against the role registry and launches a run of the selected kind with that context.
+The shared Handler field distinguishes Operator, the person with reserved authority, from Agent, an automated worker. On an Agent Request, the area label names the repository whose context the worker loads. Capability labels suggest the skills the work needs. The router matches those skills against the [role registry](https://github.com/tbhb-dev/wiki/blob/main/designs/agent-roles/C-registry.md). It launches a worker of the selected role kind with that repository context.
 
-Choose capability labels from the shared vocabulary. The handler or router can revise them and reassign the Request. Routing continues when suggestions are absent or none match. A launched run loads the context for its task without a standing repository assignment.
+Choose capability labels from the shared list of skills. The handler or router can revise them. Either can reassign the Request. Routing continues when suggestions are absent or none match. Each run loads its task context without a standing repository assignment.
 
 ## Consequences
 
-The current operator intake remains in use until the Request workflow is live. Routine asks between roles move onto issues when the Request commands and agent handling are ready. Direct messages continue to serve steering and urgent stops. Existing repository assignments are interim during the move to launched runs.
+Keep the operator's current list of open items until the Request workflow goes live. Routine asks between roles move onto issues once the Request commands and agent handling are ready. Existing repository assignments are temporary until workers launch for individual Requests.

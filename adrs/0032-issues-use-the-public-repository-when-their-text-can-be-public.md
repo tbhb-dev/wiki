@@ -13,11 +13,13 @@ decided: "2026-11-22"
 
 A project with public and private repositories needs a default issue destination and a way to keep sensitive operational details private.
 
+This rule covers issue creation and transfer within a repository pair and leaves the choice of [which repository is responsible for the work](0031-work-issues-live-in-the-repositories-responsible-for-them.md) outside its scope.
+
 ## Decision
 
-Open the issue in the public repository when its text can be public. When the text needs details barred from public content, use the private counterpart. The project management tooling looks up the counterpart at runtime using the organization's naming convention and checks the exact rendered text before a public write. A private-detail finding refuses the public destination and offers the private one. A secret finding refuses the write.
+Open the issue in the public repository when its text can be public. Use the paired private repository when the text needs details barred from publication. At runtime, the [project management commands](0038-managed-content-writes-use-a-shared-command-path.md) find the counterpart from the organization's rules for naming repository pairs. They check the exact text GitHub would receive before a public write. If the check finds a private detail, the commands refuse the public destination. They offer the private destination for that finding. If the check finds a secret such as a credential, the commands refuse the write.
 
-Use GitHub's issue transfer when moving an existing issue between the two repositories, with the same scan before the move. Preserve the author's text through routing.
+Use GitHub's built-in issue transfer to move an existing issue between the repositories. Run the same scan first. Keep the author's text intact.
 
 ## Consequences
 

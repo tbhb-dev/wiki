@@ -13,9 +13,11 @@ decided: "2026-11-22"
 
 People need to find an individual change with the code it affects and see how that change contributes to work that spans repositories.
 
+This rule assigns repositories to work issues and planning items and leaves the [choice between public and private counterparts](0032-issues-use-the-public-repository-when-their-text-can-be-public.md) to the publication rules.
+
 ## Decision
 
-File each bug or task in the repository responsible for it. Use the central planning repository for Initiatives, Epics, and Stories. Individual issues link to their planning parents as sub-issues, including across repositories. Organization Projects bring the issues together.
+File each bug or task in the repository responsible for it. Keep Initiatives, which track broad goals, in the shared planning repository. Keep Epics, which group related work, there as well. Keep Stories, which describe user-facing outcomes, in the same repository. Link each individual issue to its larger planning item as a GitHub sub-issue, including across repositories. [Organization Projects](0030-work-tracking-uses-github-issues-and-projects.md) bring the issues together.
 
 The repository for project management supplies shared tools and workflows. Its issue queue tracks work on those tools and workflows.
 

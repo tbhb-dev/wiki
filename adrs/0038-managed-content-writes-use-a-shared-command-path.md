@@ -11,14 +11,16 @@ decided: "2026-11-22"
 
 ## Context
 
-Issue, comment, Project, and pull request writes need a common place to enforce content rules and record what changed.
+Issues, comments, [Project](0030-work-tracking-uses-github-issues-and-projects.md) entries, and pull requests need a common way to check proposed writes and record what changed.
+
+The shared path governs the content that management commands write to GitHub and leaves workflow approvals to the rules for each kind of work.
 
 ## Decision
 
-Each kind of service record has a template and a managed command. Group the templates by kind in a directory at the repository root. Commands render from those files. Use the files to generate or check issue forms, and document the procedures in the runbooks.
+Each kind of [service record](0033-service-workflows-run-on-github-issues.md) has a template and a managed command that enforces its content rules. Group templates by kind in a directory at the repository root. Commands render text from those files. Use the files to generate or check GitHub issue forms. Document the procedures in runbooks, the guides for carrying out routine work.
 
-The service and project management plugins use `tbhbdev.content` for GitHub writes. The module checks the exact text it renders, then writes the issue metadata and relationships and records the operation. These checks include gitleaks, quotation detection, Vale, and validation against the schema for that kind of record. A finding refuses the write and identifies the problem for the author.
+The service and project management command extensions share the `tbhbdev.content` module for GitHub writes. It checks the exact rendered text. Gitleaks scans for secrets. Vale checks prose rules. The module detects quotations. It validates the record against its [schema](0039-content-must-pass-its-cue-schema.md). Any finding stops the write and tells the author why. On success, the module writes issue fields and links. It logs the operation.
 
 ## Consequences
 
-As the managed commands become available, the agent hooks and write permissions direct issue, comment, and Project mutations through them. Both plugins use the same write checks, and authors revise refused content before trying again.
+As managed commands become available, agent hooks, the checks that run before actions, and write permissions route issue, comment, and Project changes through them. Both extensions use the same checks. Authors revise refused content before trying again.
