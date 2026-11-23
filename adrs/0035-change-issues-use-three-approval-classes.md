@@ -19,7 +19,7 @@ The Change workflow governs how to document a change and when it needs approval 
 
 Create a Change issue to track work proposed in a [Request](0034-operator-and-agent-requests-use-github-issues.md). A Standard Change follows a repeatable procedure with advance approval. A Normal Change needs approval before the work starts. An Emergency Change can proceed immediately and receives review afterward.
 
-Use the template for that approval class. Record the plan, the risk, and how to undo the change. For a Normal Change, record the approver. After the change, add evidence of the work and how you verified it.
+Use the template for that approval class. Record the plan, the risk, and how to undo the change. For a Normal Change, record the approver. The approver is the responsible role for reversible changes within its authority, the coordinator for changes that cross roles, or the operator for reserved matters. After the change, add evidence of the work and how you verified it.
 
 ## Consequences
 

@@ -17,7 +17,7 @@ This rule covers formats and checks for reviews and pull request descriptions an
 
 ## Decision
 
-[Project management](0031-work-issues-live-in-the-repositories-responsible-for-them.md) maintains the review submission templates and format checks in [`tbhbdev.content`](0038-managed-content-writes-use-a-shared-command-path.md). Record the verdict, the exact commit reviewed, and the review tier, a numbered level from 1 to 3.
+[Project management](0031-work-issues-live-in-the-repositories-responsible-for-them.md) maintains the review submission templates and format checks in [`tbhbdev.content`](0038-managed-content-writes-use-a-shared-command-path.md). Record the verdict, the exact commit reviewed, and the review tier, a numbered level from 0 to 2.
 
 Mark findings that prevent a passing review with `BLOCK`. Mark deferred maintenance work with `TECH-DEBT`. Mark deferred security work with `SECURITY-DEBT`.
 
