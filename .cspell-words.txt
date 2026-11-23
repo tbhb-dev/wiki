@@ -52,6 +52,7 @@ shellcheck
 shfmt
 srcs
 starlark
+Structurizr
 subdirs
 tailnet
 tbhb
@@ -63,6 +64,7 @@ tombi
 toplevel
 tricolon
 tskey
+unbuilt
 uncomparables
 unkeyed
 unmatch
