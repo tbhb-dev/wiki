@@ -71,6 +71,8 @@ The shared rule bars tables, HTML blocks, block quotes, extra headings, thematic
 
 Floors are low or absent. A forced section produces filler text, so only sections that give the type its meaning need text.
 
+A Task always has a parent. It requires a Verification section. A Task may carry a Context section of up to 60 words once the pm role changes the Task schema (proposed). Until then, the Task schema refuses a Context section.
+
 ## Refusals and the guide
 
 `cue vet --all-errors` returns every finding in one pass. The formatter maps each finding's path to a section, a rule, a limit, the actual value, and the hint. When any other finding exists, it drops the block-order finding, because a failing block disappears from the derived order and adds noise. The guide generator reads the same schema, so the two can't disagree. Both are new and unverified until built.
