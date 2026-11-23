@@ -22,3 +22,5 @@ If an update runs a command with Renovate's access token, approval also requires
 ## Consequences
 
 The approver handles successful CI notifications until a queue worker, a service that processes queued work, takes over automated approval. GitHub performs the merge once the requirements are met. The release cooldown adds no waiting period after approval. Disabling automerge in the preset shared by repositories restores a separate merge step.
+
+The planned title checker adds a required input to `conclusion` on `pull_request` events `opened`, `edited`, `synchronize`, and `reopened`. The ruleset uses `conclusion` to block GitHub auto-merge and the merge button on a failed, skipped, or missing title result. [Commit types and scopes design](../designs/commit-conventions/D-checker.md#required-title-check)
