@@ -17,10 +17,10 @@ This rule covers issue creation and transfer within a repository pair and leaves
 
 ## Decision
 
-Open the issue in the public repository when its text can be public. Use the paired private repository when the text needs details barred from publication. At runtime, the [project management commands](0038-managed-content-writes-use-a-shared-command-path.md) find the counterpart from the organization's rules for naming repository pairs. They check the exact text GitHub would receive before a public write. If the check finds a private detail, the commands refuse the public destination. They offer the private destination for that finding. If the check finds a secret such as a credential, the commands refuse the write.
+Open the issue in the public repository when its text can be public. Use the paired private repository when the text needs details barred from publication. The [project management commands](0038-managed-content-writes-use-a-shared-command-path.md) find counterparts at runtime using the organization's rules for naming repository pairs and scan the exact text GitHub would receive before a public write. If they find a private detail, they offer only the private destination. They refuse writes containing secrets such as credentials.
 
-Use GitHub's built-in issue transfer to move an existing issue between the repositories. Run the same scan first. Keep the author's text intact.
+Run the same scan first. Keep the author's text intact. Use GitHub's built-in transfer from public to private. For private to public, open a new public issue with the scanned text, link the old issue to it, and close the old issue.
 
 ## Consequences
 
-Public work remains visible by default. A scan result explains why the public destination is unavailable. Each item has one issue across the pair.
+Public work remains visible by default. A scan result explains why the public destination is unavailable. Each item has one open issue across the pair.

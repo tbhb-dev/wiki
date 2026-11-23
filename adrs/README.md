@@ -40,7 +40,7 @@ Each record is `adrs/NNNN-<slug>.md`: the next free number, zero-padded to four 
 Add each new record's entry at the end of this list, as `[title](NNNN-slug.md)` and the record's description. When two pull requests add a record at once, the later one rebases and takes the next number.
 
 - [0030. Work tracking uses GitHub Issues and Projects](0030-work-tracking-uses-github-issues-and-projects.md). GitHub Issues hold backlog items from intake onward, and organization Projects show their priority and status.
-- [0031. Work issues live in the repositories responsible for them](0031-work-issues-live-in-the-repositories-responsible-for-them.md). Repository issues hold local work, and a central planning repository holds Initiatives, Epics, and Stories.
+- [0031. Work issues live in the repositories responsible for them](0031-work-issues-live-in-the-repositories-responsible-for-them.md). Responsible repositories hold local work and Features, the unit of user-visible work. A central planning repository holds Initiatives and Epics.
 - [0032. Issues use the public repository when their text can be public](0032-issues-use-the-public-repository-when-their-text-can-be-public.md). For a public and private repository pair, issue text determines which repository receives the issue.
 - [0033. Service workflows run on GitHub issues](0033-service-workflows-run-on-github-issues.md). Service workflows use issues, while reviewed pull requests preserve final reports and configuration records.
 - [0034. Operator and agent requests use GitHub issues](0034-operator-and-agent-requests-use-github-issues.md). Requests make asks durable and use the Handler field, area, and suggested capabilities to route them.
