@@ -55,4 +55,4 @@ Add each new record's entry at the end of this list, as `[title](NNNN-slug.md)` 
 - [Merge commits record the merger](0014-merge-commits-record-the-merger.md) — A Merged-by line in the commit message identifies who merged the pull request.
 - [The review worker runs as a restricted Unix service](0015-the-review-worker-runs-as-a-restricted-unix-service.md) — The review and merge worker uses a dedicated Unix service identity and existing GitHub Apps for writes.
 - [The review worker can check GitHub every 15 minutes](0016-the-review-worker-can-check-github-every-15-minutes.md) — The review and merge worker can use a periodic GitHub read to recover missed events.
-- [Automated review can approve delegated permission increases](0017-automated-review-can-approve-delegated-permission-increases.md) — Automated review may approve routine permission increases within the limits set by deploy policy.
+- [Automated review can approve delegated permission increases](0017-automated-review-can-approve-delegated-permission-increases.md) — Automated review may approve permission increases for narrow standing allow rules under deploy policy.
