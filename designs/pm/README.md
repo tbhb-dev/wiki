@@ -123,4 +123,5 @@ A Chore links to its parent as a sub-issue, and a Defect links to a Problem or a
 - [D. Issue writing](D-issue-writing.md) gives the writing rules for every issue and the content checks that enforce them.
 - [E. Tracker import](E-import.md) says how the imports role refines and vets staged files before creating issues.
 - [F. Refinement runs](F-refinement-runs.md) gives the run brief, the batch review checklist, and the failure modes of refinement.
+- [G. Issue writing rubric](G-issue-writing-rubric.md) gives pass and fail tests for each item.
 - A private appendix covers the private specifics for this design.
