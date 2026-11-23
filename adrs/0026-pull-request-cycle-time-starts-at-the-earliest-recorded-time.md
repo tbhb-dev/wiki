@@ -15,7 +15,7 @@ Pull request cycle time measures elapsed time from when work began. Work can sta
 
 ## Decision
 
-Cycle time starts at the earliest candidate timestamp. The pull request's earliest commit time is always a candidate. A `started_at` timestamp records when an agent run began. It can be a candidate when it appears in the pull request's commits or body. Only `Generated-by` and `Assisted-by` [commit identity trailers](https://github.com/tbhb-dev/rules/blob/main/docs/reference/commit-identity.md) can supply these candidates. Ignore `started_at` on every other trailer. The start label is `started_at` or `commit`, according to the source of the earliest timestamp. Cycle time ends at merge or at closure without merge. Metrics report closure without merge as a separate state.
+Cycle time starts at the earliest candidate timestamp. Commit time means committer date, so rebased commits count from their rebase time. The earliest committer date among the pull request's commits is always a candidate. A `started_at` timestamp records when an agent run began. Only `Generated-by` and `Assisted-by` [commit identity trailers](https://github.com/tbhb-dev/rules/blob/main/docs/reference/commit-identity.md) in the pull request's commits or body can supply `started_at` candidates. Label the start `started_at` when the earliest trailer candidate precedes or equals the earliest committer date. Otherwise use `commit`. Cycle time ends at merge or at closure without merge. Metrics report closure without merge as a separate state.
 
 ## Consequences
 
