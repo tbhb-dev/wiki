@@ -52,8 +52,8 @@ An Incident cites its Problem in a body line, and the Problem lists the Incident
 | Problem status | Org issue field | Investigating, Known error, Verifying, Resolved, Accepted | See transitions |
 | Source | Body metadata | Incident, Recurrence, Check, Review, Import | The open verb, once |
 | Category | Body metadata | The existing category list | The open verb, or the importer from the candidate list |
-| Owner | `role:<name>` label | One agent role from the list sm keeps | Refinement |
-| Priority | pm's Project field | Expedite, Standard, Intangible | Refinement weighs impact and recurrence |
+| Owner | `role:<name>` label | One role from the live label list, which the create verb checks | Refinement |
+| Priority | Project field | Expedite, Standard, Intangible | A verb, with a work note, after refinement weighs impact and recurrence |
 | Area | `area:<repo>` label | The affected repository | The open verb, or the importer as the migration maps it |
 
 Problem status stays apart from pm's Status, which only pm's sync job writes from GitHub state. A state label would let two states coexist, and body metadata would make each move edit the body and rerun the content check.
@@ -126,13 +126,13 @@ Summary, Related incidents, and Next step keep their names.
 
 ## Refinement
 
-The wiki lacks a pm refinement design at this head, so this section defines only the Problem's ready check. It follows pm's hierarchy in [the pm design](../pm/README.md): a Defect or Chore links to its parent as a sub-issue.
+This section defines the Problem's ready check. The shared refinement record lives in [the pm design](../pm/README.md), and a Defect or Chore links to its parent as a sub-issue under that hierarchy.
 
 A Problem is ready for investigation when it meets four conditions:
 
 - **Scope:** one sentence that states the symptoms and the hosts or repositories in scope.
 - **Evidence:** at least one dated Incident, occurrence, or failing check.
-- **Owner:** one `role:<name>` label.
+- **Owner:** one `role:<name>` label from the live list.
 - **Next step:** one action with a time box. A step too large for that line becomes a Spike sub-issue.
 
 Refinement of a staged Defect has three outcomes. It stays a Defect, it becomes the child of an existing Problem, or it becomes a new Problem. Items that merely look alike link as Related until evidence shows one cause.
