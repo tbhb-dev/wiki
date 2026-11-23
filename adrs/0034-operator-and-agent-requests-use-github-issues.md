@@ -1,6 +1,6 @@
 ---
 type: Decision Record
-title: Operator and agent requests use GitHub issues
+title: 0034. Operator and agent requests use GitHub issues
 description: Requests make asks durable and use the Handler field, area, and suggested capabilities to route them.
 tags: [service-management, requests, routing]
 status: stable
@@ -15,7 +15,7 @@ generated:
     at: "2026-11-23T02:46:10Z"
 ---
 
-# Operator and agent requests use GitHub issues
+# 0034. Operator and agent requests use GitHub issues
 
 ## Context
 

@@ -1,6 +1,6 @@
 ---
 type: Decision Record
-title: Content must pass its CUE schema
+title: 0039. Content must pass its CUE schema
 description: CUE validates normalized content and metadata, and the shared content module handles a named list of supplemental checks.
 tags: [content, cue, validation]
 status: stable
@@ -15,7 +15,7 @@ generated:
     at: "2026-11-23T02:46:10Z"
 ---
 
-# Content must pass its CUE schema
+# 0039. Content must pass its CUE schema
 
 ## Context
 

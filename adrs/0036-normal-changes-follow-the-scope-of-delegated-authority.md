@@ -1,6 +1,6 @@
 ---
 type: Decision Record
-title: Normal Changes follow the scope of delegated authority
+title: 0036. Normal Changes follow the scope of delegated authority
 description: The responsible role, the coordinator, or the operator handles a Normal Change according to its scope and the authority it requires.
 tags: [service-management, changes, approvals]
 status: stable
@@ -15,7 +15,7 @@ generated:
     at: "2026-11-23T02:46:10Z"
 ---
 
-# Normal Changes follow the scope of delegated authority
+# 0036. Normal Changes follow the scope of delegated authority
 
 ## Context
 

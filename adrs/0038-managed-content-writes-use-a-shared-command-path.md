@@ -1,6 +1,6 @@
 ---
 type: Decision Record
-title: Managed content writes use a shared command path
+title: 0038. Managed content writes use a shared command path
 description: Service and project management commands use one content module for templates, validation, and GitHub writes.
 tags: [content, service-management, projects]
 status: stable
@@ -15,7 +15,7 @@ generated:
     at: "2026-11-23T02:46:10Z"
 ---
 
-# Managed content writes use a shared command path
+# 0038. Managed content writes use a shared command path
 
 ## Context
 

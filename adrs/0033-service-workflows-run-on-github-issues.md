@@ -1,6 +1,6 @@
 ---
 type: Decision Record
-title: Service workflows run on GitHub issues
+title: 0033. Service workflows run on GitHub issues
 description: Service workflows use issues, while reviewed pull requests preserve final reports and configuration records.
 tags: [service-management, issues, records]
 status: stable
@@ -15,7 +15,7 @@ generated:
     at: "2026-11-23T02:46:10Z"
 ---
 
-# Service workflows run on GitHub issues
+# 0033. Service workflows run on GitHub issues
 
 ## Context
 

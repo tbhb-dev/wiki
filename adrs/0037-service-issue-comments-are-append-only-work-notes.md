@@ -1,6 +1,6 @@
 ---
 type: Decision Record
-title: Service issue comments are append-only work notes
+title: 0037. Service issue comments are append-only work notes
 description: Structured work notes record updates, evidence, and state transitions on service issues.
 tags: [service-management, work-notes, issues]
 status: stable
@@ -15,7 +15,7 @@ generated:
     at: "2026-11-23T02:46:10Z"
 ---
 
-# Service issue comments are append-only work notes
+# 0037. Service issue comments are append-only work notes
 
 ## Context
 

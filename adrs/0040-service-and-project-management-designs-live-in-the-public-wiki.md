@@ -1,6 +1,6 @@
 ---
 type: Decision Record
-title: Service and project management designs live in the public wiki
+title: 0040. Service and project management designs live in the public wiki
 description: The public wiki is the home for the service-management and project-management designs.
 tags: [designs, service-management, projects]
 status: stable
@@ -15,7 +15,7 @@ generated:
     at: "2026-11-23T02:46:10Z"
 ---
 
-# Service and project management designs live in the public wiki
+# 0040. Service and project management designs live in the public wiki
 
 ## Context
 
