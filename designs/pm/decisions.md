@@ -24,11 +24,39 @@ Back to [the design](README.md).
 
 ## Open
 
-None.
+### D8. Should refinement send questions of operator intent as one approval Request per batch?
+
+- **Recommendation:** yes. Each batch opens at most one Request that lists each issue with its question, and one comment answers them all.
+- **Why:** an import of about 700 issues could otherwise send the operator dozens of separate questions, and the operator already answers Requests in one known place.
+- **If yes:** refinement links each Needs info item to the batch Request, and an `sm` run copies each answer onto its issue.
+- **If no:** each question goes to the operator as a comment on its own issue, which spreads the questions across many notifications.
+- **Reversible:** yes, by changing the refinement brief.
+
+### D9. Do incidents skip refinement?
+
+- **Recommendation:** yes. Response to an incident starts at once, and the problem record and each fix that follow it go through refinement.
+- **Why:** waiting for a refinement run would delay the response, while the later fix work gains from the gate like any other item.
+- **If yes:** an incident record never waits on a refinement record. Refinement begins with the problem record.
+- **If no:** each incident waits for a refinement run first, which adds the length of one run to every response.
+- **Reversible:** yes, by changing the exempt list in the refine verb.
 
 ## Decided
 
-The operator's records behind D1 to D5 are private notes. Each entry below cites its record by title, with the date, the rule, and the undo path, so a reviewer can judge it without the note. The design relies on D1 to D4 as requirements. D5 only places the design.
+The operator's records behind D1 to D6 are private notes. Each entry below cites its record by title, with the date, the rule, and the undo path, so a reviewer can judge it without the note. The design relies on D1 to D4 and D6 as requirements. D5 only places the design.
+
+### D7. How does an item become Ready while only the sync job writes Status?
+
+- **Decided:** 2026-11-22, by the pm role.
+- **Rule:** the sync job keeps sole write access to every Status value. The refine verb writes a refinement record and a refinement label, and the sync job shows Ready only when a current record says ready and its batch passed review, as [C. Refinement](C-refinement.md) describes.
+- **Undo:** let the refine verb write the Ready value itself, which needs a change to D3. Two-way door.
+- **Record:** the pull request that adds C-refinement.md to this design.
+
+### D6. Must issues pass refinement before work starts?
+
+- **Decided:** 2026-11-22, by the operator through coordination.
+- **Rule:** every issue and every service request passes refinement against a Definition of Ready before it's ready to work, and the `sm` role applies it to service requests. Imported issues enter as not yet ready and pass refinement before work.
+- **Undo:** remove the refinement condition from the sync job and the workflow. Two-way door.
+- **Record:** the operator's refinement ruling, relayed by coordination.
 
 ### D5. Where do the pm and IT service management designs go?
 

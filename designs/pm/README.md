@@ -6,7 +6,7 @@ tags: [pm, issues, projects, content]
 status: draft
 owner: pm
 updated: "2026-11-22"
-decisions_open: 0
+decisions_open: 2
 generated:
   - role: generated
     harness: claude-code:2.1.330
@@ -24,7 +24,7 @@ generated:
 
 | Status | Owner | Updated | Needs from the operator |
 | --- | --- | --- | --- |
-| Draft | pm | 2026-11-22 | Nothing. Read the schemas beside [the content model](A-content-model.md). |
+| Draft | pm | 2026-11-22 | 2 open decisions in [decisions.md](decisions.md), about 2 minutes |
 
 ## Summary
 
@@ -44,6 +44,8 @@ Building the design yields these components, each with one role as owner.
 - **The verbs** (`tbhbdev pm`, owner pm) cover create, comment, close, link, and add to Project, on top of the kernel.
 - **The org Project** (owner pm, with the administrator creating the App) has Priority, Status, and Handler fields and a basic backlog view. Only a sync job writes Status, from GitHub state.
 - **The central work repository** (private, owner pm) stores Initiatives and Epics. Bugs and tasks stay with the repositories that contain their code.
+
+Each issue and service request passes refinement against a Definition of Ready before work starts, and the tracker import passes through the same gate. [C. Refinement](C-refinement.md) gives the checks and the procedure.
 
 ## How it works
 
@@ -97,7 +99,8 @@ An issue goes in the repository responsible for the work, or in its private twin
 
 ## Appendices
 
-- [Decisions](decisions.md): 0 open, then the decided record.
+- [Decisions](decisions.md): 2 open, then the decided record.
 - [A. Content model](A-content-model.md): what the block model counts and why the schemas have this structure.
 - [B. Routing and taxonomy](B-routing-and-taxonomy.md): routing, labels, and fields.
+- [C. Refinement](C-refinement.md): the Definition of Ready and the procedure, including the import gate.
 - A private appendix covers the private specifics for this design.
