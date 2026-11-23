@@ -14,7 +14,9 @@ buildifier
 buildmeta
 bxox
 cgnat
+cmdb
 complexipy
+cutover
 distroless
 frontmatter
 genrule
@@ -23,8 +25,11 @@ headscale
 healthz
 heapdump
 hermeticity
+hotfixes
 hprof
 hskey
+ITIL
+itsm
 keepalive
 lockfiles
 mcpjson
@@ -53,6 +58,7 @@ shfmt
 srcs
 starlark
 subdirs
+subfolders
 tailnet
 tbhb
 tbhbdev
