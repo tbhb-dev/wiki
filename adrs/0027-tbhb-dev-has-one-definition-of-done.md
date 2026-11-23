@@ -11,11 +11,11 @@ decided: "2026-11-22"
 
 ## Context
 
-Repositories need a common standard for finished work. Each issue also needs criteria that describe what the particular change must deliver.
+tbhb-dev repositories need a common standard for completed work, called the definition of done. Each issue needs acceptance criteria that describe what its change must deliver. The rule covers the shared completion standard and the form of acceptance criteria, leaving the specific criteria to each issue.
 
 ## Decision
 
-The rules repository owns one definition of done and syncs it to every repository. Repositories may extend it with local requirements. Issue templates include an acceptance criteria section, and the CUE schema for each issue type enforces its structure, formatting and maximum number of criteria.
+The [tbhb-dev/rules repository](https://github.com/tbhb-dev/rules/blob/main/README.md) maintains one definition of done. It syncs the standard to every tbhb-dev repository. Repositories may extend it with local requirements. Issue templates provide a section for acceptance criteria. CUE is a language for defining data constraints. A CUE schema for each issue type enforces the section's structure, formatting and maximum number of criteria.
 
 ## Consequences
 
