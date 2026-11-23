@@ -13,6 +13,13 @@ generated:
     surface: cli
     session: sha-256-64:50691a4df0360088
     at: "2026-11-22T14:11:04Z"
+  - role: generated
+    harness: claude-code:2.1.330
+    model: anthropic:claude-opus-5-5
+    effort: high
+    surface: sdk-cli
+    session: sha-256-64:1a832a02df3ab163
+    at: "2026-11-23T08:02:35Z"
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
@@ -35,7 +42,7 @@ Three earlier private designs, and one related one, shaped this design. They're 
 - Build the payload from an allowlist, and treat alerts as notice, never permission.
 - Keep a second notification channel for every rule, and send the relay-is-down alert only to that channel.
 
-**Drops:** the edge platform, no replay, and filters that work only for GitHub. The gateway can filter alerts on `scope` from day one.
+**Drops:** the edge platform, no replay, and filters that work only for GitHub. The gateway can filter alerts on `repository`, which holds the alert's `kind/id`, from day one.
 
 ## Relay replay
 

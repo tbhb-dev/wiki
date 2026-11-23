@@ -13,6 +13,13 @@ generated:
     surface: cli
     session: sha-256-64:2220073242f73359
     at: "2026-11-22T23:11:10Z"
+  - role: generated
+    harness: claude-code:2.1.330
+    model: anthropic:claude-opus-5-5
+    effort: high
+    surface: sdk-cli
+    session: sha-256-64:1a832a02df3ab163
+    at: "2026-11-23T08:02:35Z"
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
@@ -31,7 +38,7 @@ None.
 ### D17. May the gateway hold a credential that reads org Project fields, so rules can match a Request's Handler?
 
 - **Decided:** 2026-11-23, by the operator.
-- **Rule:** no, not now. Rules match labels, which every issue event already carries, and sm mirrors whatever a route needs onto a label it owns, such as `role:<name>`. The operator reassesses later.
+- **Rule:** no, not now. Rules match labels, which every issue event already carries, and sm mirrors whatever a route needs onto a label it owns, such as `area:<repo>`, since the agent-roles design routes Requests on `area:<repo>` and `cap:<name>` labels ([agent roles](../agent-roles/README.md)), unverified with the label owner. The operator reassesses later.
 - **Why:** Handler is an org Project field in the pm design, not an issue label or body field. Issue events don't carry Project field values, so matching on it needs the `projects_v2_item` event and a read of the field through GitHub's API. That needs a grant the redelivery App of [D4](#d4-may-the-gateway-hold-a-github-credential-to-request-redelivery-of-failed-webhooks) doesn't have.
 - **Undo:** two-way door. Granting the App read access to org Projects, adding `projects_v2_item` to the org webhook, and an enrichment step of about 150 lines (an estimate no build has measured) add a `project_field` filter to rules.
 - **Record:** the operator's decision of 2026-11-23, written into this design by the pull request that adds it.
