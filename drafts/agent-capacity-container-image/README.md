@@ -1,3 +1,21 @@
+---
+type: Design Draft
+title: Agent capacity container image
+description: A draft design for packaging the agent capacity collector as a container image.
+tags: [drafts, containers, observability]
+status: draft
+owner: unassigned
+updated: "2026-11-11"
+generated:
+  - role: generated
+    harness: codex:0.164.0
+    model: openai:gpt-6.1-sol
+    effort: high
+    surface: exec
+    session: sha-256-64:6374011796979612
+    at: "2026-11-12T03:57:51Z"
+---
+
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 

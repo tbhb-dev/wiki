@@ -1,3 +1,19 @@
+---
+type: Content Template
+title: Runbook template
+description: The skeleton for a runbook.
+tags: [runbooks, template]
+status: draft
+generated:
+  - role: generated
+    harness: claude-code:2.1.330
+    model: anthropic:claude-sonnet-5-5
+    effort: medium
+    surface: cli
+    session: sha-256-64:50691a4df0360088
+    at: "2026-11-22T06:44:57Z"
+---
+
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
@@ -14,13 +30,16 @@ title: <The procedure in plain words, at most 8 words>
 description: <One sentence: what this does and who runs it.>
 owner: <durable role, never a session>
 updated: "<YYYY-MM-DD>"
-last_verified: "<YYYY-MM-DD, or never>"   # the last date someone ran it against the live host or tool; never means nobody has
+tags: [runbooks, <topic>]
+status: draft
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
 # <Title>
+
+Last verified: <YYYY-MM-DD, or never>. This is the last date someone ran it against the live host or tool, and never means nobody has.
 
 ## Purpose
 

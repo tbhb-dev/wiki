@@ -1,3 +1,19 @@
+---
+type: Content Template
+title: Model roster entry template
+description: The skeleton for a model roster entry.
+tags: [models, template]
+status: draft
+generated:
+  - role: generated
+    harness: claude-code:2.1.322
+    model: anthropic:claude-sonnet-5-5
+    effort: medium
+    surface: cli
+    session: sha-256-64:50691a4df0360088
+    at: "2026-11-13T03:58:50Z"
+---
+
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 

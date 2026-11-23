@@ -5,6 +5,22 @@ description: The open and decided questions of the service-management records de
 tags: [service-management, decisions, design]
 status: draft
 parent: README.md
+generated:
+  - role: generated
+    harness: claude-code:2.1.330
+    model: anthropic:claude-sonnet-5-5
+    effort: medium
+    surface: cli
+    session: sha-256-64:933656c1cea36ed5
+    subagent: sha-256-64:ea6e32cf22cbcb34
+    at: "2026-11-22T23:15:39Z"
+  - role: generated
+    harness: claude-code:2.1.330
+    model: anthropic:claude-sonnet-5-5
+    effort: medium
+    surface: cli
+    session: sha-256-64:933656c1cea36ed5
+    at: "2026-11-22T23:15:39Z"
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->

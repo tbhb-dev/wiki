@@ -5,6 +5,14 @@ description: What earlier designs offer the event gateway, and which of their co
 tags: [event-gateway, alternatives, design]
 status: draft
 parent: README.md
+generated:
+  - role: assisted
+    harness: claude-code:2.1.330
+    model: anthropic:claude-sonnet-5-5
+    effort: medium
+    surface: cli
+    session: sha-256-64:50691a4df0360088
+    at: "2026-11-22T14:11:04Z"
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->

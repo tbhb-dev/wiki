@@ -1,3 +1,19 @@
+---
+type: Writing Checklist
+title: Design writer checklist
+description: The rules a design's author follows before asking for review.
+tags: [designs, writing, checklist]
+status: draft
+generated:
+  - role: generated
+    harness: claude-code:2.1.330
+    model: anthropic:claude-sonnet-5-5
+    effort: medium
+    surface: cli
+    session: sha-256-64:50691a4df0360088
+    at: "2026-11-22T05:45:15Z"
+---
+
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 

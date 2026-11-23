@@ -4,13 +4,24 @@ title: Write and review a design
 description: How a design goes from intake to tracked work, run by the design owner with an author, two reviewers, and the operator.
 owner: design owner
 updated: "2026-11-22"
-last_verified: "never"
+tags: [runbooks, designs, process]
+status: draft
+generated:
+  - role: generated
+    harness: claude-code:2.1.330
+    model: anthropic:claude-sonnet-5-5
+    effort: medium
+    surface: cli
+    session: sha-256-64:50691a4df0360088
+    at: "2026-11-22T06:44:57Z"
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
 # Write and review a design
+
+Last verified: never.
 
 ## Purpose
 

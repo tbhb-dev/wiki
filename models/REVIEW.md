@@ -1,3 +1,27 @@
+---
+type: Review Checklist
+title: Model roster review checklist
+description: What a reviewer checks in a model roster change.
+tags: [models, review, checklist]
+status: draft
+generated:
+  - role: generated
+    harness: claude-code:2.1.322
+    model: anthropic:claude-opus-5-5
+    effort: medium
+    surface: cli
+    session: sha-256-64:50691a4df0360088
+    subagent: sha-256-64:5b7fc139aba28d0b
+    at: "2026-11-13T03:40:01Z"
+  - role: generated
+    harness: claude-code:2.1.322
+    model: anthropic:claude-sonnet-5-5
+    effort: medium
+    surface: cli
+    session: sha-256-64:50691a4df0360088
+    at: "2026-11-13T03:40:01Z"
+---
+
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
