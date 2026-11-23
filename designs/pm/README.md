@@ -5,7 +5,7 @@ description: How issues, one org Project, and a checked content kernel give the 
 tags: [pm, issues, projects, content]
 status: draft
 owner: pm
-updated: "2026-11-22"
+updated: "2026-11-23"
 decisions_open: 0
 generated:
   - role: generated
@@ -24,11 +24,11 @@ generated:
 
 | Status | Owner | Updated | Needs from the operator |
 | --- | --- | --- | --- |
-| Draft | pm | 2026-11-22 | Nothing. Read the schemas beside [the content model](A-content-model.md). |
+| Draft | pm | 2026-11-23 | Nothing. Read the schemas beside [the content model](A-content-model.md). |
 
 ## Summary
 
-Work items are GitHub issues in the repository responsible for the work, and one org Project gathers them with Priority and Status fields. The pm repository supplies the templates, the schemas, and the `tbhbdev pm` verbs.
+Work items are GitHub issues in the repository responsible for the work, and one org Project gathers them and reads their org issue fields, such as Priority and Status. The pm repository supplies the templates, the schemas, and the `tbhbdev pm` verbs.
 
 Every write goes through one content kernel in the tools repository. The kernel renders the text and normalizes it into a block model. It validates the model against a schema for the type, then scans the text for secrets before any write. A refusal gives the section, the rule, the limit, the actual value, and a hint.
 
@@ -42,8 +42,8 @@ Building the design yields these components, each with one role as owner.
 - **The schemas** (`schemas/` in the pm repository, owner pm) use the Configure Unify Execute (CUE) language. One file per variant, plus a shared core, a taxonomy, and an issue base, define what valid text is.
 - **The templates** (`templates/` in the pm repository, owner pm) give starting text for one variant each. Constraints belong to the schemas.
 - **The verbs** (`tbhbdev pm`, owner pm) cover create, comment, close, link, and add to Project, on top of the kernel.
-- **The org Project** (owner pm, with the administrator creating the App) has Priority, Status, and Handler fields and a basic backlog view. Only a sync job writes Status, from GitHub state.
-- **The central work repository** (private, owner pm) stores Initiatives and Epics. Bugs and tasks stay with the repositories that contain their code.
+- **The org Project** (owner pm, with the administrator creating the App) reads the org issue fields and has a basic backlog view. A view over Handler serves as the operator's queue.
+- **The central work repository** (public, owner pm) stores Initiatives and Epics, and its private twin holds their private detail. Bugs and tasks stay with the repositories that contain their code.
 
 ## How it works
 
@@ -63,15 +63,23 @@ The schema is the home for rules about text shape. The few CUE can't express sta
 
 ### Taxonomy
 
-- **Handler** (Operator or Agent) applies to Requests only.
+- **Priority**, **Severity**, **Work type**, and **Handler** are org issue fields, and the Project reads them. **Source** and **Status** are planned as org issue fields too.
+- **Priority** takes `Expedite`, `Standard`, or `Intangible`, and it's never a label.
 - **Severity** runs SEV1 to SEV3 and applies to Defects.
-- **Priority** is a Project field (`Expedite`, `Standard`, or `Intangible`) and never a label.
-- **Status** comes only from the sync job.
-- **`area:<repo>`** labels get a live check against the repository list. **`role:<name>`** labels get a check against a list kept in the private repository for IT service management.
+- **Handler** takes Operator or Agent and applies to Requests only.
+- **Status** has one writer per value. The sync job writes the values that follow GitHub state. The refinement agent writes the readiness values on open issues, such as Needs info and Ready, and the refinement appendix lists them.
+- **Labels** take the form `family/value`, such as `area/<repo>` and `role/<role>`. The tools role designs the configuration that lists the allowed values, and the kernel checks each label against it.
+- **Owning role** has no field. The repository implies it, and a `role/<role>` label marks an exception.
 
 ### Routing
 
-An issue goes in the repository responsible for the work, or in its private twin when the text needs private detail. The private-detail scan picks the twin before any write. Larger units go in the central work repository, and a Defect or Chore links to its parent as a sub-issue. The org Project gathers every item, and only people with access to a private repository see its items.
+A public issue goes in the repository responsible for the work, and its private detail goes in that repository's private twin. The private-detail scan picks the twin before any write. Larger units go in the central work repository, and their private detail goes in its private twin.
+
+An issue about an internal security topic, such as a certificate authority, credentials, keys, access control, or host exposure, always goes in a private twin. Refinement moves such an issue to the twin when someone filed it publicly.
+
+The service management role (sm) owns the Problem issue type. A Defect's parent is a Problem, an Epic, or nothing. A Problem usually parents the Defects and Chores that fix it, and an Incident links to its Problem.
+
+A child links to its parent as a sub-issue, and the Project shows the parent in its Parent issue field. The org Project gathers every item, and only people with access to a private repository see its items.
 
 ## Risks and unknowns
 
@@ -91,9 +99,9 @@ An issue goes in the repository responsible for the work, or in its private twin
 | 2 | Schemas and the normalizer, then `cue vet` wiring and the refusal formatter | A mutation test set fails each rule with a named finding | pm |
 | 3 | The `guide` generator | `tbhbdev pm guide feature` prints sections, caps, hints, and an example | pm |
 | 4 | Templates with schemas, in draft until the operator says go | Each template renders text that passes its own variant | pm |
-| 5 | Org Project with Priority, Status, and Handler, plus a backlog view | An issue added by the kernel shows its fields | pm, administrator |
+| 5 | Org Project that reads the org issue fields, plus a backlog view and a view over Handler | An issue added by the kernel shows its fields | pm, administrator |
 | 6 | First real items under an Epic in the central work repository | The items exist and pass the kernel checks | pm |
-| 7 | Sync job and tracker import | Status follows GitHub state within one run | pm |
+| 7 | Sync job and tracker import | The Status values that follow GitHub state change within one run | pm |
 
 ## Appendices
 
