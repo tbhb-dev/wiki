@@ -53,7 +53,9 @@ The schema checks the draft at creation and on edits through the kernel. For iss
 
 ### Observable results
 
-The Outcome describes the state of the system after the work. Each check states one distinct result and identifies evidence a reader can inspect, such as the output of a named check or the content at a stable path. Where the variant has both Acceptance criteria and Verification, the two sections cover different conditions.
+The Outcome describes the state of the system after the work. Initiatives, Epics, Features, and Defects list their observable results in Acceptance criteria. Chores and Tasks list them in Verification. A Spike lists its deliverables in Acceptance criteria. A Research issue uses one Verification item to confirm the report exists at the stated location.
+
+Each check states one distinct result and identifies evidence a reader can inspect, such as the output of a named check or the content at a stable path. Where the variant has both Acceptance criteria and Verification, the two sections cover different conditions.
 
 Skip bookkeeping criteria. An issue existing, a pull request merging, or a document changing tells the reader nothing about the result. Describe what the issue delivers. An observable result reads `The harvest log shows No harvests yet when it has no entries.` A Research issue's named report is the deliverable. See the [Research done check](../pm/A-content-model.md#research).
 
@@ -74,7 +76,7 @@ The title `Fix two tools check errors found in github-metrics reviews` fails spe
 
 ### No procedure
 
-Keep undo, rollback, and how-to steps out of every issue section, including Context, Outcome, and Checks. Put the undo plan in the risk and rollback text of the pull request. Put standing instructions in a runbook. A check can state what to observe and where. In a Defect, use Reproduction for observed conditions and a reference to the runbook.
+Keep undo, rollback, and how-to steps out of every issue section, including Context, Outcome, and the result sections. Put the undo plan in the risk and rollback text of the pull request. Put standing instructions in a runbook. A check can state what to observe and where. In a Defect, use Reproduction for observed conditions and a reference to the runbook.
 
 A failing Context for a fictional repository reads `Undo: delete the tunnel and remove the staged file.`
 
@@ -100,8 +102,8 @@ Text checks ignore case. For matching, the normalizer exposes prose from paragra
 
 | Check | What it flags | Level |
 | --- | --- | --- |
-| Existence-only result | In Outcome or Checks, `is` or `has been` before `written`, `merged`, `updated`, `done`, `complete`, `completed`, or `finished`. A claim that a pull request merged also fails. | Refuse |
-| Weak result | In Outcome or Checks, `exists`, `is added`, `is created`, `is implemented`, or `is documented`. A check that opens with an imperative such as `Write`, `Add`, or `Update` also warns. | Warn |
+| Existence-only result | In Outcome or the result sections, `is` or `has been` before `written`, `merged`, `updated`, `done`, `complete`, `completed`, or `finished`. A claim that a pull request merged also fails. | Refuse |
+| Weak result | In Outcome or the result sections, `exists`, `is added`, `is created`, `is implemented`, or `is documented`. A check that opens with an imperative such as `Write`, `Add`, or `Update` also warns. | Warn |
 | Vague result | `works well`, `cleaner`, `improved`, `better`, or `faster` without a measure. | Warn |
 | Semicolon | A semicolon in prose. | Refuse |
 | Missing final period | A list item without a final period. | Refuse |

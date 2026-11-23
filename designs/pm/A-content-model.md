@@ -61,10 +61,10 @@ The tools role defines the issue types, field and label values, and type-by-fiel
 
 | Variant | Total words | Notes |
 | --- | --- | --- |
-| Feature | 200 | Outcome, Checks as a task list, and optional Context and Out of scope |
+| Feature | 200 | Outcome, Acceptance criteria as a task list, and optional Context and Out of scope |
 | Chore | 150 | Maintenance with an end state and no user-visible change. Work that resumes, monitors, or operates a process falls outside this variant. A Chore requires a parent. |
 | Defect | 220 | Actual and Reproduction required |
-| Spike | 130 | A Spike is a time-boxed experiment, often a throwaway build, that answers a question to unblock a decision. The experiment yields an answer, while Research requires a written finding. Its sections include Question, Decision it unblocks, and Checks as deliverables. The shared taxonomy defines its time box. |
+| Spike | 130 | A Spike is a time-boxed experiment, often a throwaway build, that answers a question to unblock a decision. The experiment yields an answer, while Research requires a written finding. Its sections include Question, Decision it unblocks, and Acceptance criteria. The Acceptance criteria list the deliverables. The shared taxonomy defines its time box. |
 | Research | 150 | See [Research](#research) for the proposed variant. |
 | Epic | 180 | Parent optional, so an Epic can belong to an Initiative |
 | Initiative | 180 | No parent |
@@ -78,7 +78,7 @@ A Task always has a parent. It requires a Verification section. A Task may inclu
 
 Research is an investigation that delivers a written finding as a report in the research repository or its private twin. A Spike uses a time-boxed experiment to unblock a decision, while the Research deliverable is the report.
 
-Write these five required sections in order, followed by Checks. Use at most 150 visible body words across all six sections.
+Write the six required sections in the order shown. Use at most 150 visible body words across all six sections.
 
 | Section | Word cap | What it states |
 | --- | --- | --- |
@@ -87,7 +87,7 @@ Write these five required sections in order, followed by Checks. Use at most 150
 | Scope | 45 | State what the investigation covers and what it leaves out. |
 | Deliverable location | 35 | Identify the research repository by role and give the report's path pattern, without linking to a private repository. |
 | Time box | 10 | Choose a time box from the same set that Spike uses. |
-| Checks | 15 | Identify the report in one task-list item that verifies it exists at the specified path. |
+| Verification | 15 | Identify the report in one task-list item that verifies it exists at the specified path. |
 
 Set Priority and Source. The sync job sets Status. Omit Work type, Severity, and Handler. A Research issue can have an Epic or Initiative as its parent, or it can have no parent. Exclude Tasks and Chores as parents.
 

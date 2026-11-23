@@ -56,7 +56,7 @@ A refinement of one new item has no batch. Its Ready shows at once. Each week, a
 
 For the tracker import, the reviewer samples staged files and their evidence before the kernel creates issues. See [E. Tracker import](E-import.md#review-and-creation).
 
-- [ ] The reviewer reads every item in a batch of 10 or fewer. In a larger batch, it takes 10 items or a fifth at random, whichever is more, and adds each Drop, each Split, and each fix that edited the outcome or the checks.
+- [ ] The reviewer reads every item in a batch of 10 or fewer. In a larger batch, it takes 10 items or a fifth at random, whichever is more, and adds each Drop, each Split, and each fix that edited the Outcome or a result section.
 - [ ] A sampled record covers each applicable readiness check with a result and evidence that meets the [evidence rules](../issue-refinement/A-refinement-procedure.md#evidence-rules).
 - [ ] The reviewer runs at least one cited command per sampled item again, at the cited commit, and gets the same result.
 - [ ] For check 4, the reviewer repeats the searches in the [Definition of Ready](../issue-refinement/B-definition-of-ready.md#readiness-checks) and checks for completed work or duplicates that the refiner missed.
