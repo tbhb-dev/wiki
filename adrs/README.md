@@ -12,6 +12,13 @@ generated:
     surface: exec
     session: sha-256-64:4f00750704d1bb6e
     at: "2026-11-23T02:44:49Z"
+  - role: generated
+    harness: codex:0.166.0
+    model: openai:gpt-6.2-sol
+    effort: high
+    surface: exec
+    session: sha-256-64:15c30f9d922d6894
+    at: "2026-11-23T02:46:10Z"
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
@@ -68,3 +75,16 @@ Add each new record's entry at the end of this list, as `[title](NNNN-slug.md)` 
 - [tbhb-dev has one definition of done](0027-tbhb-dev-has-one-definition-of-done.md). The rules repository owns a shared definition of done and issue types define the shape of their acceptance criteria.
 - [CI status records check results](0028-ci-status-records-check-results.md). Pull request bodies, issue bodies and acceptance criteria leave CI results and CI-enforced items to the checks themselves.
 - [Wording-only follow-ups join the next needed pull request](0029-wording-only-follow-ups-join-the-next-needed-pull-request.md). A follow-up that changes wording alone joins the next needed pull request for the same work.
+- [0030. Work tracking uses GitHub Issues and Projects](0030-work-tracking-uses-github-issues-and-projects.md). GitHub Issues hold backlog items from intake onward, and organization Projects show their priority and status.
+- [0031. Work issues live in the repositories responsible for them](0031-work-issues-live-in-the-repositories-responsible-for-them.md). Responsible repositories hold local work and Features (units of user-visible work), while a central planning repository holds Initiatives and Epics.
+- [0032. Issues use the public repository when their text can be public](0032-issues-use-the-public-repository-when-their-text-can-be-public.md). For a public and private repository pair, issue text determines which repository receives the issue.
+- [0033. Service workflows run on GitHub issues](0033-service-workflows-run-on-github-issues.md). Service workflows use issues, while reviewed pull requests preserve final reports and configuration records.
+- [0034. Operator and agent requests use GitHub issues](0034-operator-and-agent-requests-use-github-issues.md). Requests make asks durable and use the Handler field, area, and suggested capabilities to route them.
+- [0035. Change issues use three approval classes](0035-change-issues-use-three-approval-classes.md). Change issues come from change Requests and follow Standard, Normal, or Emergency approval rules.
+- [0036. Normal Changes follow the scope of delegated authority](0036-normal-changes-follow-the-scope-of-delegated-authority.md). The responsible role, the coordinator, or the operator handles a Normal Change according to its scope and the authority it requires.
+- [0037. Service issue comments are append-only work notes](0037-service-issue-comments-are-append-only-work-notes.md). Structured work notes record updates, evidence, and state transitions on service issues.
+- [0038. Managed content writes use a shared command path](0038-managed-content-writes-use-a-shared-command-path.md). Service and project management commands use one content module for templates, validation, and GitHub writes.
+- [0039. Content must pass its CUE schema](0039-content-must-pass-its-cue-schema.md). CUE validates normalized content and metadata, and the shared content module handles a named list of supplemental checks.
+- [0040. Service and project management designs live in the public wiki](0040-service-and-project-management-designs-live-in-the-public-wiki.md). The public wiki is the home for the service-management and project-management designs.
+- [0041. Project management maintains architecture decision records](0041-project-management-maintains-architecture-decision-records.md). Project management maintains the format and commands for decision records, and service management handles optional approval Requests.
+- [0042. Project management defines the format for review verdicts](0042-project-management-defines-the-format-for-review-verdicts.md). Project management maintains the templates and mechanical checks for review verdicts in the shared content module.
