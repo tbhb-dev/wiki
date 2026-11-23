@@ -15,7 +15,7 @@ People must reconcile progress when separate documents hold the backlog, the lis
 
 ## Decision
 
-A GitHub issue, the record for a work item, can enter the backlog at any point, including before work can start. An organization Project, the shared GitHub board for these issues, shows their priority and status. Use the shared Priority field to show which work should come first. Record the reason for a priority change in a [work note](0037-service-issue-comments-are-append-only-work-notes.md) on a service issue, and in an issue comment on any other issue. Refine the issue when someone picks it up. Keep each fact in one authoritative place.
+A GitHub issue, the record for a work item, can enter the backlog at any point, including before work can start. An organization Project, the shared GitHub board for these issues, shows their priority and status. Use the shared Priority field to show which work should come first. Record the reason for a priority change as the [routing table in the project management design](https://github.com/tbhb-dev/wiki/blob/main/designs/pm/B-routing-and-taxonomy.md#one-home-per-fact) requires. Refine the issue when someone picks it up. Keep each fact in one authoritative place.
 
 This rule governs how to record and track work from intake onward and leaves start dates open.
 

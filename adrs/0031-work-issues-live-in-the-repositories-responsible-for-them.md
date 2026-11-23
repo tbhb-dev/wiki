@@ -1,7 +1,7 @@
 ---
 type: Decision Record
 title: 0031. Work issues live in the repositories responsible for them
-description: Responsible repositories hold local work and Features, the unit of user-visible work. A central planning repository holds Initiatives and Epics.
+description: Responsible repositories hold local work and Features (units of user-visible work), while a central planning repository holds Initiatives and Epics.
 tags: [issues, projects, planning]
 status: stable
 decided: "2026-11-22"
