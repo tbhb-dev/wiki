@@ -1,6 +1,6 @@
 ---
 type: Decision Record
-title: Work tracking uses GitHub Issues and Projects
+title: 0030. Work tracking uses GitHub Issues and Projects
 description: GitHub Issues hold backlog items from intake onward, and organization Projects show their priority and status.
 tags: [issues, projects, tracking]
 status: stable
@@ -15,7 +15,7 @@ generated:
     at: "2026-11-23T02:46:10Z"
 ---
 
-# Work tracking uses GitHub Issues and Projects
+# 0030. Work tracking uses GitHub Issues and Projects
 
 ## Context
 

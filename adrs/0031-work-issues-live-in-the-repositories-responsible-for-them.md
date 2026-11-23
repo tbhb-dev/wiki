@@ -1,6 +1,6 @@
 ---
 type: Decision Record
-title: Work issues live in the repositories responsible for them
+title: 0031. Work issues live in the repositories responsible for them
 description: Repository issues hold local work, and a central planning repository holds Initiatives, Epics, and Stories.
 tags: [issues, projects, planning]
 status: stable
@@ -15,7 +15,7 @@ generated:
     at: "2026-11-23T02:46:10Z"
 ---
 
-# Work issues live in the repositories responsible for them
+# 0031. Work issues live in the repositories responsible for them
 
 ## Context
 

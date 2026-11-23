@@ -1,6 +1,6 @@
 ---
 type: Decision Record
-title: Project management defines the format for review verdicts
+title: 0042. Project management defines the format for review verdicts
 description: Project management maintains the templates and mechanical checks for review verdicts in the shared content module.
 tags: [reviews, content, projects]
 status: stable
@@ -15,7 +15,7 @@ generated:
     at: "2026-11-23T02:46:10Z"
 ---
 
-# Project management defines the format for review verdicts
+# 0042. Project management defines the format for review verdicts
 
 ## Context
 

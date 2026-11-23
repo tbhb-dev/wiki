@@ -1,6 +1,6 @@
 ---
 type: Decision Record
-title: Project management maintains architecture decision records
+title: 0041. Project management maintains architecture decision records
 description: Project management maintains the format and commands for decision records, and service management handles optional approval Requests.
 tags: [adrs, governance, requests]
 status: stable
@@ -15,7 +15,7 @@ generated:
     at: "2026-11-23T02:46:10Z"
 ---
 
-# Project management maintains architecture decision records
+# 0041. Project management maintains architecture decision records
 
 ## Context
 

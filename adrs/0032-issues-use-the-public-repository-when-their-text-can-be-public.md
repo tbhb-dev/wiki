@@ -1,6 +1,6 @@
 ---
 type: Decision Record
-title: Issues use the public repository when their text can be public
+title: 0032. Issues use the public repository when their text can be public
 description: For a public and private repository pair, issue text determines which repository receives the issue.
 tags: [issues, privacy, routing]
 status: stable
@@ -15,7 +15,7 @@ generated:
     at: "2026-11-23T02:46:10Z"
 ---
 
-# Issues use the public repository when their text can be public
+# 0032. Issues use the public repository when their text can be public
 
 ## Context
 

@@ -1,6 +1,6 @@
 ---
 type: Decision Record
-title: Change issues use three approval classes
+title: 0035. Change issues use three approval classes
 description: Change issues come from change Requests and follow Standard, Normal, or Emergency approval rules.
 tags: [service-management, changes, approvals]
 status: stable
@@ -15,7 +15,7 @@ generated:
     at: "2026-11-23T02:46:10Z"
 ---
 
-# Change issues use three approval classes
+# 0035. Change issues use three approval classes
 
 ## Context
 
