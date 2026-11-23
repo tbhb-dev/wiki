@@ -88,8 +88,8 @@ Apply this readiness check to pm work items and Problems. Requests use their wor
 
 | Type | Where an unknown may live | Pass test |
 | --- | --- | --- |
-| Initiative | The variant lacks a scope section. See [decision D5](decisions.md#d5-where-do-open-scope-questions-go). | Resolve checkable facts before readiness. |
-| Epic | Outside the issue until a scope section is available. See [decision D5](decisions.md#d5-where-do-open-scope-questions-go). | The item answers factual questions that a read can settle. |
+| Initiative | The open scope question stays outside the issue until a scope section exists. See [decision D5](decisions.md#d5-where-do-open-scope-questions-go). | Resolve checkable facts before readiness. |
+| Epic | The open scope question stays outside the issue until a scope section exists. See [decision D5](decisions.md#d5-where-do-open-scope-questions-go). | The item answers factual questions that a read can settle. |
 | Feature | Outside the issue until resolved. | State the intended behavior and settled facts. |
 | Defect | Context can identify an unknown cause. | The issue states observed behavior as fact and identifies the cause as unknown when necessary. |
 | Chore | Resolve factual uncertainty during refinement. | State the maintenance facts directly. |
