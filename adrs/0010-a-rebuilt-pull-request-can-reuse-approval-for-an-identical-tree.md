@@ -1,7 +1,7 @@
 ---
 type: Decision Record
 title: A rebuilt pull request can reuse approval for an identical tree
-description: The review worker can approve a replacement without a new model read when the rebuilt Git tree matches the approved tree.
+description: A rebuilt pull request still needs a full-diff review at its exact head when its Git tree matches the approved tree.
 tags: [approvals, reviews, git]
 status: stable
 decided: "2026-11-12"
@@ -11,14 +11,14 @@ decided: "2026-11-12"
 
 ## Context
 
-A pull request sometimes needs rebuilding after its content already passed review. Repeating the same review by a model adds cost when the replacement contains the same files. A Git tree records the paths and contents at a commit.
+A Git tree records the paths and contents at a commit. Rebuilding a pull request can leave its tree unchanged while the base moves. The diff can therefore change even when the tree matches, so the review run reads the diff against the current base.
 
 ## Decision
 
-The review worker can approve a rebuilt pull request when its Git tree matches the earlier approved tree. Tree identity stands in for [reviewer evidence for the exact head and the independent approver’s read of the full diff](0009-the-reviews-app-posts-approvals-for-an-independent-approver.md). The [earlier verdict](0004-review-runs-publish-verdicts-on-the-pull-request.md) stays attached to the commit the reviewer read. The tree match is evidence for a new approval on the replacement’s head.
+A rebuilt pull request whose Git tree matches the approved tree still needs one review run at its exact head. The run reads the whole diff against the current base, confirms that the trees match, and may cite the [earlier verdict](0004-review-runs-publish-verdicts-on-the-pull-request.md). The earlier verdict stays attached to the commit the reviewer read. The new run gives its own verdict for the replacement’s head.
 
-At the replacement’s head, the `conclusion` check must pass, GitHub must mark every listed commit’s signature as verified, and the service must reject approval from the opener’s root identity. The worker holds the replacement if it changes the review template, which sets the required format for review results.
+The [approval checks](0009-the-reviews-app-posts-approvals-for-an-independent-approver.md) still apply at the replacement’s head. The `conclusion` check must pass, GitHub must mark every listed commit’s signature as verified, and the service must reject approval from the opener’s root identity.
 
 ## Consequences
 
-Changing only the commit identifier leaves the file tree unchanged. Revoking this authorization restores a fresh model review for rebuilt replacements.
+A re-commit adds one review run at the new head. The existing tier reviews still cover unchanged work. A tree match never replaces a review at a new head.
