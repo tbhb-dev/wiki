@@ -5,14 +5,6 @@ description: Change issues come from change Requests and follow Standard, Normal
 tags: [service-management, changes, approvals]
 status: stable
 decided: "2026-11-22"
-generated:
-  - role: generated
-    harness: codex:0.166.0
-    model: openai:gpt-6.2-sol
-    effort: high
-    surface: exec
-    session: sha-256-64:15c30f9d922d6894
-    at: "2026-11-23T02:46:10Z"
 ---
 
 # 0035. Change issues use three approval classes

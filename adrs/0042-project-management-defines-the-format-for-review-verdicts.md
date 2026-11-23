@@ -5,14 +5,6 @@ description: Project management maintains the templates and mechanical checks fo
 tags: [reviews, content, projects]
 status: stable
 decided: "2026-11-23"
-generated:
-  - role: generated
-    harness: codex:0.166.0
-    model: openai:gpt-6.2-sol
-    effort: high
-    surface: exec
-    session: sha-256-64:15c30f9d922d6894
-    at: "2026-11-23T02:46:10Z"
 ---
 
 # 0042. Project management defines the format for review verdicts
