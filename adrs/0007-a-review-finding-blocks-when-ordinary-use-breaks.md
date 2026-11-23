@@ -13,7 +13,7 @@ decided: "2026-11-23"
 
 A review finding is an issue a reviewer identifies in a proposed change. Reviewers need a common test for whether a finding stops a merge. Ordinary inputs, safe failures and hostile action by a process already using the agent account have different effects on users. The agent account is the system account that runs the agent.
 
-The rule for interference within the agent account applies only when a failure requires such interference, leaving ordinary-use failures outside that exception.
+This record covers the classification of every review finding as BLOCK, SECURITY-DEBT or TECH-DEBT and excludes merger assignment and the process for fixing a block.
 
 ## Decision
 

@@ -13,11 +13,13 @@ decided: "2026-11-23"
 
 A review verdict is the reviewer’s judgment of the change. A GitHub approval is a separate action that needs its own identity check. The independent approver is separate from the maker, who produced the change, and the opener, who submitted the pull request. The head is the latest commit on the pull request’s source branch. The diff is the set of proposed changes.
 
+The reviews app is a GitHub integration. The `tbhbdev alpha review create` command submits a pull request review.
+
 This rule governs posting approval for the checked head and leaves the underlying review verdicts to the reviewers.
 
 ## Decision
 
-The reviews app is the GitHub integration that posts approvals through `tbhbdev alpha review create`, the command that submits a pull request review. The approver reads the full diff and required review evidence for the exact head. Approval requires a successful `conclusion` check, the summary of required jobs. GitHub must mark every listed commit's signature as verified. The service checks the run record saved locally by the launcher, which starts agent runs. It rejects an approval from the opener’s root identity, the identifier shared by a main session and its child runs.
+The reviews app posts approvals through `tbhbdev alpha review create`. The approver reads the full diff for the exact head and the required review evidence, which consists of the review verdict, the diff the reviewer read and the exact head commit the reviewer read. Approval requires a successful `conclusion` check, the summary of required jobs. GitHub must mark every listed commit's signature as verified. The service checks the run record saved locally by the launcher, which starts agent runs. It rejects an approval from the opener’s root identity, the identifier shared by a main session and its child runs.
 
 An approver role can run on demand. The same independence and evidence checks apply to that run.
 
