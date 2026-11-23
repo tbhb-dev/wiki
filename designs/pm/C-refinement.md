@@ -36,16 +36,20 @@ The README rule stays as written: only the sync job writes the Status field. Ref
 
 | Status | The sync job sets it when |
 | --- | --- |
-| Needs refinement | The item is open and lacks a current record, has a current `split` record, or has a current `ready` record whose batch review has yet to pass |
-| Needs info | The item is open and its current record has the `needs-info` outcome |
-| Ready | The item is open, its own current record has the `ready` outcome, any batch it belongs to has passed review, and it has neither a linked open pull request nor an assignee |
-| In progress | The item is open, its own current record has the `ready` outcome, any batch it belongs to has passed review, and it has a linked open pull request or an assignee |
+| Needs refinement | An open item lacks a current record or has a current `split` record. This status also applies to open items with a current `ready` record and a batch review that has yet to pass. |
+| Needs info | The item is open and has a current `needs-info` record. An answer in a comment alone leaves the item at Needs info. Editing the body with the resolved information or removing the `needs-info` label returns it to Needs refinement. |
+| Ready | The open item has its own current `ready` record. Any batch it belongs to has passed review. The item has neither a linked open pull request nor an assignee. |
+| In progress | An assignee or a linked open pull request puts an open item with its own current `ready` record In progress. Any batch the item belongs to must have passed review. |
 | Done | GitHub closed the item as completed |
 | Dropped | GitHub closed the item as not planned or as a duplicate |
 
-The latest refinement record counts as current when the kernel's account wrote it through the refine verb, the item bears the label given in the record, the body hash matches, and the live labels and relations pass check 5. Only an edit to the issue body, labels, or relations can change the refinement state the record establishes. Comments never change that state. An assigned, refined item stays In progress after a routine progress comment.
+Only the latest refinement record from the kernel's account through the refine verb can be current. A current record requires the item's body hash and label to match the record. Only a `ready` record also requires the live labels and relations to pass check 5.
 
-The sync job reruns the label and relation checks in item 5 when labels or relations change. Relations include the parent, sub-issues, and dependencies. If someone removes a required parent, such as a Chore's parent, check 5 fails and the issue returns to Needs refinement.
+A failed check 5 leaves a `needs-info` record current while the body hash and label match. Comments never change whether a record is current. An assigned, refined item stays In progress after a routine progress comment.
+
+The sync job reruns check 5 for a `ready` record when live labels or relations change. Relations include the parent, sub-issues, and dependencies.
+
+Removing a required parent from a Ready or In progress item makes its `ready` record stale. The sync job then returns the item to Needs refinement. An item with a current `needs-info` record stays at Needs info after losing a required parent.
 
 A label added by hand without a corresponding record leaves the item at Needs refinement. A linked open pull request or an assignee on an unrefined item also leaves it at Needs refinement. After a split, the refiner checks the parent again once the children together cover its outcome. The parent needs its own current `ready` record to show Ready or In progress.
 
@@ -139,7 +143,9 @@ A batch run writes one record per item. It never writes one record for a whole b
 
 The tools label configuration spells each label as `family/value` and lists the exact values. The refinement label values used here are `ready`, `needs-info`, and `split`.
 
-An answer in a comment leaves the item at Needs info. The person or role handling the answer updates the issue body with the resolved information. The body edit makes the record stale, so the sync job shows Needs refinement and the next run picks the item up again.
+Each question comment tells the answerer how to send the item back for refinement. To send it back, edit the issue body with the resolved information or remove the `needs-info` label. Either change makes the record stale.
+
+After that change, the sync job shows Needs refinement. On the next run, refinement picks up the item. An answer in a comment alone leaves the item at Needs info.
 
 ### Vale pass
 

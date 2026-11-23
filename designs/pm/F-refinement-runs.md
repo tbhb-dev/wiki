@@ -70,8 +70,10 @@ Rules:
   operator intent.
 - Skip items with a current record unless a follow-up run is rechecking
   a split parent whose children cover its outcome.
-- A comment leaves the refinement state as it was. Pick up an answered
-  Needs info item after the body edit makes its record stale.
+- Tell the answerer in the question comment to edit the issue body with
+  the resolved information or remove the `needs-info` label. Either change
+  makes the record stale. The sync job then shows Needs refinement. Pick up
+  the item on the next run. A comment alone leaves the item at Needs info.
 - A split parent needs its own current ready record to show Ready.
 - Never refine an item whose body you wrote.
 - Cite no private repository in a public item.
@@ -125,7 +127,7 @@ The batch passes only when every Ready item passes the gate. A single sampled it
 | An assignee or open pull request appears before refinement | An item could appear to be in progress before it passes the gate | In progress requires the item's own current `ready` record, and any batch it belongs to must pass review |
 | A built-in Project workflow writes Status | Status disagrees with the records | The sync job's setup turns off each built-in workflow that sets Status |
 | Needs info piles up for the operator | Operator time goes to triage | The rule that the operator answers only intent, and D8 |
-| Someone answers a Needs info question in a comment | The item remains at Needs info while the answer is only in the comment | The person or role handling the answer updates the body and the next run picks the item up |
+| Someone answers a Needs info question in a comment. | A comment alone leaves the item at Needs info. | The question comment tells the answerer to edit the body with the resolved information or remove the `needs-info` label. Either change makes the record stale. The sync job then shows Needs refinement. The next run picks up the item. |
 | A run stops partway through a batch | Part of a batch has records | Runs skip items with a current record and resume |
 | An internal-security item sits in a public repository | Anyone can read about the weakness | The security-topic warning of D, item 5, and a transfer before any other write |
 | Vale's document-wide rules flag a short body | An honest short text can't pass | Warnings only below the short threshold |
