@@ -42,7 +42,9 @@ Back to [the design](README.md).
 
 ## Decided
 
-The operator's records behind D1 to D6 are private notes. Each entry below cites its record by title, with the date, the rule, and the undo path, so a reviewer can judge it without the note. The design relies on D1 to D4 and D6 as requirements. D5 only places the design.
+The operator's records behind D1 to D6 are private notes. Each entry below cites its record by title, with the date, the rule, and the undo path, so a reviewer can judge it without the note.
+
+The design relies on D1 to D4 and D6 as requirements. D5 only places the design.
 
 ### D7. How does an item become Ready while only the sync job writes Status?
 
@@ -68,10 +70,10 @@ The operator's records behind D1 to D6 are private notes. Each entry below cites
 ### D4. How do the writing rules stay in one place?
 
 - **Decided:** 2026-11-22, by the operator through coordination.
-- **Amended:** 2026-11-22 by coord (the kernel-checked exceptions), after review found CUE can't express links-only content.
-- **Rule:** the schema variant is the only source for the text-shape rules that CUE can express. Text-shape rules that CUE can't express stay in a short named kernel list (links-only sections, note flooding, a cited Request approved, a retrospective RFC that exists), and each reports through the same refusal format. Rules that need live data or issue relations also stay in that list. Hints sit as data in the schema, a generator prints the guide, and a refusal gives the section, the rule, the limit, the actual value, and the hint.
-- **Undo:** replace the generator with hand-written guides, and move each named kernel check into the schema or drop it. Two-way door.
-- **Record:** the operator's writing-guide plan, relayed by coordination. The amendment is recorded in coordination's Decisions.
+- **Amended:** 2026-11-22 by coordination (the kernel-checked exceptions), after review found the Configure Unify Execute (CUE) language can't express links-only content.
+- **Rule:** the schema variant is the only source for the text-shape rules that CUE can express. Text-shape rules that CUE can't express stay in a short named kernel list (links-only sections, note flooding, a cited Request approved, a retrospective request for comments that exists), and each reports through the same refusal format. Rules that need live data or issue relations also stay in that list. Hints sit as data in the schema, a generator prints the guide, and a refusal gives the section, the rule, the limit, the actual value, and the hint.
+- **Undo:** replace the generator with hand-written guides, and move each check on the kernel list into the schema or drop it. Two-way door.
+- **Record:** the operator's writing-guide plan, relayed by coordination. Coordination's Decisions record the amendment.
 
 ### D3. Which taxonomy applies?
 
@@ -93,3 +95,16 @@ The operator's records behind D1 to D6 are private notes. Each entry below cites
 - **Rule:** every work item is an issue in the repository responsible for it, and the org Project gathers them. Larger units go in a private central work repository. Story isn't a type, so Feature is the unit of user-visible work.
 - **Undo:** transfer issues. Two-way door.
 - **Record:** the operator's project-management issues ruling and the rename ruling.
+
+## Asks of other roles
+
+These questions go to another role, not to the operator, so `decisions_open` doesn't count them. The asked role answers, and the answer moves the item to Decided with its number.
+
+### D10. Can the content check run Vale with the org configuration on issue and comment bodies before each write, with errors as its rules set them and warnings only for a short body?
+
+- **Asked of:** the tools role, which maintains the content kernel and `tbhbdev content check`.
+- **Recommendation:** yes, as a plugin of the content check, so import and refinement share one pass.
+- **Why:** today Vale runs only on each repository's own Markdown in continuous integration (CI). Vale doesn't run on issue bodies, comments, or staged import files, and two separate copies in refinement and the import would drift.
+- **If yes:** the content check runs Vale with the configuration in [the rules repository](https://github.com/tbhb-dev/rules/blob/main/.vale.ini) on each body and comment before the kernel writes it. It runs the same pass on each staged import file with warnings only, as [C. Refinement](C-refinement.md#vale-pass) and [E. Tracker import](E-import.md) describe.
+- **If no:** the refinement run and the import run each call Vale themselves with the same configuration. Kernel writes from any other caller skip Vale.
+- **Reversible:** yes, by removing the plugin.

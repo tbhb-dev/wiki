@@ -14,11 +14,23 @@ parent: README.md
 
 Back to [the design](README.md).
 
-Plan step 7 imports about 700 issues from the earlier tracker. Each one enters through the kernel in an imported variant, which keeps the title and one Context section of the original text. That variant runs the scans without section or cap rules, and it reports the checks of [D. Issue writing](D-issue-writing.md) as warnings.
+Plan step 7 imports about 700 issues from the earlier tracker. Each one enters through the kernel in an imported variant, which keeps the title and one Context section of the original text.
 
-While it maps the original text, the import strips each sentence that describes the issue itself, as D describes. It sets Source to its import value. Each imported item then shows Needs refinement, and nobody can start it until refinement under [C. Refinement](C-refinement.md) turns it into a real variant.
+That variant runs the scans without section or cap rules, and it reports the checks of [D. Issue writing](D-issue-writing.md) as warnings.
+
+While it maps the original text, the import strips each sentence that describes the issue itself, as D describes. It sets Source to its import value. An item about internal security goes in a private repository, as rule 6 of D requires.
+
+Each imported item then shows Needs refinement, and nobody can start it until refinement under [C. Refinement](C-refinement.md) turns it into a real variant.
 
 The import uses issues and the org Project, without a new tracker. One Epic in the central work repository covers the import, and each batch is a Chore under it with its query and outcome counts. About 28 batches of 25 fit well under GitHub's cap of 100 sub-issues per parent.
+
+## Staging and the Vale pass
+
+Before any write, the import maps each original issue into a Markdown file in the import run's working directory, outside any repository. The content check then runs over each staged file. It runs the scans, the checks of D as warnings, and the [Vale pass](C-refinement.md#vale-pass) of C with the organization's configuration.
+
+Vale findings here are warnings. A secret finding still stops the item, as it does for any write. The import posts no finding list, because the run's logs show counts only.
+
+Refinement runs the full Vale pass again when it converts the item into its real variant. Until the tools role agrees to D10 in [decisions](decisions.md), the import run calls Vale itself with the same configuration.
 
 ## Order and batches
 
@@ -37,7 +49,9 @@ Review sets the pace as well. At most two batches wait for review at once, and t
 
 ## Calibration
 
-Before the first real batch, a run refines 20 imported items in a test repository. The set includes known bad cases: a done item, a duplicate, an item too large for one pull request, stale context, a check that says only that someone did the work, and a sentence about the issue itself. The pm role compares the outcomes with the known answers and tunes the run brief of C before the import starts.
+Before the first real batch, a run refines 20 imported items in a test repository. The set includes known bad cases. Two are a done item and a duplicate.
+
+Others are an item too large for one pull request, stale context, a check that says only that someone did the work, and a sentence about the issue itself. The pm role compares the outcomes with the known answers and tunes the run brief of F before the import starts.
 
 ## Finish line
 
