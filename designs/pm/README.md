@@ -28,7 +28,7 @@ generated:
 
 ## Summary
 
-Work items are GitHub issues in the repository responsible for the work, and one org Project gathers them with Priority and Status fields. The pm repository supplies the templates, the schemas, and the `tbhbdev pm` verbs.
+Each work item starts as an issue in the GitHub repository responsible for the work. One org Project gathers the issues. That Project, `work`, has four fields named Priority, Status, Handler, and Source. Templates, schemas, and the `tbhbdev pm` verbs come from the pm repository.
 
 Every write goes through one content kernel in the tools repository. The kernel renders the text and normalizes it into a block model.
 
@@ -44,8 +44,14 @@ Building the design yields these components, each with one role as owner.
 - **The schemas** (`schemas/` in the pm repository, owner pm) use the Configure Unify Execute (CUE) language. One file per variant, plus a shared core, a taxonomy, and an issue base, define what valid text is.
 - **The templates** (`templates/` in the pm repository, owner pm) give starting text for one variant each. Constraints belong to the schemas.
 - **The verbs** (`tbhbdev pm`, owner pm) cover create, comment, close, link, and add to Project, on top of the kernel.
-- **The org Project** (owner pm, with the administrator creating the App) has Priority, Status, and Handler fields and a basic backlog view. Only a sync job writes Status, from GitHub state.
+- **The org Project** `work` (owner pm) has a backlog view and four single-select fields.
+  - **Priority** accepts `Expedite`, `Standard`, or `Intangible`.
+  - **Status** uses the values in the [Status table in C. Refinement](C-refinement.md#status-and-the-ready-signal). Only the sync job writes Status.
+  - **Handler** accepts `Operator` or `Agent` and applies only to Requests.
+  - **Source** accepts only `Import`. The kernel sets Source when it creates an imported issue.
 - **The central work repository** (private, owner pm) stores Initiatives and Epics. Bugs and tasks stay with the repositories that contain their code.
+
+After this amendment merges, the administrator creates a new org Project named `work` through the `admin` App. Using the same App, the administrator creates its four fields. The kernel reads the Project node ID and all four field IDs from configuration that the administrator supplies.
 
 Each issue and service request passes the Definition of Ready before work starts. The imports role refines tracker items in staging before the kernel creates them in their destination types. See [C. Refinement](C-refinement.md) and [E. Tracker import](E-import.md).
 
@@ -101,7 +107,7 @@ A Chore links to its parent as a sub-issue, and a Defect links to a Problem or a
 | 2 | Schemas and the normalizer, then `cue vet` wiring and the refusal formatter | A mutation test set fails each rule with a named finding | pm |
 | 3 | The `guide` generator | `tbhbdev pm guide feature` prints sections, caps, hints, and an example | pm |
 | 4 | Templates with schemas, in draft until the operator says go | Each template renders text that passes its own variant | pm |
-| 5 | Org Project with Priority, Status, and Handler, plus a backlog view | An issue added by the kernel shows its fields | pm, administrator |
+| 5 | The administrator creates `work` with Priority, Status, Handler, Source, and a backlog view. | The backlog view shows Priority and Status for an issue the kernel adds. It shows Handler on a Request and Source on an imported issue. | pm, administrator |
 | 6 | First real items under an Epic in the central work repository | The items exist and pass the kernel checks | pm |
 | 7 | Sync job | Status follows GitHub state within one run | pm |
 | 8 | [Refinement](C-refinement.md) and [batch review](F-refinement-runs.md#review-checklist) | The sync job shows Ready on a test item only with its own current record and, for a batch, a passing review | pm, `sm` |
