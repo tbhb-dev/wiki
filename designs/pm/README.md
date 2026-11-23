@@ -56,7 +56,7 @@ Each issue and service request passes refinement against a Definition of Ready b
 1. A caller picks a type and variant, then supplies metadata and Markdown that begins with a level-one title.
 2. Next, the kernel normalizes the Markdown into the GitHub-flavored block model of sections, blocks, inline counts, and metrics.
 3. `cue vet` then checks the model against the schema for that variant and reports every finding in one pass.
-4. After that, the kernel runs the secret scan, the quote check, and the prose check on the exact rendered text. A finding in any of them refuses the write, and refinement adds a Vale pass, as C describes.
+4. After that, the kernel runs the secret scan, the quote check, and the prose check on the exact rendered text. A finding in any of them refuses the write. The kernel also runs Vale before every issue body and comment write, with errors downgraded to warnings for short text, as [C. Refinement](C-refinement.md#vale-pass) describes.
 5. The kernel creates the issue and sets its type and fields. Then it adds the issue to the Project.
 
 Each issue template starts with the title line. The kernel takes it as the issue title and removes it from the body.

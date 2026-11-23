@@ -37,7 +37,7 @@ Back to [the design](README.md).
 - **Recommendation:** yes. Response to an incident starts at once, and the problem record and each fix that follow it go through refinement.
 - **Why:** waiting for a refinement run would delay the response, while the later fix work gains from the gate like any other item.
 - **If yes:** an incident record never waits on a refinement record. Refinement begins with the problem record.
-- **If no:** each incident waits for a refinement run first, which adds the length of one run to every response.
+- **If no:** the `sm` role applies the common readiness checks and the Incident template and schema before response. This is the rule while D9 is open.
 - **Reversible:** yes, by changing the exempt list in the refine verb.
 
 ## Decided
@@ -49,14 +49,14 @@ The design relies on D1 to D4 and D6 as requirements. D5 only places the design.
 ### D7. How does an item become Ready while only the sync job writes Status?
 
 - **Decided:** 2026-11-22, by the pm role.
-- **Rule:** the sync job keeps sole write access to every Status value. The refine verb writes a refinement record and a refinement label, and the sync job shows Ready only when a current record says ready and its batch passed review, as [C. Refinement](C-refinement.md) describes.
+- **Rule:** the sync job keeps sole write access to every Status value. Ready and In progress both require the item's own current `ready` record, and any batch it belongs to must pass review. An open pull request or an assignee moves an item to In progress only once it meets that gate. [C. Refinement](C-refinement.md) defines when a record is current.
 - **Undo:** let the refine verb write the Ready value itself, which needs a change to D3. Two-way door.
 - **Record:** the pull request that adds C-refinement.md to this design.
 
 ### D6. Must issues pass refinement before work starts?
 
 - **Decided:** 2026-11-22, by the operator through coordination.
-- **Rule:** every issue and every service request passes refinement against a Definition of Ready before it's ready to work, and the `sm` role applies it to service requests. Imported issues enter as not yet ready and pass refinement before work.
+- **Rule:** every issue and every service request passes the Definition of Ready before work starts. The `sm` role refines Requests, Incidents, Problems, and Changes. It applies the common readiness checks and uses each Incident, Problem, or Change template and schema for the type-specific checks. Imported issues pass the same gate.
 - **Undo:** remove the refinement condition from the sync job and the workflow. Two-way door.
 - **Record:** the operator's refinement ruling, relayed by coordination.
 
@@ -103,8 +103,8 @@ These questions go to another role, not to the operator, so `decisions_open` doe
 ### D10. Can the content check run Vale with the org configuration on issue and comment bodies before each write, with errors as its rules set them and warnings only for a short body?
 
 - **Asked of:** the tools role, which maintains the content kernel and `tbhbdev content check`.
-- **Recommendation:** yes, as a plugin of the content check, so import and refinement share one pass.
+- **Recommendation:** yes. Run the required pass as a plugin of the content check so all kernel callers and import staging share one implementation.
 - **Why:** today Vale runs only on each repository's own Markdown in continuous integration (CI). Vale doesn't run on issue bodies, comments, or staged import files, and two separate copies in refinement and the import would drift.
 - **If yes:** the content check runs Vale with the configuration in [the rules repository](https://github.com/tbhb-dev/rules/blob/main/.vale.ini) on each body and comment before the kernel writes it. It runs the same pass on each staged import file with warnings only, as [C. Refinement](C-refinement.md#vale-pass) and [E. Tracker import](E-import.md) describe.
-- **If no:** the refinement run and the import run each call Vale themselves with the same configuration. Kernel writes from any other caller skip Vale.
-- **Reversible:** yes, by removing the plugin.
+- **If no:** the kernel calls the same Vale pass directly before every issue body and comment write. Import staging calls that pass in warnings-only mode.
+- **Reversible:** yes. The kernel can call the pass directly if the plugin is removed.

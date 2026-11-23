@@ -41,7 +41,8 @@ For each item, in the order given:
 3. Walk items 1 to 8 of the DoR. For each, write pass, fixed, or fail,
    with evidence: a SHA, a pull request, a path at a SHA, or a command
    with the commit or query it ran against and its result.
-4. Choose one outcome: ready, fixed-then-ready, needs-info, split, or drop.
+4. Choose one outcome: ready, needs-info, split, or drop. After a fix,
+   record ready if every applicable check passes.
 5. Run Vale with the org configuration (.vale.ini in tbhb-dev/rules)
    on the final body and on each comment you will post.
 6. Write it with `tbhbdev pm refine <item> --outcome <outcome>`.
@@ -56,15 +57,22 @@ Rules:
 - Delete each sentence about the issue itself, its tracking, or its
   links. Sub-issue and dependency links carry those.
 - Item 4 needs a repo search and an issue search, both cited.
+- For an Incident, Problem, or Change, apply the common readiness checks
+  and use its template and schema for the type-specific checks.
 - A Vale error blocks the write. In a short text, every Vale finding
   is a warning. Report each finding with its line, rule, and level.
 - Vale never edits text. Make each fix yourself, under the fix rules.
 - Move an internal-security item out of a public repository first,
-  by a transfer to its private twin.
+  by a transfer to its private twin. If it has no private twin, transfer
+  it to the central work repository.
 - Add no owner line. A Defect's parent is a Problem or an Epic, or none.
 - Give the answerer of each question. Ask the operator only about
   operator intent.
-- Skip any item that already has a current record.
+- Skip items with a current record unless a follow-up run is rechecking
+  a split parent whose children cover its outcome.
+- A non-bot comment newer than the record makes it stale. Pick up an
+  answered Needs info item again even if its body hash and label match.
+- A split parent needs its own current ready record to show Ready.
 - Never refine an item whose body you wrote.
 - Cite no private repository in a public item.
 - On a 403 or 429 response, back off. Stop when the write budget runs
@@ -114,8 +122,10 @@ The batch fails when two or more sampled items fail, or when a full read confirm
 | A check says only that someone did the work | Someone closes the item without a result anyone saw | Item 3, the existence patterns of D, and the review checklist |
 | Someone edits a Ready item | The record no longer describes the text | The body hash, which returns the item to Needs refinement |
 | Someone adds the ready label by hand | An item looks ready without a record | The sync job ignores a label without a current record |
+| An assignee or open pull request appears before refinement | An item could appear to be in progress before it passes the gate | In progress requires the item's own current `ready` record, and any batch it belongs to must pass review |
 | A built-in Project workflow writes Status | Status disagrees with the records | The sync job's setup turns off each built-in workflow that sets Status |
 | Needs info piles up for the operator | Operator time goes to triage | The rule that the operator answers only intent, and D8 |
+| Someone answers a Needs info question | The answer can sit unread when the body hash and label stay the same | A newer non-bot comment makes the record stale, so the next run picks the item up |
 | A run stops partway through a batch | Part of a batch has records | Runs skip items with a current record and resume |
 | An internal-security item sits in a public repository | Anyone can read about the weakness | The security-topic warning of D, item 5, and a transfer before any other write |
 | Vale's document-wide rules flag a short body | An honest short text can't pass | Warnings only below the short threshold |

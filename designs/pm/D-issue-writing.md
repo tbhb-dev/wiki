@@ -74,7 +74,7 @@ Refinement clears every meta-exposition warning before Ready, by deleting the se
 
 ## Vale
 
-A Vale pass with the organization's configuration runs beside these checks on every body and comment, as the [Vale pass](C-refinement.md#vale-pass) of C describes. Some Vale rules overlap the checks here, such as its semicolon rule, and each still reports on its own.
+The kernel runs Vale with the organization's configuration before every issue body and comment write, as the [Vale pass](C-refinement.md#vale-pass) of C describes. Some Vale rules overlap the checks here, such as its semicolon rule, and each still reports on its own.
 
 A short text turns Vale errors into warnings. It leaves every refuse check here as a refusal.
 

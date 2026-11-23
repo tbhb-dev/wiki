@@ -18,7 +18,7 @@ Plan step 7 imports about 700 issues from the earlier tracker. Each one enters t
 
 That variant runs the scans without section or cap rules, and it reports the checks of [D. Issue writing](D-issue-writing.md) as warnings.
 
-While it maps the original text, the import strips each sentence that describes the issue itself, as D describes. It sets Source to its import value. An item about internal security goes in a private repository, as rule 6 of D requires.
+While it maps the original text, the import strips each sentence that describes the issue itself, as D describes. It sets Source to `imported` and keeps that value when refinement converts the issue to its real variant. An item about internal security goes in a private repository, as rule 6 of D requires.
 
 Each imported item then shows Needs refinement, and nobody can start it until refinement under [C. Refinement](C-refinement.md) turns it into a real variant.
 
@@ -30,7 +30,7 @@ Before any write, the import maps each original issue into a Markdown file in th
 
 Vale findings here are warnings. A secret finding still stops the item, as it does for any write. The import posts no finding list, because the run's logs show counts only.
 
-Refinement runs the full Vale pass again when it converts the item into its real variant. Until the tools role agrees to D10 in [decisions](decisions.md), the import run calls Vale itself with the same configuration.
+The kernel runs the full Vale pass at write time for the imported body and again when refinement converts it into its real variant.
 
 ## Order and batches
 

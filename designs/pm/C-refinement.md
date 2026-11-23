@@ -16,7 +16,7 @@ Back to [the design](README.md).
 
 Every issue and every service request passes refinement before anyone starts work on it, under the operator's ruling recorded as D6 in [decisions](decisions.md). A refinement run checks the item against the Definition of Ready (DoR) and fixes what it may.
 
-It then records one of five outcomes with evidence. The whole process is new, and none of it exists yet.
+It then records one of four outcomes with evidence. The whole process is new, and none of it exists yet.
 
 ## Why a gate
 
@@ -28,15 +28,7 @@ It never requires a design, an effort estimate, or an assignee. Work that needs 
 
 ## Scope
 
-The gate covers the six work item variants of [the content model](A-content-model.md), from Initiative down to Spike. Requests from the service-management records design pass it too, under the service-management role (`sm`).
-
-Incidents work differently. Whether they skip the gate is a question for the operator in D9.
-
-Problem and change records follow the same eight items under `sm`, and their mapping arrives with their public appendices in the service-management records design. The `sm` role is still designing the Problem type, so this appendix only leaves room for it:
-
-- A Defect may have a Problem or an Epic as its parent, or no parent at all.
-- A Problem is likely to become the parent of the Defects and Chores that fix it, once the `sm` role settles the Problem type and its fields.
-- An Incident links to its Problem.
+The gate covers the six work item variants of [the content model](A-content-model.md), from Initiative down to Spike. The service-management role (`sm`) refines Requests, Incidents, Problems, and Changes. For each Incident, Problem, or Change, the refiner applies the common readiness checks below and uses the issue type's template and schema for its required sections, fields, and relations. Incidents follow this rule while D9 is open, and each Incident links to its Problem when one exists.
 
 ## Status and the Ready signal
 
@@ -44,22 +36,22 @@ The README rule stays as written: only the sync job writes the Status field. Ref
 
 | Status | The sync job sets it when |
 | --- | --- |
-| Needs refinement | The item is open and lacks a current refinement record |
-| Needs info | The latest current record has the needs-info outcome |
-| Ready | The latest current record has the ready outcome, its batch, if any, passed review, and no open pull request links the item |
-| In progress | An open pull request links the item, or an assignee has it |
+| Needs refinement | The item is open and lacks a current record, has a current `split` record, or has a current `ready` record whose batch review has yet to pass |
+| Needs info | The item is open and its current record has the `needs-info` outcome |
+| Ready | The item is open, its own current record has the `ready` outcome, any batch it belongs to has passed review, and it has neither a linked open pull request nor an assignee |
+| In progress | The item is open, its own current record has the `ready` outcome, any batch it belongs to has passed review, and it has a linked open pull request or an assignee |
 | Done | GitHub closed the item as completed |
 | Dropped | GitHub closed the item as not planned or as a duplicate |
 
-A record counts as current under three conditions. First, the kernel's account wrote it through the refine verb. Second, the item bears the refinement label that the record gives, and third, the body hash in the record matches the body now.
+The latest refinement record counts as current when the kernel's account wrote it through the refine verb, the item bears the label given in the record, and the body hash matches. A non-bot comment posted after the record makes it stale.
 
-A label added by hand, or a record that a later edit made stale, leaves the item at Needs refinement. After a split, the parent takes its Status from its children. It shows Ready once each child shows Ready or a closed state, and In progress when any child is in progress.
+A label added by hand without a corresponding record leaves the item at Needs refinement. A linked open pull request or an assignee on an unrefined item also leaves it at Needs refinement. After a split, the refiner checks the parent again once the children together cover its outcome. The parent needs its own current `ready` record to show Ready or In progress.
 
 Built-in workflows of the org Project can also write Status. Two of them start enabled, and each sets Done, one when an item closes and one when a pull request merges. The sync job's setup turns off every built-in workflow that sets Status, which leaves the sync job as the only writer.
 
-Issue and pull request events start the sync job, and so does a schedule. GitHub doesn't start a new workflow run for an event that a workflow's own token caused, and the schedule catches those changes.
+Issue, issue comment, and pull request events start the sync job, and so does a schedule. GitHub doesn't start a new workflow run for an event that a workflow's own token caused, and the schedule catches those changes.
 
-Only a refinement run may make an item Ready, and only through the refine verb. Work items go to a run of the pm role, while Requests go to a run of the `sm` role. The run that wrote an item's body can't refine that item, and the reviewer of a batch can't refine items in it, which keeps the maker and the checker apart as the agent roles registry requires.
+Only a refinement run may make an item Ready, and only through the refine verb. Work items go to a run of the pm role, and service-management issues go to a run of the `sm` role. The run that wrote an item's body can't refine that item, and the reviewer of a batch can't refine items in it, which keeps the maker and the checker apart as the agent roles registry requires.
 
 A worker who finds a Ready item unclear doesn't start it. Then the worker removes the ready label with `tbhbdev pm refine --return` and one comment that states the gap. After that, the record stops counting as current, and the sync job shows Needs refinement.
 
@@ -78,7 +70,7 @@ Each item below says how its check runs and what runs it, using these kinds of c
 2. **The context makes sense to a stranger.** It lacks retired notes, run names, process dates, line numbers, bare issue references, and text about where the content came from. It identifies the repository, the component, and the current behavior. Checked by a schema check of patterns in the issue base for the mechanical forms, plus judgment that someone new to the work could act on it.
 3. **Each check states an observable result, within the variant's caps.** Each check states one result that a person or another system can see, and how to see it, such as a command and its output or a path and its content. A check fails when it says only that the work exists or that someone did it, as in a spike that exists, a pull request that merged, or a doc that changed. Vague words such as works well, cleaner, or improved fail it too. Checked by a schema check for the task list, the caps, and the existence and vague-result patterns of D, plus judgment that a second person could run each check and agree on the result.
 4. **Nobody has done the work, and no other open issue covers it.** A search at the target repository's current commit doesn't find a merged change that already meets the outcome. The refiner also searches open issues in the target repository, in its twin when the run can read it, and in the central work repository. Checked by a repo read and an issue search. The record cites the command and result count of each.
-5. **Relations, fields, and labels are valid for the variant.** The item is in the repository that the [routing order](B-routing-and-taxonomy.md) picks. Its parent has a type the variant allows. A Defect's parent is a Problem or an Epic, and a Defect may also have no parent. Each blocked-by link points at an issue that exists. Priority, Source, Work type, and Severity for a Defect have allowed values, Handler appears only on a Request, and the sync job has given it a Status. No item has an owner field, because the repository implies the responsible role. A `role/<role>` label appears only when the work belongs to another role. Each label comes from the label configuration in the tools repository. An item about internal security is in a private repository, as the [internal security](#internal-security-topics) section describes. Checked by a kernel check against live data, which includes the parent-type check of A. The owner-line and security-topic checks of D also run, plus judgment for any value the refiner fills in.
+5. **Relations, fields, and labels are valid for the variant.** The item is in the repository that the [routing order](B-routing-and-taxonomy.md) picks. Its parent has a type the variant allows. A Defect's parent is a Problem or an Epic, and a Defect may also have no parent. Each blocked-by link points at an issue that exists. Priority and, for a Defect, Severity use the allowed values. Where the variant uses Work type, it is `Planned` or `Unplanned`. For an imported issue, Source is `imported`. Handler appears only on a Request, and the sync job has given the item a Status. No item has an owner field, because the repository implies the responsible role. A `role/<role>` label appears only when the work belongs to another role. Each label comes from the label configuration in the tools repository. An item about internal security is in a private repository, as the [internal security](#internal-security-topics) section describes. Checked by a kernel check against live data, which includes the parent-type check of A. The owner-line and security-topic checks of D also run, plus judgment for any value the refiner fills in.
 6. **One pull request can deliver it under the size limits.** The refiner lists the paths the change likely touches and estimates its size against the target repository's `pr_size` limits, which in this repository are 400 code lines and 1,500 raw lines. Work that spans repositories fails it, and an estimate over half a limit fails it too. An Epic or Initiative passes when its children together cover its outcome. Checked by judgment, backed by a repo read of the listed paths.
 7. **Each question has an answer.** The text lacks markers such as TBD or TODO, and it asks nothing outside a Spike's question section. A reader's likely questions find their answers in the text, or the item moves to Needs info with the answerer given. The operator answers only questions of operator intent, and a role takes the rest. A question that needs exploration to answer becomes a Spike through a split. Checked by a schema check for the markers, plus judgment for the unwritten questions.
 8. **Every sentence states one fact about the work.** Each sentence states one fact in plain subject-verb order, and no semicolon or comma splice joins two facts. Each list item is a full sentence that ends with a period. No sentence describes the issue itself or its tracking, links, or history. GitHub's sub-issue and dependency links record those. The [Vale pass](#vale-pass) with the org configuration doesn't report an error on the body. Checked by the semicolon, final-period, and meta-exposition patterns of D and by the Vale pass. Judgment covers comma splices and whether a stranger reads each sentence once.
@@ -95,7 +87,7 @@ It can't run the schema. Refinement is the gate for those issues: `refine --chec
 
 A refinement run is a headless agent run that a pm or `sm` run launches, for one item or for a batch of at most 25. It doesn't keep state of its own.
 
-Its results live in the items, as records, labels, links, and edits, and in the batch Chore when there is one. A run that stops partway resumes safely, because it skips each item that already has a current record.
+Its results live in the items, as records, labels, links, and edits, and in the batch Chore when there is one. A run that stops partway resumes safely, because it skips each item that already has a current record. A follow-up run can revisit a split parent once its children together cover its outcome.
 
 Its inputs are the issue list or query, the commit of each target repository, and the label configuration. It also receives the variant guides from `tbhbdev pm guide`. Every write goes through the kernel, so the secret scan and the private-detail routing apply to each comment and edit.
 
@@ -112,11 +104,10 @@ Its inputs are the issue list or query, the commit of each target repository, an
 
 | Outcome | When it applies |
 | --- | --- |
-| Ready | Each of the eight items passes as written |
-| Fixed, then Ready | Some items failed, the refiner fixed each one without changing the item's scope, and each now passes |
-| Needs info | A fix would change intent, or a question needs an answer the run can't find |
-| Split | Item 6 fails and the work divides into pieces that each pass alone, or item 7 needs a Spike first |
-| Drop | Item 4 shows the work done or covered by a duplicate, or the reason for it has gone |
+| `ready` | Each applicable check passes, either as written or after a fix that preserves the item's scope |
+| `needs-info` | A fix would change intent, or a question needs an answer the run can't find |
+| `split` | Item 6 fails and the work divides into pieces that each pass alone, or item 7 needs a Spike first |
+| `drop` | Item 4 shows the work done or covered by a duplicate, or the reason for it has gone |
 
 A fix may do any of these:
 
@@ -139,25 +130,24 @@ Each outcome writes one record comment through the refinement record variant. Th
 
 A batch run writes one record per item. It never writes one record for a whole batch.
 
-- **Ready** writes the record and the ready label of the refinement family. It edits nothing else.
-- **Fixed, then Ready** writes the body and field edits first, then the record and the ready label. The record lists each fix and the item it served, and GitHub's edit history keeps the earlier text.
-- **Needs info** writes the record and the needs-info label, plus one numbered question per gap. Each question gives its answerer, either a role through the role label family or the operator for a question of intent. D8 covers how the operator receives those questions.
-- **Split** creates each child through the kernel in the right repository and links it as a sub-issue. When the children are Features, it retypes the original to an Epic. It then writes the record and the split label on the original, and each child gets its own refinement and record later or in the same run.
-- **Drop** writes the record and then closes the item. Merged work that already met it closes it as completed. A duplicate closes it as a duplicate, with a link, and a reason that has gone closes it as not planned.
+- **`ready`** writes the record and the ready label of the refinement family. If checks needed fixes, the refiner writes the body and field edits first. The record lists each fix and the check it served, and GitHub's edit history keeps the earlier text.
+- **`needs-info`** writes the record and the needs-info label, plus one numbered question per gap. Each question gives its answerer, either a role through the role label family or the operator for a question of intent. D8 covers how the operator receives those questions.
+- **`split`** creates each child through the kernel in the right repository and links it as a sub-issue. When the children are Features, it retypes the original to an Epic. It then writes the record and the split label on the original, and each child gets its own refinement and record later or in the same run.
+- **`drop`** writes the record and then closes the item. Merged work that already met it closes it as completed. A duplicate closes it as a duplicate, with a link, and a reason that has gone closes it as not planned.
 
-The tools label configuration spells each label as `family/value` and lists the exact values. This appendix needs only three outcomes from the refinement family: ready, needs-info, and split.
+The tools label configuration spells each label as `family/value` and lists the exact values. The refinement label values used here are `ready`, `needs-info`, and `split`.
 
-An answer on a Needs info item adds a comment, and the next refinement pass picks the item up from its Needs info Status. An edit to a Ready item's body changes its hash, and the sync job moves the item back to Needs refinement.
+A non-bot answer on a Needs info item is a comment that leaves the body hash and label unchanged. The newer comment makes the record stale, so the sync job shows Needs refinement and the next run picks the item up again. A body edit also makes the record stale and returns the item to Needs refinement.
 
 ### Vale pass
 
-Each refinement run checks prose with Vale, using the organization's [`.vale.ini`](https://github.com/tbhb-dev/rules/blob/main/.vale.ini) and [`.vale/`](https://github.com/tbhb-dev/rules/tree/main/.vale) styles at the rules repository's current commit. This design copies none of their rules.
+Every issue body and comment goes through Vale before the kernel writes it, using the organization's [`.vale.ini`](https://github.com/tbhb-dev/rules/blob/main/.vale.ini) and [`.vale/`](https://github.com/tbhb-dev/rules/tree/main/.vale) styles at the rules repository's current commit. This design copies none of their rules.
 
 The run lints the final body before writing it, and each comment it posts before posting, the record included. Vale reads each as Markdown, as in `vale --ext=.md`.
 
 An error from the configuration blocks the write of a body or comment at the short threshold or longer. In a short text, the run reports each error as a warning instead. A warning never blocks, and the refiner fixes it or keeps it with a one-line reason in the record.
 
-A body counts as short when its prose runs under half the total-word cap of its variant in [A](A-content-model.md), such as 100 words for a Feature or 65 for a Spike. Comments have no cap of their own, so their threshold is 65 words, half of the Spike's 130, the smallest cap in A.
+A body counts as short when its prose runs under half the total-word cap of its variant in [A](A-content-model.md), such as 100 words for a Feature or 40 for a service Request. Comments and bodies with no total-word cap use a 65-word threshold.
 
 Why the threshold? Some error-level rules measure spread across a whole document, and a few sentences give them too little to measure.
 
@@ -167,7 +157,7 @@ An error that blocks the write sends the refiner back to fix the text under the 
 
 Findings come back as a list of line, rule, level, and message, as in `12: Google.Semicolons (error) Use semicolons judiciously.` The record lists them under item 8.
 
-If the Vale binary or the configuration is missing, the run fails closed. D10 in [decisions](decisions.md) asks the tools role to move this pass into the content check.
+If the Vale binary or the configuration is missing, the write fails closed. D10 in [decisions](decisions.md) asks the tools role to provide this pass through the shared content check.
 
 ### Evidence rules
 
@@ -224,12 +214,12 @@ For an operator Request, refinement runs while the Request is open, before the w
 
 - The README's Status rule stays. This appendix adds the six Status values and the GitHub state behind each one.
 - The org Project's setup turns off each built-in workflow that sets Status, including the two that start enabled.
-- The taxonomy gains a Source field. Work type already appears in the taxonomy schema.
+- The taxonomy and the variants used for imports gain a Source field so `imported` survives conversion. Work type already appears in the taxonomy schema.
 - Issues have no owner field. The repository implies the responsible role, and a `role/<role>` label marks each exception.
 - The verbs gain `refine` with an edit operation and a return operation. The variants gain the imported variant and the refinement record variant.
 - A's parent-type kernel check accepts a Problem, an Epic, or no parent for a Defect.
 - The routing order in B gains a rule that sends each internal-security item to a private repository.
-- The content check in tools runs the Vale pass if the tools role agrees to D10. Until then, the refinement run and the import run call Vale themselves.
+- The kernel runs the Vale pass for every issue body and comment write. D10 proposes sharing the pass through the content check.
 - The block model exposes the text of each paragraph and list item without its code spans, which the checks of D read.
 - The README and B spell labels as `area:<repo>`. The tools label configuration writes `family/value`, and both files take its spelling once it merges.
 - The service-management records design gains one condition before waiting on operator, as the service requests section describes.
