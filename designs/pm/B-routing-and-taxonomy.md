@@ -31,21 +31,42 @@ Back to [the design](README.md).
 5. An Initiative or Epic goes in the central work repository.
 6. A work item without a responsible repository gets a refusal, and the caller names a parent in the central work repository.
 
-The kernel creates the issue in the chosen repository, then the work item. A sub-issue link ties a work item to its parent and keeps a private parent hidden from a public child.
+The kernel creates the issue in the chosen repository and uses that repository's configured Project. The import calibration repository routes only to `work-calibration`. A sub-issue link ties a work item to its parent and keeps a private parent hidden from a public child.
 
 ## One home per fact
 
 | Fact | Home | Written by |
 | --- | --- | --- |
 | Type | Native issue type | The create verb |
-| Priority | Project field | A verb, with a work note |
-| Status | Project field derived from [GitHub state](C-refinement.md#status-and-the-ready-signal) | The sync job only |
-| Severity | Defect field in the body metadata | The create verb |
-| Handler | Project field, Requests only | The IT service management side |
-| Work type | Field with the value `Planned` or `Unplanned` where the variant uses it | The create verb |
-| Source | The issue body's `source` metadata field records `Import`. An imported issue without this field fails `cue vet`. | The kernel sets the single-select Project Source field to match at creation. |
-| Area and role | Labels | The create verb, with a check against live lists |
-| Import outcome for owner follow-up | `flag:split`, `flag:drop`, or `flag:needs-info` label | The kernel at [tracker import creation](E-import.md#review-and-creation) |
+| Priority | Org issue field | The kernel at creation, then the priority verb with a work note |
+| Status | Org issue field derived from [GitHub state](C-refinement.md#status-and-the-ready-signal) | The sync job only |
+| Severity | Org issue field for Defects with the value `SEV1`, `SEV2`, or `SEV3` | The kernel at creation |
+| Handler | Org issue field for Requests with the value `Agent` or `Operator` | The kernel from the Request draft |
+| Work type | Org issue field with the value `Planned` or `Unplanned` where the variant uses it | The kernel at creation |
+| Source | Single-select org issue field with the value `Import`, `Review`, `Incident`, or `Backport` | The kernel at creation |
+| Area | `area/<subsystem>` label | The issue write commands |
+| Concern | `concern/<reason>` label for a cross-cutting reason | The issue write commands |
+| Owning role | `role/<role kind>` label with a kind from the agent roles registry | The issue write commands |
+
+All `fields` entries are org issue fields. The kernel's `create_issue` operation writes them on the issue and refuses creation if it cannot write a required field. The issue body holds no metadata copy.
+
+Priority sorts by option order, with `Expedite` first, `Intangible` second, and `Standard` third. Expedite means the cost of delay is immediate, as in an outage or a blocked pipeline. Standard is the default. Intangible means delay has no cost today, as with routine maintenance, cosmetic cleanup, or an improvement nothing waits on. Deferred security work is Standard because exposure grows while it waits.
+
+Source records how the issue was created. Every imported issue has Source `Import`. For an imported review finding, Context cites the pull request or finding. Source `Review` applies when a review run files an issue itself. A deferred review finding that a review run files is a Chore or Defect with Source `Review`.
+
+Security work carries `concern/security`. The merged global and repository configuration lists the allowed labels and field values per issue type. The tools issue write commands refuse any label or field value that configuration disallows.
+
+## Project views
+
+The `work` Project displays these five views using the org issue fields. The `work-calibration` Project uses the same fields and views. The boards read the fields from the issues themselves. Status filters use the values in [C. Refinement](C-refinement.md#status-and-the-ready-signal).
+
+| View | Layout | Filter | Group by | Sort | Visible fields |
+| --- | --- | --- | --- | --- | --- |
+| Backlog | Table | Open items | Status | Priority, then oldest first | Title, Repository, Priority, Work type, Severity, Assignees |
+| Board | Board | Every item except Status `Dropped` | Status (columns) | Priority | Repository, Priority, Severity, Assignees |
+| Needs attention | Table | Open items with Status `Needs info` or empty Status | Repository | Oldest first | Title, Status, Labels, Repository |
+| Imported | Table | Source `Import` | Repository | Priority | Title, Status, Priority, Work type, Severity |
+| Requests | Table | Handler is set | Handler | Priority | Title, Handler, Status, Priority |
 
 ## Scan before every write
 
