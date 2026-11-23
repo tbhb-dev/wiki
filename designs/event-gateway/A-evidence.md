@@ -13,6 +13,13 @@ generated:
     surface: cli
     session: sha-256-64:2220073242f73359
     at: "2026-11-22T23:11:10Z"
+  - role: generated
+    harness: claude-code:2.1.330
+    model: anthropic:claude-opus-5-5
+    effort: high
+    surface: sdk-cli
+    session: sha-256-64:1a832a02df3ab163
+    at: "2026-11-23T08:02:35Z"
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
@@ -27,7 +34,7 @@ Each claim here was read from `main` of a public repository on 2026-11-21, excep
 
 ## awrel today
 
-The read was taken at tbhb-dev/awrel commit `2c2ff52`, which is the merge of the Grafana alerts route (awrel#121). The latest tag is `v0.7.1`. Sessions run the client at `v0.6.0` or later. Session state files exist on the coordinator host, and the state file format arrived in `v0.6.0` (awrel#62).
+The read was taken at tbhb-dev/awrel commit `2c2ff52`, which is the merge of the Grafana alerts route (awrel#121). The latest tag is `v0.7.1`. Sessions run the client at `v0.6.0` or later. **Unverified:** session state files exist on the coordinator host. That comes from a coordinator note, not in a public repository. The state file format arrived in `v0.6.0` (awrel#62).
 
 ### Where it runs
 
