@@ -39,7 +39,9 @@ A check on raw Markdown counts words and lines. A table, an HTML block, or a lon
 
 A run loads core, taxonomy, the issue base, and exactly one variant, because each variant file defines the same `#Variant` name. The `#Hints` definition keys its hints by variant.
 
-The pm variant schemas use `#WorkType` from the [shared taxonomy](https://github.com/tbhb-dev/tools/blob/main/schemas/taxonomy.cue). Its values are `Planned` and `Unplanned`. The import adds the Source field with the value `Import`, which [E. Tracker import](E-import.md) preserves on conversion.
+The pm variant schemas use `#WorkType` from the [shared taxonomy](https://github.com/tbhb-dev/tools/blob/main/schemas/taxonomy.cue). Its values are `Planned` and `Unplanned`. The destination variants already accept an optional `source` field. The import sets it to `Import` at creation. See [E. Tracker import](E-import.md#staging-and-refinement).
+
+The `schemas/issue.imported.cue` variant file stays in the pm repository until the import finishes. The pm role then removes the file.
 
 ## Metric semantics
 

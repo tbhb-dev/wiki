@@ -24,7 +24,7 @@ generated:
 
 | Status | Owner | Updated | Needs from the operator |
 | --- | --- | --- | --- |
-| Draft | pm | 2026-11-23 | 2 open decisions in [decisions.md](decisions.md), about 2 minutes |
+| Draft | pm | 2026-11-23 | 2 numbered decisions open in [decisions.md](decisions.md), about 2 minutes |
 
 ## Summary
 
@@ -47,7 +47,7 @@ Building the design yields these components, each with one role as owner.
 - **The org Project** (owner pm, with the administrator creating the App) has Priority, Status, and Handler fields and a basic backlog view. Only a sync job writes Status, from GitHub state.
 - **The central work repository** (private, owner pm) stores Initiatives and Epics. Bugs and tasks stay with the repositories that contain their code.
 
-Each issue and service request passes refinement against a Definition of Ready before work starts, and the tracker import passes through the same gate. [C. Refinement](C-refinement.md) gives the checks and the procedure, and [E. Tracker import](E-import.md) gives the import.
+Each issue and service request passes the Definition of Ready before work starts. The imports role refines tracker items in staging before the kernel creates them in their destination types. See [C. Refinement](C-refinement.md) and [E. Tracker import](E-import.md).
 
 ## How it works
 
@@ -105,15 +105,16 @@ A Chore links to its parent as a sub-issue, and a Defect links to a Problem or a
 | 6 | First real items under an Epic in the central work repository | The items exist and pass the kernel checks | pm |
 | 7 | Sync job | Status follows GitHub state within one run | pm |
 | 8 | [Refinement](C-refinement.md) and [batch review](F-refinement-runs.md#review-checklist) | The sync job shows Ready on a test item only with its own current record and, for a batch, a passing review | pm, `sm` |
-| 9 | [Tracker import](E-import.md) | Each staged issue passes creation and has a refinement outcome, and the import Epic's closing comment gives the outcome counts | pm |
+| 9 | [Tracker import](E-import.md) | Each staged item has one issue in its destination type and a recorded staging outcome. The import Epic's closing comment gives the outcome counts. | imports |
+| 10 | [Remove the retired schema](A-content-model.md#the-files) | The tracker import has finished and the pm role has removed the retired schema. | pm |
 
 ## Appendices
 
-- [Decisions](decisions.md) holds 2 open items, the decided record, and one ask of the tools role.
+- [Decisions](decisions.md) holds two numbered questions for the operator, the decided record, and one ask of the tools role.
 - [A. Content model](A-content-model.md) says what the block model counts and why the schemas have this structure.
 - [B. Routing and taxonomy](B-routing-and-taxonomy.md) covers routing, labels, and fields.
 - [C. Refinement](C-refinement.md) gives the Definition of Ready, the refinement procedure, and the Vale pass.
 - [D. Issue writing](D-issue-writing.md) gives the writing rules for every issue and the content checks that enforce them.
-- [E. Tracker import](E-import.md) says how the earlier tracker's issues enter and pass refinement.
+- [E. Tracker import](E-import.md) says how the imports role refines and vets staged files before creating issues.
 - [F. Refinement runs](F-refinement-runs.md) gives the run brief, the batch review checklist, and the failure modes of refinement.
 - A private appendix covers the private specifics for this design.

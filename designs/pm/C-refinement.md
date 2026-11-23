@@ -38,15 +38,17 @@ A batch groups up to 25 items in one target repository under a batch Chore. An i
 
 | Status | The sync job sets it when |
 | --- | --- |
-| Needs refinement | An open item lacks a current record or has a current `split` record. This status also applies to open items with a current `ready` record and a batch review that has yet to pass. |
+| Needs refinement | An open item has neither a current record nor a flag from the tracker import. This status also applies to open items with a current `split` record or a current `ready` record and a batch review that has yet to pass. |
 | Needs info | The item is open and has a current `needs-info` record. An answer in a comment alone leaves the item at Needs info. Editing the body with the resolved information or removing the `needs-info` label returns it to Needs refinement. |
 | Ready | The open item has its own current `ready` record. Any batch it belongs to has passed review. The item has neither a linked open pull request nor an assignee. |
 | In progress | An assignee or a linked open pull request puts an open item with its own current `ready` record In progress. Any batch the item belongs to must have passed review. |
 | Done | GitHub closed the item as completed. |
 | Dropped | GitHub closed the item as not planned or as a duplicate. |
-| No Status | The item is open and has a current `drop` record. The sync job clears Status until the close succeeds. |
+| No Status | The item is open and has a current `drop` record. The sync job clears Status until the close succeeds. An open item with a flag from the tracker import also has no Status until ordinary refinement writes a current record. |
 
-Only the latest refinement record from the kernel's account through the refine verb can be current. A current record requires the item's body hash and refinement label to match the record. A `drop` record requires the body hash to match and the item to have no refinement label. Only a `ready` record also requires the live fields, labels, and relations to pass check 5.
+Only the latest refinement record from the kernel's account can be current. Ordinary refinement writes that record through the refine verb. A current record requires the item's body hash and refinement label to match the record. A `drop` record requires the body hash to match and the item to have no refinement label. Only a `ready` record also requires the live fields, labels, and relations to pass check 5.
+
+For a tracker import, the kernel writes the staging result on the batch Chore. The sync job accepts a staged `ready` result as the issue's refinement record if the batch review passed and the created issue link, body hash, and refinement label match. Check 5 must still pass on live data. See [E. Tracker import](E-import.md#review-and-creation).
 
 A failed check 5 leaves a `needs-info` record current while the body hash and label match. Comments never change whether a record is current. An assigned, refined item stays In progress after a routine progress comment.
 
@@ -62,7 +64,7 @@ Built-in workflows of the org Project can also write Status. Two of them start e
 
 Issue, issue comment, and pull request events start the sync job, and so does a schedule. GitHub doesn't start a new workflow run for an event that a workflow's own token caused, and the schedule catches those changes.
 
-Only a refinement run may make an item Ready, and only through the refine verb. Work items go to a run of the pm role, and service-management issues go to a run of the `sm` role. The run that wrote an item's body can't refine that item, and the reviewer of a batch can't refine items in it, which keeps the maker and the checker apart as the agent roles registry requires.
+Ordinary refinement supplies the Ready signal through the refine verb. Work items go to a run of the pm role, and service-management issues go to a run of the `sm` role. The run that wrote an item's body can't refine that item, and the reviewer of a batch can't refine items in it, which keeps the maker and the checker apart as the agent roles registry requires.
 
 A worker who finds a Ready item unclear doesn't start it. Then the worker removes the ready label with `tbhbdev pm refine --return` and one comment that states the gap. After that, the record stops counting as current, and the sync job shows Needs refinement.
 
@@ -88,11 +90,11 @@ Each item below says how its check runs and what runs it, using these kinds of c
 9. **The Request identifies the approver.** The refiner checks the Handler field and the area label rule in item 5.
 10. **The Request specifies how to check the result.** The refiner checks that the Request says where to find the result and what shows success. A command Request uses the exit status and the output tail that the run posts on the Request.
 
-The schema refuses a create or an edit at once, so new items arrive with items 1, 2, 3, 7, and 8 partly checked. Imported items use a looser variant, described in [E. Tracker import](E-import.md), and refinement does that work for them.
+The schema refuses a create or an edit at once, so new items arrive with items 1, 2, 3, 7, and 8 partly checked. The imports role runs refinement and validates the destination type on staged files before creation. See [E. Tracker import](E-import.md#staging-and-refinement).
 
 A person can still open an issue in the GitHub web interface, which skips the kernel. An issue form can set the type, labels, and Project of such an issue.
 
-It can't run the schema. Refinement is the gate for those issues: `refine --check` runs the same schema checks, and the issue shows Needs refinement until a run converts it into its real variant.
+It can't run the schema. For those issues, `refine --check` runs the same schema checks. The issue shows Needs refinement until the run supplies a current record or closes the issue.
 
 ## The procedure
 
@@ -133,7 +135,6 @@ A fix may do any of these:
 - Fill an empty field from evidence.
 - Correct a link.
 - Transfer an internal-security item from a public repository to a private one, before any other write.
-- Convert an imported item into its real variant.
 
 A fix may not change the meaning of the outcome sentence or the intent of a check. It may not change a Priority that someone already set either. Each of those changes makes the outcome Needs info, and so does a check whose observable result the text doesn't make plain.
 
@@ -144,7 +145,7 @@ Use the refine verb to post one record comment per item, including in a batch.
 Within the record, each applicable readiness check has a result and evidence. Next come the outcome and the identity of the run. The last lines give the batch Chore, if any, and the final body's Secure Hash Algorithm (SHA) digest of 256 bits.
 
 - **`ready`** writes the record and the ready label of the refinement family. If checks needed fixes, the refiner writes the body and field edits first. The record lists each fix and the check it served, and GitHub's edit history keeps the earlier text.
-- **`needs-info`** writes the record and the needs-info label. The record cites the question comment. [Decision D8](decisions.md#d8-should-refinement-send-questions-of-operator-intent-as-one-approval-request-per-batch) covers how the operator receives those questions.
+- **`needs-info`** writes the record and the needs-info label. The record cites the question comment. [Decision D8](decisions.md#d8-should-ordinary-refinement-send-questions-of-operator-intent-as-one-approval-request-per-batch) covers how the operator receives those questions.
 - **`split`** creates each child through the kernel in the right repository and links it as a sub-issue. When the children are Features, it retypes the original to an Epic. It then writes the record and the split label on the original, and each child gets its own refinement and record later or in the same run.
 - **`drop`** writes the record with the close reason, clears the refinement label, and then closes the item. If merged work met the outcome, close the item as completed. Close a duplicate with the duplicate reason and a link. Use not planned if the reason for the item has gone.
 
@@ -233,9 +234,9 @@ For an operator Request, refinement runs while the Request is open, before the w
 
 - The README's Status rule stays. This appendix adds the six Status values and the GitHub state behind each one.
 - The org Project's setup turns off each built-in workflow that sets Status, including the two that start enabled.
-- The taxonomy and the variants used for imports gain a Source field so `Import` survives conversion. Work type already appears in the taxonomy schema.
+- The tracker import sets Source to `Import` through the optional `source` field in the destination variant.
 - Issues have no owner field. The repository implies the responsible role, and a `role/<role>` label marks each exception.
-- The verbs gain `refine` with an edit operation and a return operation. The variants gain the imported variant and the refinement record variant.
+- The verbs gain `refine` with an edit operation and a return operation. The variants gain the refinement record variant.
 - The [parent-type kernel check](A-content-model.md#checks-outside-the-schema) accepts a Problem, an Epic, or no parent for a Defect.
 - The [routing order](B-routing-and-taxonomy.md#routing-order-for-create) sends each internal-security item to a private repository.
 - The kernel runs the Vale pass for every issue body and comment write. D10 proposes sharing the pass through the content check.

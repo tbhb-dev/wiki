@@ -87,9 +87,11 @@ why, and any check you couldn't run.
 
 ## Review checklist
 
-The [batch reviewer](C-refinement.md#status-and-the-ready-signal) posts a pass or fail verdict on the batch Chore before it closes. On a pass, a pm or `sm` run closes the Chore. On a fail, that run removes the ready labels in the batch.
+The [batch reviewer](C-refinement.md#status-and-the-ready-signal) posts a pass or fail verdict on the batch Chore before it closes. In ordinary refinement, a pm or `sm` run closes the Chore on a pass. On a fail, that run removes the ready labels in the batch.
 
 A refinement of one new item has no batch. Its Ready shows at once. Each week, a reviewer samples those records the same way, as if the week's records formed one batch.
+
+For the tracker import, the reviewer samples staged files and their evidence before the kernel creates issues. See [E. Tracker import](E-import.md#review-and-creation).
 
 - [ ] The reviewer reads every item in a batch of 10 or fewer. In a larger batch, it takes 10 items or a fifth at random, whichever is more, and adds each Drop, each Split, and each fix that edited the outcome or the checks.
 - [ ] A sampled record covers each applicable readiness check with a result and evidence that meets the [evidence rules](C-refinement.md#evidence-rules).
@@ -108,7 +110,7 @@ A refinement of one new item has no batch. Its Ready shows at once. Each week, a
 
 A rubber-stamp Ready leaves signs, and one of them sends the reviewer to read the whole batch:
 
-- Over three in four imported items come out Ready without a fix, though imported text rarely passes items 2 and 8 unedited.
+- Over three in four staged tracker items pass every readiness check without a fix.
 - Two or more records share the same evidence text, or cite a commit without a command.
 - A Ready item still matches a pattern of item 2, 3, 7, or 8 when checked again.
 - An item 4 pass lacks an issue search.

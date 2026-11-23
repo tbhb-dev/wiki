@@ -43,7 +43,7 @@ The kernel creates the issue in the chosen repository, then the work item. A sub
 | Severity | Defect field in the body metadata | The create verb |
 | Handler | Project field, Requests only | The IT service management side |
 | Work type | Field with the value `Planned` or `Unplanned` where the variant uses it | The create verb |
-| Source | Field with the value `Import` on imported issues | The import sets it, and refinement preserves it on conversion |
+| Source | Field with the value `Import` on tracker imports | The import sets it when the kernel creates the issue in its destination type |
 | Area and role | Labels | The create verb, with a check against live lists |
 
 ## Scan before every write
