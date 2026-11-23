@@ -22,7 +22,7 @@ decisions_open: 3
 
 Renovate pull requests that only move a pin still wait for a person to approve them, because each repository's ruleset requires one approval. Most of them change nothing but a commit hash, a version, or a digest that CI has already exercised.
 
-This design adds a reusable workflow in tbhb-dev/rules that each repository calls. It approves a Renovate pull request only when the author is the Renovate App, every changed line is a recognized pin line, the required checks succeeded, and the head didn't move. A dedicated GitHub App posts the approval, and anything else gets no approval and takes the normal path.
+This design adds a reusable workflow in tbhb-dev/rules that each repository calls. A dedicated GitHub App approves a pull request only when the Renovate App authored it, the diff moves only recognized pins, and the required checks passed in that pull request's CI run. The workflow checks the head and base again before posting.
 
 For the operator, pin-only updates stop needing a hand approval, and every decision leaves a reason code in the job summary.
 
@@ -43,13 +43,13 @@ The operator's direction of 2026-11-23 sets the scope ([D1](decisions.md)). This
 
 ### One run, step by step
 
-1. **Trigger.** A `workflow_run` event fires when a listed CI workflow completes for a pull request. The event carries the commit CI ran on. The run reads that commit once and calls it H.
+1. **Trigger.** A `workflow_run` event fires when a listed CI workflow completes for a pull request. The workflow takes H, the head of the pull request, from that event. It also records the run ID, attempt, and head repository.
 2. **Find the pull request.** The run lists the open pull requests whose head is H and requires exactly one, from a branch in the same repository.
-3. **Bind the head.** It reads that pull request and requires its head to equal H. A mismatch ends the run with `head_mismatch_at_start`, because a newer push has its own CI run coming.
-4. **Gather at H.** The run reads the author, the commits and their signatures, the required checks and their results at H, and the zero-context diff from the merge base to H. It also reads the facts each pin needs, such as which commit a tag names.
+3. **Bind the pull request.** The run requires head H in the calling repository and a target of its default branch. It records the base repository, target branch, and merge base.
+4. **Gather the evidence.** The run reads the author, the commits and their signatures, the required check results from the triggering CI snapshot, and the zero-context diff from the merge base to H. It also reads the facts each pin needs, such as which commit a tag names.
 5. **Decide.** `decide()` applies every rule to that data and returns one decision and one reason code, plus the full list of findings.
-6. **Re-read and approve.** The run rechecks the required checks and re-reads the head just before approval. In `enforce` mode it posts the approving review with `commit_id` set to H only if the head still equals H and the checks still pass.
-7. **Check after.** The run reads the head a third time. If it moved, the run dismisses its own review and logs `head_moved_after_approval`.
+6. **Re-read and approve.** The run rechecks the required checks, then confirms that H, the base repository, target branch, and merge base still match. The pull request must still be open, with no draft status or opt-out label. In `enforce` mode the run posts the review with `commit_id` set to H.
+7. **Check after.** The run reads the pull request a third time. If the head or base changed, it attempts to dismiss its review and logs the result.
 8. **Log.** Every run, approve or not, writes the decision, the reason code, H, and the findings to the job summary and to a JSON run artifact.
 
 [Appendix D](D-workflow.md) gives the trigger comparison, the head binding, and the GitHub API calls.
@@ -62,7 +62,7 @@ All of these hold at H, or the run refuses:
 - **Shape.** The branch lives in the base repository, the pull request targets the default branch, and it's open and not a draft.
 - **Pin-only diff.** Every changed line is a recognized pin line in a known pin file, with only its value slots changed. The diff adds or removes no line outside a pair, and no key, action, input, or path changes. [Appendix C](C-matcher.md) gives the grammar for each file kind and an accept and refuse table.
 - **Pin facts.** Each new pin is an upgrade within the allowed bump levels. A tag names exactly the new commit, the source's default branch contains a branch pin's commit, and a new digest matches the downloaded artifact.
-- **Checks.** Every required check, bound to its GitHub App, has a latest run at H that concluded `success`. Pending, skipped, neutral, missing, and failed all refuse.
+- **Checks.** Every required check concluded `success` for the expected GitHub App and workflow in the triggering run and attempt for this pull request. Pending, skipped, neutral, missing, and failed all refuse.
 - **Ruleset.** The branch's rules require an approval, dismiss stale approvals on push, and require last-push approval, so a later push voids this approval.
 
 ### Pin files it recognizes
@@ -74,7 +74,7 @@ All of these hold at H, or the run refuses:
 | `mise.toml` | A version in `[tools]` |
 | `mise.lock`, `MODULE.bazel.lock` | Companion entries for a pin the same pull request moves, checked as parsed documents |
 
-Each repository can narrow these file globs through an input, but it can't add a kind the module doesn't know. The preset pins in `.github/renovate.json5` stay out until [D4](decisions.md) says otherwise.
+The reusable workflow exposes a [`pin_files` input](D-workflow.md#the-workflow_call-interface). The preset pins in `.github/renovate.json5` stay out until [D4](decisions.md) says otherwise.
 
 ### Modes
 
@@ -85,10 +85,11 @@ The caller sets `mode`. In `evaluate`, the run does everything except post the r
 | Risk or unknown | Effect if it goes wrong | What handles it | Evidence |
 | --- | --- | --- | --- |
 | GitHub counts an approval whose `commit_id` is an older commit after a push lands between the re-read and the post | An approval could count for a head nobody checked | Rulesets dismiss stale approvals on push and require last-push approval. The post-check dismisses the review. A spike in plan step 2 tests the race | unverified |
+| GitHub counts an approval after the target branch changes between the re-read and the post | An approval could count for a different target | The third read detects the changed target and attempts dismissal. Plan step 2 tests stale-review behavior during the race | unverified |
 | The App's approval doesn't count toward the required review with contents read only | Enforce mode approves and nothing merges | Plan step 2 tests it. A wider grant goes back to the operator, and nobody adds it alone | unverified |
 | A workflow edit runs from a pull request branch | The branch run tries to read the App's key | The `pins-approver` deployment policy rejects the run's ref before the job can read its secrets. Plan step 2 tests the rejection | unverified |
 | A matcher bug accepts a non-pin change | A change that nobody reviewed merges | Fail-closed grammar, table tests for every reason code, an evaluate period, and two tier 2 reviews | new |
-| Renovate's own App can write checks and statuses | A forged `conclusion` result | The required check is bound to its integration ID, and runs from another App don't count | existing |
+| The Renovate App can write checks and statuses | A forged `conclusion` result | The run matches each check's App ID and requires evidence from the triggering CI snapshot | existing |
 | A rules change weakens the matcher, then reaches consumers through an auto-approved rules pin | Weaker checks everywhere | Changes to the module are tier 2 in tbhb-dev/rules, the review that the pin inherits | new |
 | The zero-context diff comes from a partial fetch the runner can't complete | No decision | The run refuses with `diff_unavailable`, and the next CI completion retries | unverified |
 | A busy org exhausts the App's API rate limit | Runs refuse | Each run makes about 30 to 80 calls and refuses with `rate_limited`. The next event retries | new |

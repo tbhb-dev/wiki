@@ -67,7 +67,9 @@ Where this design and those records differ, the operator's direction of 2026-11-
 | Last-push approval requires someone other than the pusher to approve the latest reviewable push | existing | the same page |
 | GitHub lets `skipped` and `neutral` conclusions satisfy a required check | unverified | widely reported, and plan step 2 records it |
 | An installation token expires after one hour | existing | GitHub Docs, "Authenticating as a GitHub App installation" |
-| `github.job_workflow_sha` names the commit of the running reusable workflow | unverified | plan step 4 tests it |
+| `job.workflow_repository` and `job.workflow_sha` identify the repository and commit of the workflow defining the current job | existing | [GitHub Actions contexts](https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#job-context) |
+| The Actions API exposes workflow runs and jobs for a specific run attempt, including check-run URLs, and allows unauthenticated reads of public data | existing | [Workflow runs](https://docs.github.com/en/rest/actions/workflow-runs) and [workflow jobs](https://docs.github.com/en/rest/actions/workflow-jobs) |
+| The Checks API exposes a check run by ID and reports its suite and head commit | existing | [Check runs](https://docs.github.com/en/rest/checks/runs) |
 
 ## Open questions for the spike
 
@@ -77,6 +79,10 @@ Plan step 2 answers these in a scratch repository with a copy of the tbhb-dev/ru
 - Whether an App's approval counts toward the required review with contents read, given that approvals count only from reviewers with write permission. If it needs contents write, the request goes back to the operator under [D3](decisions.md).
 - Whether the App can dismiss its own review when the ruleset restricts dismissals, and whether the `dismissal_failed` path then leaves stale dismissal as the only guard.
 - Whether a review posted with an older `commit_id` after a push counts toward the requirement.
+- How GitHub attributes check suites and check runs across reruns. Record the workflow run ID, attempt, job check-run IDs, suite ID, and suite head commit, including when CI tests a merge commit.
+- What associations the event and Actions API return when two or more pull requests share H. Confirm that the workflow refuses another pull request's CI and refuses ambiguous associations.
+- Whether GitHub dismisses or still counts a review after a target branch change that leaves H unchanged. Change the branch between the final pre-post read and the approval, and check the effect of the dismissal call.
+- Whether the reusable job can check out its exact public workflow revision and upload its decision artifact with `permissions: {}` at the caller, workflow, and job levels.
 - Which permission the branch rules endpoint needs.
 - The author, committer, and `verification` fields of a Renovate `platformCommit` commit, and whether GitHub fills `performed_via_github_app` on Renovate's pull requests.
 - Whether a fetch of two commits without blobs, followed by `git diff`, works with the installation token on a hosted runner.

@@ -20,7 +20,7 @@ Back to [the design](README.md).
 
 - **Recommendation:** yes, for a first-party pin when the workflow proves its source's default branch contains the new commit.
 - **Why:** [Architecture Decision Record (ADR) 0001](../../adrs/0001-the-changed-paths-and-content-set-the-review-tier.md) and [ADR 0024](../../adrs/0024-renovate-pull-requests-automerge-after-approval-and-ci.md) give a pin to a reviewed and merged commit one review run. The workflow checks that condition mechanically, and the daily `pins` group carries the tbhb-dev/rules pins, so without this the group rarely qualifies.
-- **If yes:** plan step 1 writes a decision record that amends both records for pin-only Renovate pull requests, and the matcher accepts first-party branch pins that pass the merged-at-source check.
+- **If yes:** plan step 1 writes a decision record that amends both records for pin-only Renovate pull requests, and the matcher applies [appendix C's first-party pin rules](C-matcher.md#workflow-uses-lines).
 - **If no:** the matcher refuses every first-party pin with `first_party_needs_review`. Third-party pins still qualify, and any pull request that moves a tbhb-dev pin keeps its review run.
 - **Reversible:** yes. A later decision record restores the review run, and one input default turns first-party pins off.
 
@@ -52,7 +52,7 @@ Back to [the design](README.md).
 ### D11. Does the workflow approve a pull request that moves its own reusable workflow pin?
 
 - **Decided:** 2026-11-23, by the rules maintainer.
-- **Rule:** yes, under the same rules as any first-party pin. The run that decides is always the default branch's caller, so a new version of the workflow never judges its own adoption.
+- **Rule:** yes, under [appendix C's first-party pin rules](C-matcher.md#workflow-uses-lines), including the merged-at-source check for tagged pins and subject to D2. The default branch's caller selects the reusable workflow, and the job requires `job.workflow_repository` and `job.workflow_sha` to check out and verify that exact revision before requesting the token.
 - **Undo:** two-way door. A `self_pin` refusal is one rule in the matcher.
 - **Record:** this design's pull request.
 
@@ -87,8 +87,8 @@ Back to [the design](README.md).
 ### D6. Where does the diff come from?
 
 - **Decided:** 2026-11-23, by the rules maintainer.
-- **Rule:** the run fetches the merge base and H without blobs or a checkout, then runs `git diff --unified=0` with rename detection and external tools off. It cross-checks the file list against the pull request files API.
-- **Undo:** two-way door. The API's patch fields are the fallback, and they lose the rename and mode detail.
+- **Rule:** the run fetches the merge base and H without blobs or a checkout, then runs `git diff --unified=0` with rename detection and external tools off. It requires both file modes from the raw diff and cross-checks the files against the list GitHub reports for the pull request.
+- **Undo:** two-way door. A replacement source needs to supply the same rename and mode evidence.
 - **Record:** this design's pull request.
 
 ### D5. Which event triggers the workflow?
@@ -101,6 +101,6 @@ Back to [the design](README.md).
 ### D1. How do pin-only Renovate pull requests get their approval?
 
 - **Decided:** 2026-11-23, by the operator.
-- **Rule:** pin-only Renovate pull requests keep their approval requirement. A reusable workflow, which each repository calls, gives that approval only when the author is the Renovate App, every changed hunk only replaces a pinned version or digest in a known pin file, the required checks succeeded at the head, and the head hasn't moved. A dedicated GitHub App posts the approval, never Renovate's identity, and the workflow fails closed and logs its reason.
+- **Rule:** pin-only Renovate pull requests still require approval. A reusable workflow gives that approval when the Renovate App authored the pull request, each hunk only replaces a known pin's version or digest, and the required checks passed in that pull request's CI snapshot. The workflow confirms the head and base again before a dedicated GitHub App posts the review. It fails closed and logs its reason.
 - **Undo:** two-way door. Disabling the callers and uninstalling the App returns every Renovate pull request to hand approval.
 - **Record:** the operator's direction to the design's author on 2026-11-23. This design's pull request is its first written record, and plan step 1 turns it into a decision record.

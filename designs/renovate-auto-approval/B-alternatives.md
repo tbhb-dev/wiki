@@ -40,7 +40,7 @@ A small service that receives `check_suite` webhooks could hold the App's key an
 
 ## Use the API's diff
 
-`GET /repos/{owner}/{repo}/pulls/{number}` with the diff media type returns a unified diff, but with three context lines and a size limit, and the files endpoint gives per-file patches without mode changes. Git's own diff with zero context, renames, and modes gives the matcher every fact it refuses on. The design keeps the files endpoint as a cross-check ([D6](decisions.md)).
+`GET /repos/{owner}/{repo}/pulls/{number}` with the diff media type returns a unified diff with three context lines and a size limit. The files endpoint gives per-file patches without the required file modes. Git supplies the zero-context diff and raw mode evidence, and the files endpoint cross-checks the file list ([D6](decisions.md)).
 
 ## A general diff classifier
 

@@ -20,7 +20,7 @@ The administrator installs the App and creates `pins-approver` in each calling r
 
 ## Evaluate mode
 
-In `evaluate` mode the run does everything enforce mode does, up to the second head read, and then stops. It never mints a token with write scope for a post it won't make, so evaluate mode asks for `permission-pull-requests: read` instead of write. The summary and `decision.json` record `would_approve: true` or `false` with the reason code.
+In `evaluate` mode the job runs through the final pre-post validation and then records `would_approve: true` or `false` with the reason code. It requests `permission-pull-requests: read`.
 
 Hand approval goes on as before during this period. The log shows what the workflow would have done beside what people did.
 
@@ -36,7 +36,7 @@ The rules maintainer collects every `decision.json` from the period with `gh run
 
 - **Every would-approve.** For each, the reviewer reads the pull request's whole diff at H and confirms it changes only pins. One wrong would-approve stops the rollout. The matcher gets a fix and a test, and the evaluate period starts again.
 - **Every refusal.** Each refusal has a reason that matches the diff. A refusal of a diff a person judges pin-only becomes either a matcher change, with tests, or a documented limit.
-- **Head binding.** No decision used a head other than the one in its event, and the timings of the three reads look sane.
+- **Snapshot binding.** Each decision used the head and CI run attempt from its event. The log records which pull request reads ran and whether the base still matched.
 - **Coverage.** Each pin kind appears at least once among the decisions, or the review says which kind it hasn't seen.
 - **Noise.** The share of runs that end in `checks_pending`, `rate_limited`, or `api_error`, and whether any of them hid a decision.
 
@@ -57,9 +57,10 @@ The module, the reusable workflow, each caller, and the App change the review an
 - The caller uses the default branch's workflow definition. The job never checks out or executes pull request code. It skips pull request artifacts and reads event fields from `GITHUB_EVENT_PATH`.
 - The job declares `environment: pins-approver`. Both App credentials live in that environment, and required reviewers stay unset. Confirm the spike shows that GitHub denies the job on a non-default branch before it can read either secret.
 - `permissions: {}` holds at the workflow and job level, and the token's scope matches [appendix D](D-workflow.md#minting-the-token).
-- The run takes H from the event and uses only H or the merge base for commit lookups. It re-reads the head just before approval and sets the review's `commit_id` to H. The third read and the dismissal path match appendix D.
-- Each required check binds to its `integration_id`, and pending, skipped, neutral, and missing checks refuse.
-- Every exception path ends in a reason code and no approval.
+- The job verifies the reusable workflow checkout before requesting the token. Both modes launch the isolated entry point from that checkout.
+- The run takes H from the event and checks the head and base again before posting with `commit_id: H`. It confirms the pull request still qualifies. The third read and dismissal match appendix D.
+- Each required check comes from the expected App and workflow. The triggering CI run and attempt identify which result to use for the pull request. Pending, skipped, neutral, and missing checks refuse.
+- An ambiguous review write goes through reconciliation before any retry, and unresolved outcomes appear in the decision log.
 
 **Review two, the matcher**, reads `decide.py`, `matcher.py`, `versions.py`, and the tests:
 

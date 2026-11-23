@@ -37,19 +37,21 @@ zizmor's `dangerous-triggers` audit flags `workflow_run`. Each caller adds an ig
 
 ## The exact-head binding
 
-GitHub has no compare-and-set for a review: the review endpoint can't refuse a post because the head moved. The binding therefore uses three reads and a bound review.
+The review endpoint accepts a commit ID and has no precondition for the current head or base. The run uses three pull request reads and posts against a specific commit.
 
-1. **Read once.** The run takes H from `workflow_run.head_sha` in the event payload, the commit CI ran on. No later step reads H from anywhere else.
+1. **Read once.** The run takes H, the head of the pull request, from `workflow_run.head_sha`. It also records the triggering run ID, attempt, and head repository ID. CI can test a merge commit for H.
 2. **Find the pull request.** `GET /repos/{owner}/{repo}/commits/{H}/pulls` must return exactly one open pull request whose head repository is this repository and whose head is H. Otherwise the run ends with `pr_not_unique` or `fork_head`.
-3. **First read.** `GET /repos/{owner}/{repo}/pulls/{number}` must show `head.sha` equal to H, or the run ends with `head_mismatch_at_start`.
-4. **Gather and decide** against H only. Every API call that takes a ref passes H or the merge base, never a branch name.
-5. **Second read, just before approval.** Recheck the required checks, then re-read the pull request. The checks must still pass and the pull request must still show head H, `state` open, `draft` false, and no opt-out label. A changed head ends the run with `head_moved`. In `evaluate` mode the run stops after recording the decision.
-6. **Bound post.** In enforce mode, send `POST /repos/{owner}/{repo}/pulls/{number}/reviews` with `event: APPROVE` and `commit_id: H`. The run requires the response's `commit_id` to equal H.
-7. **Third read.** The pull request read once more must show head H, or merged with merge base and head unchanged. If the head moved, the run calls `PUT .../reviews/{review_id}/dismissals` and logs `head_moved_after_approval`. A ruleset that restricts dismissals can refuse that call, which the spike checks, and the stale dismissal still applies.
+3. **Read the initial state.** `GET /repos/{owner}/{repo}/pulls/{number}` must show `head.sha` equal to H, or the run ends with `head_mismatch_at_start`. Record the base repository ID and target branch, require the caller repository and its default branch, and compute the merge base of the reported `base.sha` and H.
+4. **Gather and decide.** Read commits and diff data by commit ID. Bind the checks to the triggering CI snapshot as described below.
+5. **Second read, just before approval.** Recheck the required checks against the same snapshot, then re-read the pull request. Require H, the same base repository and target branch, and the same merge base of the fresh `base.sha` and H. Also require `state` open, `draft` false, and no opt-out label. A changed head ends the run with `head_moved`, and a changed base ends it with `base_changed`. In `evaluate` mode the run stops after recording the decision.
+6. **Bound post.** In `enforce` mode send `POST /repos/{owner}/{repo}/pulls/{number}/reviews` with `event: APPROVE` and `commit_id: H`. Require the response's `commit_id` to equal H.
+7. **Read after the post.** Read the pull request and compare H, the base repository, target branch, and merge base again. If the head or base changed, call `PUT .../reviews/{review_id}/dismissals` and log `head_moved_after_approval` or `base_changed_after_approval`. The spike tests dismissal and changes to the target branch at the same head.
 
 The reads check for head changes, and the response's `commit_id` confirms the review targets H. A push can land between the second read and the post. The workflow relies on two ruleset settings to guard that interval. `dismiss_stale_reviews_on_push` voids stale approvals on push, and `require_last_push_approval` requires approval of the latest push. The run reads both settings from the branch rules and refuses with `stale_dismissal_off` if either is off. Plan step 2 tests whether GitHub counts a review that the App posts with an older `commit_id` after a push.
 
-Renovate enables GitHub's auto-merge on its pull requests. An approval can trigger a merge within seconds, and the third read accepts a merged pull request whose head is still H.
+Renovate enables GitHub's auto-merge on its pull requests. An approval can trigger a merge within seconds, and the third read accepts a merged pull request if its head and base match the pre-post snapshot.
+
+Before the final pre-post read, record the approver App's review IDs and use `already_approved` only for a currently effective approval at H. After a timeout or another ambiguous POST result, reconcile against those IDs before any retry. Run the third read for a confirmed new approval at H, repeat the pre-post checks before retrying a confirmed failure to write, or stop if the result remains uncertain.
 
 ## The author check
 
@@ -77,22 +79,30 @@ The run reads the required checks from `GET /repos/{owner}/{repo}/rules/branches
 
 The tbhb-dev repositories use rulesets, so the run doesn't read classic branch protection. GitHub still enforces any classic required check at merge, so a check the run can't see can block a merge but can't let one through.
 
-For each required check, the run calls `GET /repos/{owner}/{repo}/commits/{H}/check-runs?check_name={context}&app_id={integration_id}&filter=latest`. It decides by the latest run of that name from that App:
+The caller supplies the expected workflow ID for each required check from its default-branch workflow definition. Fetch the run by the event's run ID with `GET /repos/{owner}/{repo}/actions/runs/{run_id}` and require the same attempt, workflow ID, `pull_request` event type, head repository ID, and H.
 
-| State at H | Reason code | Why |
+Require one association with the target pull request by number and head branch. Its base repository and target branch must match the pull request snapshot, as must the merge base of H and the association's `base.sha`. Refuse if the association is missing or ambiguous or if GitHub reports a newer attempt of that run.
+
+List jobs with `GET /repos/{owner}/{repo}/actions/runs/{run_id}/attempts/{attempt}/jobs`. For each required check, read the check run by ID from its job's `check_run_url` and require exactly one match for the configured name and integration ID in the workflow run's check suite. The lookup uses IDs, and the result's `head_sha` must equal the `head_sha` of the suite that the run's `check_suite_id` identifies.
+
+The suite's head can equal H or the test merge commit. For a test merge commit, verify that its parents are the CI snapshot's `base.sha` and H. A lookup by H alone could miss a merge-commit check or select a different suite for the same commit.
+
+A check without evidence from that run and attempt ends the decision with `check_missing`. The workflow rejects reruns on other branches and refuses when the completion lacks any required check. It reads public Actions run and job metadata anonymously and refuses if the evidence is unavailable.
+
+| State in the bound CI snapshot | Reason code | Why |
 | --- | --- | --- |
 | `completed` with `success` | passes | |
-| `queued`, `in_progress`, `waiting`, `requested`, or `pending` | `checks_pending` | That check's completion fires another `workflow_run`, which decides again |
+| `queued`, `in_progress`, `waiting`, `requested`, or `pending` | `checks_pending` | A later CI completion starts a fresh decision |
 | `completed` with `skipped` | `check_skipped` | GitHub lets a skipped required check pass, but a skip means CI didn't test this head |
 | `completed` with `neutral` | `check_neutral` | GitHub counts it as a pass, and the run doesn't |
 | `failure`, `cancelled`, `timed_out`, `action_required`, `stale`, or `startup_failure` | `check_failed` | |
-| No run of that name from that App | `check_missing` | |
-| A required check with no `integration_id` | `required_check_unbound` | Any App with checks or statuses write, Renovate's included, could satisfy it |
+| No unique check of that name from that App in the bound snapshot | `check_missing` | |
+| A required check with no `integration_id` or expected workflow ID | `required_check_unbound` | The producer or workflow is unknown |
 | No required checks at all | `no_required_checks` | There is no CI evidence to approve on |
 
-The run excludes the workflow's own check, and no ruleset should ever list it. A `workflow_run` job attaches its check to the default branch's head, not to H, so it never shows at H. If a ruleset named it as required anyway, it would still be running when the run reads it, and the run would wait on itself forever. Its result also says nothing about the change. The run refuses with `self_check_required` when the required list names its own job, so the misconfiguration shows up in the log.
+The run refuses with `self_check_required` when the ruleset requires the approving job. That job runs on the default branch and supplies no CI evidence for the pull request.
 
-Renovate's App holds checks write and statuses write ([appendix A](A-evidence.md)). Binding each required check to an `integration_id` and passing `app_id` is what stops a check run that Renovate posts named `conclusion` from counting.
+The Renovate App has checks write and statuses write ([appendix A](A-evidence.md)). Matching the check run's App ID to the ruleset's `integration_id` prevents a `conclusion` result from Renovate from counting.
 
 ## The approver App
 
@@ -131,9 +141,10 @@ The reusable workflow lives at `.github/workflows/renovate-auto-approval.yml` in
 | Input | Type | Default | Meaning |
 | --- | --- | --- | --- |
 | `mode` | string | `evaluate` | `evaluate` logs the decision only. `enforce` also posts the approval |
-| `pin_files` | string | the globs in [appendix C](C-matcher.md) | One `kind: glob` per line. The caller can narrow or add files for a known kind, never add a kind |
+| `check_workflows` | string | none | One `context: workflow ID` per required check, from the default branch's caller |
+| `pin_files` | string | the globs in [appendix C](C-matcher.md) | One `kind: glob` per line. Callers may only narrow the file set for each built-in kind |
 | `allowed_bumps` | string | `patch minor digest` | Space-separated bump levels |
-| `first_party_owners` | string | `tbhb-dev` | Owners whose `main` pins need the merged-at-source check |
+| `first_party_owners` | string | `tbhb-dev` | Owners whose branch and tag pins need the merged-at-source check |
 | `first_party_modules` | string | `tbhb_rules*` | `git_override` modules treated as first-party pins |
 | `registry` | string | `https://bcr.bazel.build/` | The only registry allowed in `registryFileHashes` keys |
 | `max_files` | number | `50` | More changed files refuses with `too_many_files` |
@@ -148,9 +159,9 @@ The reusable workflow sets `permissions: {}` at the workflow and job levels beca
 
 The job's steps, in order:
 
-1. Check out tbhb-dev/rules at `github.job_workflow_sha`, the commit of the reusable workflow itself, with `persist-credentials: false`. It needs no token, because the repository is public.
-2. Mint the App token.
-3. Run `python3 -I -m repo.private.renovate_approval` with the token, the inputs, and the event path in its environment. It uses the runner's Python and the standard library, with nothing installed.
+1. Fail the job if `job.workflow_repository` or `job.workflow_sha` is empty. Pass those values to `actions/checkout` as `repository` and `ref`, with `persist-credentials: false`, and require the checkout's `HEAD` to equal `job.workflow_sha` before proceeding.
+2. Request the App token only after checkout verification succeeds.
+3. In both modes run `python3 -I -S "$RULES_CHECKOUT/repo/private/renovate_approval/__main__.py"`, where `RULES_CHECKOUT` points to the verified checkout. The entry point appends only the checkout root, derived from its resolved script path, to `sys.path` before importing the decision package by its absolute name. The flags keep the working directory, `PYTHONPATH`, and site packages out of the import path.
 4. Upload `decision.json` as an artifact named `renovate-auto-approval-<pull request number>-<run attempt>`, kept for 90 days.
 
 ### The call a repository adds
@@ -175,6 +186,7 @@ jobs:
     uses: tbhb-dev/rules/.github/workflows/renovate-auto-approval.yml@<40-hex commit>  # main
     with:
       mode: evaluate
+      check_workflows: 'conclusion: <ci workflow ID>'
 ```
 
 The `if:` is a cheap filter that saves a runner for fork and push runs, not a security check. The module repeats both checks against the API.

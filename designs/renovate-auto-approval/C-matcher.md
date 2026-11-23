@@ -20,15 +20,15 @@ The matcher is the part of `decide()` that reads the diff. It answers one questi
 
 The gather step hands the matcher three things for the pull request at its head, H:
 
-- The output of `git diff --unified=0 -M --no-ext-diff --no-textconv --full-index` from the merge base to H, as text. Zero context lines mean every line in a hunk body is a change.
-- The base and head text of each changed file that a pin kind needs to read whole: `MODULE.bazel`, listed `.bzl` files, `mise.toml`, and the two lockfiles.
+- The output of `git diff --unified=0 -M --no-ext-diff --no-textconv --full-index` from the merge base to H, plus the old and new file modes from `git diff --raw` over the same commits. Zero context lines mean every line in a hunk body is a change.
+- The base and head text of each changed pin file.
 - The pin facts the gather step looked up, keyed by file and line: which commit a tag names, whether its source's default branch contains a commit, and the SHA-256 hash, from the Secure Hash Algorithm (SHA) family, of each downloaded artifact.
 
 The matcher makes no network calls. A fact it needs and doesn't have is a refusal, `fact_missing`.
 
 ## File-level rules
 
-The matcher first reads each file's extended header lines in the diff. It refuses the whole pull request at the first file that fails, and still records every finding.
+The matcher first reads each file's extended header lines in the diff. It requires both file modes as evidence and refuses with `parse_doubt` if it lacks either mode for the file. It refuses the whole pull request at the first file that fails, and still records every finding.
 
 | Header in the diff | Reason code |
 | --- | --- |
@@ -64,9 +64,11 @@ The last two rules carry most of the weight. Each grammar names its value slots.
 
 ## Workflow `uses:` lines
 
-**Files:** `.github/workflows/*.yml`, `.github/workflows/*.yaml`, and `.github/actions/*/action.yml` or `action.yaml`, unless the caller narrows them.
+**Files:** `.github/workflows/*.yml`, `.github/workflows/*.yaml`, and `.github/actions/*/action.yml` or `action.yaml`.
 
 **Grammar:** an optional indent, an optional list dash and space, then `uses:` and one space, and an `owner/repo` reference with an optional path, `@`, 40 lowercase hexadecimal characters, two spaces, a `#` and one space, and a version comment. The comment is a version such as `v7.0.1` or `7.0.1`, or the word `main`.
+
+A conservative block parser must identify the line as a `uses` field of a workflow job or an action step in both YAML documents. Text inside a block scalar fails with `not_a_pin_line`, and ambiguous syntax fails with `parse_doubt`.
 
 **Value slots:** the commit and the version comment.
 
@@ -76,12 +78,13 @@ The matcher accepts a pair when:
 - For a version comment, the new version is higher than the old one, and its bump level is in `allowed_bumps`. A lower version is `downgrade`, an equal version with a new commit is `digest_without_version_change`, and a disallowed level is `bump_level_not_allowed`.
 - For a version comment, the pin facts show that the tag named in the new comment points at the new commit in `owner/repo`. Anything else is `tag_mismatch`. This also defeats a commit that exists only in a fork but resolves through the parent's object network.
 - For a `main` comment, `owner` is in `first_party_owners`, and the facts show the old commit is an ancestor of the new one, and the new one is an ancestor of the source's default branch head. Failures are `not_first_party`, `downgrade`, and `not_merged_at_source`. The bump level is `digest`.
+- A tag pin from `first_party_owners` must also pass the merged-at-source check for the new commit. [D2](decisions.md) governs approval for both branch and tag pins.
 
 Refused shapes include a `docker://` reference, a local `./` action, a tag or branch without a commit, a pin without a comment (`unversioned_pin`), a changed action name or path (`key_changed`), and any change to a `with:` input, `runs-on:`, or `name:` line (`not_a_pin_line`).
 
 ## Starlark files
 
-**Files:** `MODULE.bazel`, plus any `.bzl` files the caller lists, such as a rules repository's `pins/*.bzl`.
+**Files:** `MODULE.bazel` and `pins/*.bzl`.
 
 The matcher reads the head and base text to find the stanza around each changed line. It walks up from the line to the nearest line at column 0 that opens one of the known calls and down to the `)` at column 0 that closes it. The stanza must open and close the same way on both sides, with the same call name and the same `name` or `module_name` value. Anything else, including a nested bracket that spans lines, a `+` concatenation on a changed line, a variable in a value slot, or a backslash continuation, is `parse_doubt`.
 
@@ -122,7 +125,7 @@ A URL held in a variable, such as a module-level base URL joined with `+`, is `p
 
 ## Lockfiles
 
-The matcher reads lockfiles as parsed documents, with `tomllib` and `json` from the standard library, and compares base to head. Every changed line in the diff must still fall inside an entry the comparison allows.
+The matcher compares the parsed base and head documents with `tomllib` and `json` from the standard library. It maps changed lines to the source spans of changed parsed entries on each side and requires each entry to match the manifest pin by tool and version in `mise.lock` or by module and version in the registry URL in `MODULE.bazel.lock`.
 
 ### `mise.lock`
 
