@@ -28,7 +28,7 @@ The choice between Epics as design documents and an Epic issue type remains open
 
 ### D8. Should refinement send questions of operator intent as one approval Request per batch?
 
-On 2026-11-23, the imports role answered yes for tracker imports. The operator still needs to decide whether to use batch Requests outside the import.
+On 2026-11-23, the imports role said it would use one batch Request for the tracker import. That is information from the imports role, not a decision. The operator still needs to decide whether to use batch Requests outside the import.
 
 - **Recommendation:** yes. Each batch opens at most one Request that lists each issue with its question, and one comment answers them all.
 - **Why:** an import of about 700 issues could otherwise send the operator dozens of separate questions, and the operator already answers Requests in one known place.
