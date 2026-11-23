@@ -23,16 +23,18 @@ Review costs depend on what a change can affect. A prose edit, a test change and
 
 ## Decision
 
-The paths and content of the diff determine its tier. A reviewer can raise the tier. Once set, it can only stay the same or rise.
+The diff’s paths and content set the tier. Reviewers can raise it. Once set, it never falls.
 
-- Tier 0 needs CI only. It covers prose-only changes in wiki, draft, research and spike repositories, except for design documents in the wiki.
-- Tier 1 needs one fresh review run. It covers most code, tests, refactors and documentation in code repositories, and design documents in the wiki.
-- Tier 2 needs two fresh review runs. It covers changes to credentials, rulesets, permissions, agent harness configuration such as `.mcp.json`, deployments and the review and merge path. It also covers destructive commands and code that can remove durable data or the only copy of work. Examples include uncommitted changes, branches or worktrees with work that has yet to be merged or pushed, stashes, records and backups.
+- Tier 0 needs CI only for prose-only changes in wiki, draft, research and spike repositories, except wiki design documents.
+- Tier 1 needs one fresh run for most code, tests, refactors and documentation in code repositories, wiki design documents and deletion of regenerable state.
+- Tier 2 needs two fresh runs for changes to credentials, rulesets, permissions, agent harness configuration, deployments or the review and merge path. It covers destructive commands and code that can delete durable data or the only copy of work.
 
-Deleting regenerable state such as build caches stays at tier 1. A consumer-only pin bump to a commit already reviewed and merged upstream also gets one run. The higher tier of any upstream code applies where that code changed. A routine third-party version and checksum bump falls under tier 1 dependency maintenance.
-
-At every tier, a fix gets one fresh run scoped to the delta.
+At every tier, a fix gets one fresh run on the delta.
 
 ## Consequences
 
 The commissioning role merges a tier 0 pull request once its head is green. It needs no review, approval or separate merger assignment. Reviewers apply the tiers now, while the review loop design specifies the path lists.
+
+Tier 2 examples include changes to `.mcp.json` and deletion of uncommitted changes, branches or worktrees with unmerged or unpushed work, stashes, records and backups. Deleting build caches stays at tier 1.
+
+A consumer-only pin bump to a commit already reviewed and merged upstream gets one run. A higher upstream tier applies only to code changed in the same pull request. Routine third-party version and checksum bumps stay under dependency maintenance and need only a CI signal.
