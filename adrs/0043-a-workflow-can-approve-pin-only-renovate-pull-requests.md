@@ -15,7 +15,7 @@ Repositories that require one approval make a person approve every Renovate pull
 
 ## Decision
 
-A pull request qualifies when the Renovate App authored it from a branch in the repository to the default branch, it is open, not a draft, and has no opt-out label, a pure decision function finds only recognized pins within the allowed bump levels and their companion lockfile entries, and every required check passed in the triggering CI run. Just before approving, the workflow rechecks the head, base, and checks and refuses if any changed. The workflow then posts the App's approval, and the design's spike verifies that GitHub counts it. For a first-party pin, the approval replaces the one review run that [0024](0024-renovate-pull-requests-automerge-after-approval-and-ci.md) requires, once the source repository's default branch contains the new commit. Others get normal review.
+A pull request qualifies only when every condition in the design's [approval rules](../designs/renovate-auto-approval/README.md#what-earns-an-approval) holds at its head. Among them, Renovate authored every commit with a verified signature, only recognized pins and companion lockfile entries change, every required check passed in the triggering CI run, and the branch rules dismiss stale approvals. The workflow rechecks just before posting the App's approval, and the spike tests whether GitHub counts it. For a first-party pin, the approval replaces the one review run that [0024](0024-renovate-pull-requests-automerge-after-approval-and-ci.md) requires, once the source's default branch contains the new commit. Any other pull request gets normal review.
 
 ## Scope
 
@@ -23,7 +23,7 @@ This applies to repositories that call the workflow. Each caller starts in `eval
 
 ## Consequences
 
-Qualifying pin-only updates can merge without a person once a repository enforces, if GitHub counts the App's approval, which the design's spike verifies. The matcher becomes part of the merge path, so a matcher bug could let a change that nobody reviewed merge. The design bounds that with a fail-closed grammar, tests for every reason code, an evaluate period, and two independent tier 2 reviews. One App key serves every caller, held as a secret in each caller's environment.
+Qualifying pin-only updates can merge without a person once a repository enforces, if GitHub counts the App's approval, which the design's spike tests. The matcher becomes part of the merge path, so a matcher bug could let a change that nobody reviewed merge. The design bounds that with a fail-closed grammar, tests for every reason code, an evaluate period, and two independent tier 2 reviews. One App key serves every caller, held as a secret in each caller's environment.
 
 ## Confirmation
 
