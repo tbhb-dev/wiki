@@ -90,7 +90,7 @@ None.
 ### D6. How does the Web UI reach the operator?
 
 - **Decided:** 2026-11-24, by ops.
-- **Rule:** the UI answers at `temporal.tbhb.cloud` and at the tailnet label `temporal-ui`, through an nginx HTTPS proxy in the project and the UI Tailscale Service, the same pattern as Grafana. The DNS record goes through the usual DNS path. Write actions stay off, and the UI reaches the frontend with its own client certificate.
+- **Rule:** the web user interface (UI) answers only at `temporal.tbhb.cloud` over Hypertext Transfer Protocol Secure (HTTPS), through an nginx proxy in the project and the UI Tailscale Service, with a certificate that covers `temporal.tbhb.cloud`. The Domain Name System (DNS) record follows the usual path and points at the UI's tailnet service name, which the private companion sets. Write actions stay off, and the UI reaches the frontend with its own client certificate.
 - **Why:** one pattern for every web UI, and a read-only UI behind a narrow grant leaves workflow changes to clients with certificates.
 - **Undo:** two-way door. Remove the record and the service.
 - **Record:** the pull request that adds this decision.

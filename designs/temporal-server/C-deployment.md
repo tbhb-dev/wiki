@@ -69,6 +69,7 @@ services:
     depends_on: {schema: {condition: service_completed_successfully}}
     volumes:
       - ./certs/server:/certs:ro
+      - ./dynamicconfig/docker.yaml:/etc/temporal/config/dynamicconfig/docker.yaml:ro
     env_file: ./.secrets/temporal.env
     environment:
       DB: postgres12
@@ -137,6 +138,14 @@ services:
       - ./serve.json:/config/serve.json:ro
 ```
 
+Step 5 writes `dynamicconfig/docker.yaml` as an empty mapping so Temporal 1.32.2 can read its default dynamic-config path at startup:
+
+```yaml
+{}
+```
+
+The mount supplies the file that the image lacks; full server startup and the client-auth settings remain unverified until the deploy.
+
 `TEMPORAL_VOLUME` is the dedicated volume's host mount point. ops creates its `pgdata` subdirectory and owns it as the Postgres user; the bind fails if that subdirectory is missing. The host writes `.secrets/pg` from the superuser's `op://` item, readable by that user, and `.secrets/temporal.env` from the application role's item with `POSTGRES_USER`, `POSTGRES_PWD`, and the schema tool's `SQL_PASSWORD`. `POSTGRES_LOG_DIR` is a small mounted log volume, writable by Postgres. Alloy runs as the same UID 999 to read the mode 0600 logs through its read-only mount, with all capabilities dropped.
 
 Before the first `init` or `schema` job, ops runs a first-run `psql -U postgres -d postgres` step inside the `postgres` container as UID 999. It runs `SET password_encryption = 'scram-sha-256'`, then `CREATE ROLE temporal LOGIN CREATEDB PASSWORD :'temporal_password'`, `CREATE ROLE temporal_exporter LOGIN PASSWORD :'exporter_password'`, and `GRANT pg_monitor TO temporal_exporter`. The deploy supplies the two `psql` password variables from each role's own `op://` item; the SQL quotes them as literals.
@@ -150,11 +159,13 @@ The server keeps its default ports inside the project: 7233 to 7239 for gRPC and
 | Service | Port on the tailnet | Forward | Transport Layer Security ends at |
 | --- | --- | --- | --- |
 | Frontend | TCP 7233 | Raw TCP to `temporal:7233` | The Temporal server, which checks the client certificate |
-| Web UI | TCP 443 | Raw TCP to `ui-tls:8443` | The `ui-tls` proxy, with the `temporal.tbhb.cloud` certificate |
+| Web user interface (UI) | Transmission Control Protocol (TCP) port 443 | Raw TCP to `ui-tls:8443` | The `ui-tls` proxy, with a certificate that covers only `temporal.tbhb.cloud` |
+
+Browsers use only `temporal.tbhb.cloud` over Hypertext Transfer Protocol Secure (HTTPS); the UI's tailnet service name routes traffic but offers no second HTTPS name. The private companion sets that service name.
 
 The `ui-tls` proxy uses the unprivileged nginx image so it runs as a non-root user with all capabilities dropped. It follows the observability stack's `grafana-tls` pattern: a certificate directory mounted read-only, container port 8443, and a Compose health check that runs `nginx -t`. ops makes the certificate files readable by the proxy's user.
 
-Step 5 writes `ui-tls.conf` with this listener and `serve.json` with these service forwards:
+Step 5 writes `ui-tls.conf` with this listener and `serve.json` with these service forwards, replacing the service-name placeholders with the names from the private companion:
 
 ```nginx
 server {
@@ -169,8 +180,8 @@ server {
 ```json
 {
   "Services": {
-    "svc:temporal-frontend": {"TCP": {"7233": {"TCPForward": "temporal:7233"}}},
-    "svc:temporal-ui": {"TCP": {"443": {"TCPForward": "ui-tls:8443"}}}
+    "svc:<frontend-service-name>": {"TCP": {"7233": {"TCPForward": "temporal:7233"}}},
+    "svc:<ui-service-name>": {"TCP": {"443": {"TCPForward": "ui-tls:8443"}}}
   }
 }
 ```
