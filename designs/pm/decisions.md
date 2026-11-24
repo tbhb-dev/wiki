@@ -110,7 +110,7 @@ The design relies on D1 to D4 and D6 as requirements. D5 only places the design.
 - **Amended.** On 2026-11-24, the operator ruled that the central work repository and its private twin both hold Initiatives, Epics, and Features.
 - **Rule.** Initiatives, Epics, and Features go in the central work repository or its private twin when the text needs private detail or the item concerns internal security. Tasks, Defects, Chores, Spikes, and Research issues go in the responsible repository or the private repository selected by the [routing order](B-routing-and-taxonomy.md#routing-order-for-create). The selected repository determines the org Project. Feature is the unit of user-visible work.
 - **Undo:** transfer issues. Two-way door.
-- **Record.** The operator's project management issues ruling and the 2026-11-24 “Story means Feature” ruling with its work/private twin clarification.
+- **Record.** The operator's project management issues ruling and the 2026-11-24 rulings “Story means Feature” with its work/private twin clarification, “apps have no private repository,” and “an internal-security Initiative, Epic or Feature about an app goes in [the central work repository's private twin]” (about 18:10 UTC).
 
 ## Asks of other roles
 
