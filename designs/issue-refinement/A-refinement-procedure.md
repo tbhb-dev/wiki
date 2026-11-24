@@ -98,7 +98,7 @@ For check 4, cite the searches and their results. Keep private repository citati
 
 Every issue about internal security goes in a private repository. Internal security means a weakness in the organization's own systems, such as a vulnerability, a gap in access control, an exposed credential path, or a missing detection. A public advisory about an upstream dependency doesn't count.
 
-If refinement finds such an item in a public repository, its first write transfers the item to the private twin. Where no twin exists, the item goes to the central work repository.
+If refinement finds such an item in a public repository, its first write transfers the item to a private repository. Use the [routing order](../pm/B-routing-and-taxonomy.md#routing-order-for-create) to choose between the responsible repository's private twin and the central work repository's private twin.
 
 The run writes the record and any fixes only after the move, so no record repeats the detail in public. A transfer hides the item from public view, but it can't recall copies made while the item was public. The record on the moved item says how long the item was public.
 

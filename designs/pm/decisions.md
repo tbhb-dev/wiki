@@ -107,7 +107,8 @@ The design relies on D1 to D4 and D6 as requirements. D5 only places the design.
 ### D1. Where do issues go?
 
 - **Decided:** 2026-11-22, by the operator.
-- **Rule.** Every work item is an issue in the repository responsible for it. That repository determines the org Project. Larger units go in a private central work repository. Feature is the unit of user-visible work.
+- **Amended.** On 2026-11-24, the operator ruled that the public central work repository and its private twin both hold Initiatives, Epics, and Stories.
+- **Rule.** Every work item is an issue in the repository responsible for it. That repository determines the org Project. Place Initiatives and Epics by the [routing order](B-routing-and-taxonomy.md#routing-order-for-create). Feature is the unit of user-visible work.
 - **Undo:** transfer issues. Two-way door.
 - **Record:** the operator's project-management issues ruling and the rename ruling.
 
