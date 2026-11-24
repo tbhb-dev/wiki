@@ -4,6 +4,7 @@ akia
 ascm
 AUTOINCREMENT
 awrel
+basebackup
 bazelignore
 bazelisk
 bazelrc
@@ -61,6 +62,7 @@ tbhbdev
 tbhbdrafts
 testdata
 textconv
+textsearch
 tfstate
 tombi
 toplevel
