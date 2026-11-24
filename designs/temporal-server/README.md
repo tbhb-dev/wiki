@@ -22,9 +22,9 @@ decisions_open: 0
 
 The operator chose Temporal to run event-driven workflows behind the event gateway, self-hosted and with no paid service. The gateway's Temporal target needs a server, and none runs yet.
 
-This design covers what deploys today. One Temporal server process runs all four services on the data host, with its own Postgres 16 instance on its own logical volume. A Tailscale Service fronts the gRPC frontend, and every client presents a certificate from the internal certificate authority under mutual Transport Layer Security (TLS). The Web UI answers at `temporal.tbhb.cloud` and at `temporal` on `<tailnet>.ts.net`, behind the same HTTPS proxy pattern as Grafana. An Alloy collector in the project sends metrics, logs, and traces to the observability host.
+This design covers what deploys today. One Temporal server process runs all four services on the data host, with its own Postgres 16 instance on its own logical volume. A Tailscale Service fronts the gRPC frontend, and every client presents a certificate from the internal certificate authority under mutual Transport Layer Security (TLS). The Web UI answers at `temporal.tbhb.cloud` and at the tailnet label `temporal-ui`, behind the same HTTPS proxy pattern as Grafana. An Alloy collector in the project sends metrics, logs, and traces to the observability host.
 
-The operator answers three questions: the new tailnet tag with its services and grants, mutual TLS as the only access control, and the history shard count, which Temporal fixes for the life of the database.
+The operator answered D1, D2, and D3: the new tailnet tag with its services and grants, mutual TLS as the only access control, and the history shard count, which Temporal fixes for the life of the database. Zero decisions remain open.
 
 Deployment specifics, such as host names, volume names, paths, tags, and 1Password item names, live in the private companion at `designs/temporal-server` in the private wiki repository.
 
@@ -70,7 +70,7 @@ Temporal connects straight to its own Postgres, with no PgBouncer in between ([D
 | --- | --- |
 | Who connects | The event gateway, the tools workers, the `temporal` command-line tool, and the Web UI |
 | Network path | A Tailscale Service fronts the gRPC frontend on TCP 7233 and forwards raw TCP to the server. The UI reaches the frontend on the Compose network |
-| Name | The frontend service's name on `<tailnet>.ts.net` |
+| Name | The frontend Tailscale Service's name |
 | Transport security | Mutual TLS. Each client holds a leaf from the internal certificate authority (step-ca), and the server checks it ([D2](decisions.md#d2-is-mutual-transport-layer-security-the-only-access-control-on-the-frontend)) |
 | Namespace authorization | None today. Any valid client certificate has full rights in every namespace, and the tailnet grant narrows who reaches the port ([D1](decisions.md#d1-may-ops-add-a-tailnet-tag-two-tailscale-services-and-their-grants-for-temporal)) |
 | Discovery | Each client reads the frontend address and namespace from its own configuration. The `tbhbdev` configuration carries them for agents, and the CA's issuance path delivers the certificate. No secret reaches a client through 1Password |
@@ -78,7 +78,7 @@ Temporal connects straight to its own Postgres, with no PgBouncer in between ([D
 
 ### The Web UI
 
-The UI answers at `temporal.tbhb.cloud` and at `temporal` on `<tailnet>.ts.net`, as Grafana answers at `grafana.tbhb.cloud` and at its own tailnet name ([D6](decisions.md#d6-how-does-the-web-ui-reach-the-operator)). An `ui-tls` nginx container serves HTTPS on container port 8443 with a host-provided certificate, the pattern the observability stack's `grafana-tls` proxy uses. The UI Tailscale Service forwards TCP 443 to it, and the DNS record for `temporal.tbhb.cloud` points at that service. The UI runs with write actions off.
+The UI answers at `temporal.tbhb.cloud` and at the tailnet label `temporal-ui`, as Grafana answers at `grafana.tbhb.cloud` and at its own tailnet name ([D6](decisions.md#d6-how-does-the-web-ui-reach-the-operator)). An `ui-tls` nginx container serves HTTPS on container port 8443 with a host-provided certificate, the pattern the observability stack's `grafana-tls` proxy uses. The UI Tailscale Service forwards TCP 443 to it, and the DNS record for `temporal.tbhb.cloud` points at that service. The UI runs with write actions off.
 
 ### Namespaces and schema
 
@@ -86,7 +86,7 @@ ops creates `workflows` with 14 days of retention and `sandbox` with 1 day, thro
 
 ### Observability
 
-An Alloy container in the project scrapes Temporal's metrics endpoint, the Postgres exporter, and container metrics, reads the containers' JSON logs, and sends everything over the existing OTLP path to Mimir and Loki. Temporal's traces go to Tempo over OTLP. One Grafana dashboard covers the service, and alert rules route like the existing ones ([D11](decisions.md#d11-how-is-temporal-observed)). [Appendix C](C-deployment.md#observability) lists the metrics, alerts, and health checks.
+An Alloy container in the project scrapes Temporal's metrics endpoint, the Postgres exporter, and container metrics, reads Postgres jsonlog files from the mounted log volume and Temporal's container logs, and sends everything over the existing OTLP path to Mimir and Loki. Temporal's traces go to Tempo over OTLP. One Grafana dashboard covers the service, and alert rules route like the existing ones ([D11](decisions.md#d11-how-is-temporal-observed)). [Appendix C](C-deployment.md#observability) lists the metrics, alerts, and health checks.
 
 ### Backups
 
@@ -113,8 +113,8 @@ A nightly `pg_dump` of both databases, encrypted, goes to Temporal's own bucket 
 | 4 | Host change: the Temporal logical volume through the existing volume role, with ledger rows | The volume shows its size and ext4 at its mount | ops |
 | 5 | `apps/temporal`, built by a Codex build run: Compose file, proxy and sidecar config, Alloy config, dynamic config, backup job, dashboard, and offline tests | The repository's gates pass and two reviews clear the exact head | ops |
 | 6 | Tailscale Services for the frontend and the UI, after step 1 merges | Both services list the sidecar as their host | Administrator role |
-| 7 | DNS record for `temporal.tbhb.cloud` through the usual DNS path | The name resolves on the tailnet to the UI service | DNS maintainer |
-| 8 | Deploy from merged main: `init` once, then `up`, then the namespace job | The health gate passes, and `temporal operator cluster health` succeeds through the frontend service | ops |
+| 7 | DNS record for `temporal.tbhb.cloud` through the usual DNS path, with an internal DNS alias to the `svc:temporal-ui` service address | The name resolves on the tailnet to the UI service | DNS maintainer |
+| 8 | Deploy from merged main: `init` once, then `up`, then the namespace job | The health gate passes, rerunning the schema job succeeds without changes, and `temporal operator cluster health` succeeds through the frontend service | ops |
 | 9 | Certificate renewal timers, the backup timer, alert rules, and the first restore drill | The drill's scratch server lists the workflows of the restored dump | ops |
 | 10 | The gateway's Temporal target connects | Event gateway plan step 11b passes against this server | Gateway maintainer |
 

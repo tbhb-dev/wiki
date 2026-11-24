@@ -56,7 +56,7 @@ These come from the template embedded in the v1.32.2 binary ([config_template_em
 
 - **Existing.** Temporal's Postgres setup script runs `temporal-sql-tool --plugin postgres12` with `create`, `setup-schema -v 0.0`, and `update-schema -d /etc/temporal/schema/postgresql/v12/<db>/versioned` for `temporal` and `temporal_visibility` ([setup-postgres.sh](https://github.com/temporalio/samples-server/blob/main/compose/scripts/setup-postgres.sh)).
 - **Existing.** The upgrade guide says to update the schema before the binary, one minor version at a time, and to roll back the binary, never the schema. An older binary of an adjacent minor starts against a newer schema ([upgrade](https://docs.temporal.io/self-hosted-guide/upgrade-server)).
-- **Unverified.** `update-schema` on a database already at the binary's version exits with success and changes nothing. Step 7 checks it.
+- **Unverified.** `update-schema` on a database already at the binary's version exits with success and changes nothing. Step 8 checks it by rerunning the schema job.
 - **Unverified.** `temporal operator namespace update` changes a namespace's retention, and `temporal operator cluster health` prints `SERVING` on a healthy frontend. Temporal's samples show only `temporal operator namespace create --retention` ([samples README](https://github.com/temporalio/samples-server/blob/main/compose/README.md)).
 
 ## Postgres
@@ -78,7 +78,7 @@ These come from the template embedded in the v1.32.2 binary ([config_template_em
 - **Existing.** The template logs to standard output at level `info`, set by `LOG_LEVEL`. The log format isn't in the template and stays unverified.
 - **Existing.** The Temporal server exports OpenTelemetry spans when `OTEL_TRACES_EXPORTER=otlp` is set, and reads the standard `OTEL_EXPORTER_OTLP_*` variables ([tracing](https://github.com/temporalio/temporal/blob/v1.32.2/docs/development/tracing.md)).
 - **Unverified.** Which server operations produce spans, and whether the UI exports any.
-- **Unverified.** Postgres 16 writes JSON logs with `log_destination=jsonlog` while the logging collector is off. The Postgres documentation ties `jsonlog` to the collector.
+- **Existing.** Postgres 16 requires `logging_collector=on` for `log_destination=jsonlog`; the collector writes files under `log_directory` ([logging](https://www.postgresql.org/docs/16/runtime-config-logging.html)).
 - **Unverified.** Alloy in the project reads cAdvisor and file system metrics for the Temporal volume without extra privileges.
 - **New.** The Alloy container, the job names, the dashboard, and the alert rules.
 
@@ -90,7 +90,7 @@ These are in ops' own repository, read by ops on 2026-11-24.
 
 - **Existing.** The CA app forwards raw TCP from a tailnet service to the CA container, so the CA itself handles Transport Layer Security, and Compose publishes no host port.
 - **Existing.** The 1Password Connect app serves HTTPS from its tailnet sidecar and proxies to the API container over the Compose network, with no published port.
-- **Existing.** An open ops pull request adds a `grafana-tls` nginx container to the observability stack: it listens on container port 8443, mounts a host certificate directory read-only, proxies to Grafana for `grafana.tbhb.cloud`, and passes a Compose health check that runs `nginx -t`. Its role's health gate waits for every expected container to report running and healthy (branch `agent/o11y-tls-pr1b`, read 2026-11-24).
+- **Existing.** An open ops pull request adds a `grafana-tls` nginx container to the observability stack: it listens on container port 8443, mounts a host certificate directory read-only, proxies to Grafana for `grafana.tbhb.cloud`, and passes a Compose health check that runs `nginx -t`. Its role's health gate waits for every expected container to report running and healthy (read 2026-11-24).
 - **Existing.** The tailnet policy defines a Grafana Tailscale Service, and the observability stack keeps its dashboards as JSON files in its Grafana configuration, among them the capacity dashboard.
 - **Unverified.** How the Grafana service serves both its tailnet name and `grafana.tbhb.cloud` with one certificate. Step 5 copies whatever the merged pattern does.
 - **Existing.** The shared Postgres design uses scram-sha-256 for its connections. **Unverified:** its Alloy container and PgBouncer come from this design's brief, and the draft read on 2026-11-24 doesn't show them yet.

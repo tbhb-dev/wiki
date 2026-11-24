@@ -48,7 +48,7 @@ None.
 - **Decided:** 2026-11-24, by ops.
 - **Rule:** an Alloy container in the project, with no scrape port outside it.
   - **Metrics:** Temporal's server metrics, the Postgres exporter, container metrics through cAdvisor, and the host's file system metrics for the Temporal volume go to Mimir over the OpenTelemetry Protocol (OTLP).
-  - **Logs:** Postgres and Temporal log JSON to standard output, and Alloy sends them to Loki.
+  - **Logs:** Postgres writes jsonlog files to the mounted log volume, Temporal logs to standard output, and Alloy sends both to Loki.
   - **Traces:** the server exports OpenTelemetry spans over OTLP to Tempo, through its `OTEL_` environment variables.
   - **Dashboard:** one Grafana dashboard, built live, then backported into the observability stack's dashboard files as the capacity dashboards were.
   - **Alerts:** instance down, volume fill, backup failure, connection saturation, persistence latency, and task backlog, routed through the existing notification policy.
@@ -90,7 +90,7 @@ None.
 ### D6. How does the Web UI reach the operator?
 
 - **Decided:** 2026-11-24, by ops.
-- **Rule:** the UI answers at `temporal.tbhb.cloud` and at `temporal` on `<tailnet>.ts.net`, through an nginx HTTPS proxy in the project and the UI Tailscale Service, the same pattern as Grafana. The DNS record goes through the usual DNS path. Write actions stay off, and the UI reaches the frontend with its own client certificate.
+- **Rule:** the UI answers at `temporal.tbhb.cloud` and at the tailnet label `temporal-ui`, through an nginx HTTPS proxy in the project and the UI Tailscale Service, the same pattern as Grafana. The DNS record goes through the usual DNS path. Write actions stay off, and the UI reaches the frontend with its own client certificate.
 - **Why:** one pattern for every web UI, and a read-only UI behind a narrow grant leaves workflow changes to clients with certificates.
 - **Undo:** two-way door. Remove the record and the service.
 - **Record:** the pull request that adds this decision.
