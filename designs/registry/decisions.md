@@ -1,0 +1,83 @@
+---
+type: Design Appendix
+title: Internal container registry decisions
+description: Operator decisions and the authority for registry choices.
+tags: [registry, decisions, design]
+status: draft
+parent: README.md
+---
+
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Copyright Tony Burns -->
+
+# Internal container registry decisions
+
+Back to [the design](README.md).
+
+## Open
+
+Open decisions: 0.
+
+## Decided
+
+### D1. Registry tag, Tailscale Service, and grants
+
+- **Options:** dedicated registry tag, Service, and grants, or loopback-only access.
+- **Decided:** yes, by the operator on 2026-11-24, relayed by the coordination role in the Open 290 decisions entry.
+- **Rule:** add a registry tag, a Tailscale Service, and least-privilege grants. Both the internal DNS name and the Tailscale Service are `images.tbhb.cloud`.
+- **Why:** approved clients need tailnet access, and a new tag or grant needs the operator's recorded decision before any policy pull request merges.
+- **Implementation:** the network operator writes the policy with accept and deny tests, then ops deploys from merged main.
+- **Reversible:** yes, stop the sidecar and remove the Service and grants.
+- **Evidence:** operator answer relayed for Open 290 on 2026-11-24. **Unverified: no read of current policy or available Service support on the tailnet yet.** Step 4 checks both before deployment.
+
+### D2. Backup to the secondary NAS
+
+- **Options:** a backup on the secondary NAS or a local test copy only.
+- **Decided:** yes, by the operator on 2026-11-24, relayed by the coordination role in the Open 290 decisions entry.
+- **Rule:** backup to the secondary NAS is a follow-up, not on the critical path to standing the registry up. Track it as infrastructure debt until it lands.
+- **Why:** the job touches the secondary NAS, so it needs an operator answer rather than an ops assumption.
+- **Follow-up:** the backup operator checks destination access, adds the job from merged main, and proves a restored registry serves pulls.
+- **Reversible:** yes, stop the job and revoke its access while preserving source data.
+- **Evidence:** operator answer relayed for Open 290 on 2026-11-24. **Unverified: no read of destination access, capacity, or backup wiring on the secondary NAS yet.**
+
+D3 and D4 are recommended ops calls for the build, not claims of completed deployment. D5 through D7 carry prior authority from internal decision records. **Unverified: no read of the original records yet.**
+
+### D3. Push identities
+
+- **Options:** per-repository identities for main-branch CI jobs or a shared push identity; recommend per-repository identities.
+- **Decided:** 2026-11-24 design recommendation for ops to adopt as a reversible call.
+- **Rule:** grant `read`, `create`, and `update` only for the job's repository, only to main-branch continuous integration (CI) jobs. Keep push credentials separate from all pull credentials and deny routine deletion.
+- **Undo:** revoke the push identities and return publishers to direct image loads.
+- **Record:** the 2026-11-24 design recommendation assigns this reversible call to ops; the rule remains a proposal.
+
+### D4. Data location
+
+- **Options:** a directory beside the other apps now or an operator-created share first; recommend the directory now and a share with a quota later.
+- **Decided:** 2026-11-24 design recommendation for ops to adopt as a reversible call.
+- **Rule:** use a directory beside the other apps on the storage host's volume. Ops does not create DiskStation Manager (DSM) shares; the operator creates the later share and quota.
+- **Undo:** stop Zot, copy the data to an operator-approved location, update the mount, and prove pulls before restart for consumers.
+- **Record:** the 2026-11-24 design recommendation assigns this reversible call to ops; the rule remains a proposal.
+
+### D5. Agent pull credentials
+
+- **Options:** one read-only Zot credential per agent account or direct image loads; recommend the credential per account under the existing ruling.
+- **Decided:** 2026-11-24, by the coordination role as a reversible call after the operator ordered the resume.
+- **Rule:** each agent account's rootless daemon pulls with its own read-only Zot credential from Connect, the 1Password Connect service. Keep it separate from every push credential.
+- **Undo:** revoke it and return to direct image loads.
+- **Record:** Existing (internal record): the 2026-11-24 decisions entry and operator answers. **Unverified: no read of the original record yet.**
+
+### D6. Docker Hub account
+
+- **Options:** anonymous on-demand Docker Hub sync now or an account now; recommend anonymous sync under the existing ruling.
+- **Decided:** 2026-11-24, by the coordination role as a reversible call after the operator ordered the resume.
+- **Rule:** use anonymous Docker Hub on-demand sync and caching, with no Docker Hub account for now. An account becomes an operator ask only if rate limits bite.
+- **Undo:** create an account and add its credential to sync after the operator answers that ask.
+- **Record:** Existing (internal record): the 2026-11-24 decisions entry and operator answers. **Unverified: no read of the original record yet.**
+
+### D7. Runtime and reachability
+
+- **Options:** Zot under `runc` on the storage host with tailnet-only access or stop the project; recommend proceeding under the existing ruling.
+- **Decided:** 2026-11-14, by the operator, Open 228; the operator ordered the resume on 2026-11-24.
+- **Rule:** Zot runs on the storage host under `runc` and remains reachable over the tailnet only. The loopback spike precedes tailnet exposure.
+- **Undo:** stop the project.
+- **Record:** Existing (internal record): the Open 228 decision and the 2026-11-24 decisions entry recording the resume. **Unverified: no read of the original records yet.**
