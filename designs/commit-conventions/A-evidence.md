@@ -89,4 +89,4 @@ This public appendix gives scope values and counts, never the repository that us
 ### GitHub Actions
 
 - **Existing.** A title edit made with the workflow's `GITHUB_TOKEN` doesn't start an `edited` run. [Workflow triggers](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#triggering-a-workflow-from-a-workflow)
-- **Unverified.** Option B needs a queue fixture to confirm that the group's first-parent range identifies every queued pull request by its second parent under the merge-commit policy. The `merge_group` event gives the base and head but carries no pull request title. [Merge group event](https://docs.github.com/en/webhooks/webhook-events-and-payloads#merge_group)
+- **Unverified.** The proposed `pr-title` queue check in option B needs a fixture to confirm that the group's first-parent range identifies every queued pull request by its second parent under the merge-commit policy. The `merge_group` event gives the base and head but carries no pull request title. [Merge group event](https://docs.github.com/en/webhooks/webhook-events-and-payloads#merge_group)

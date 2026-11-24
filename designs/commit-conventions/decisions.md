@@ -26,15 +26,31 @@ None.
 
 ## Decided
 
+### D12. Which workflow reports the title check?
+
+- **Decided.** Coordination settled the workflow split on 2026-11-24.
+- **Rule.** The active ruleset requires both `conclusion` and `pr-title`. The `pr-title` workflow reports its own result and is the only workflow that runs on a pull request `edited` event.
+- **Why.** A title edit refreshes the title result without starting an aggregate run that could wait on dependencies.
+- **Undo.** Return the title ruleset to `evaluate`, then restore the previous required check and workflow configuration together.
+- **Record.** This design's pull request and the [workflow contract](D-checker.md#required-title-check).
+
+### D11. When does the title ruleset become active?
+
+- **Decided.** Coordination settled the advisory period on 2026-11-24.
+- **Rule.** In rollout step 5, the title ruleset runs in `evaluate` mode for seven days or until the pre-flip list of open pull requests that would fail is empty, whichever comes later. The administrator account then switches it to `active`.
+- **Why.** The advisory period gives maintainers time to see what the ruleset would block and resolve failures on open pull requests before activation.
+- **Undo.** Return the title ruleset to `evaluate`.
+- **Record.** This design's pull request and the [rollout plan](README.md#plan).
+
 ### D10. Which commit check governs the merge?
 
 - **Decided.** Coordination chose option A on 2026-11-23 in the design review follow-up. The choice is reversible.
 - **Rule.** In `enforce` mode, the checker blocks titles with scope allow-list or per-type scope findings and reports advisories for authored commits. Existing syntax findings keep their behavior.
-- **Merge gate.** CI checks the title on `pull_request` events `opened`, `edited`, `synchronize`, and `reopened`. The ruleset requires the `conclusion` check, which requires a successful title check and fails on skipped or missing results. `tbhbdev alpha merge` rechecks the latest title with D7's fetched base mode for early warning before writing the merge subject.
+- **Merge gate.** The active ruleset requires `conclusion` and the standalone `pr-title` check under D12. `tbhbdev alpha merge` rechecks the latest title with D7's fetched base mode for early warning before writing the merge subject.
 - **Why.** The GitHub merge button and GitHub auto-merge bypass `alpha merge` and need the required CI check to block a merge on title findings. A merge can still include a commit with an unlisted scope. [Renovate auto-merge policy](../../adrs/0024-renovate-pull-requests-automerge-after-approval-and-ci.md)
 - **Accepted technical debt (`TECH-DEBT`).** During the `evaluate` to `enforce` flip, GitHub can accept a passing title check on a head behind the base. The merge command can also fetch the base before the flip and submit the merge after it. The operator checks [open pull requests before the flip](README.md#rollout).
-- **Accepted technical debt (`TECH-DEBT`).** In steady state a title-only edit can leave the prior passing `conclusion` in effect for an unmeasured window. An edit made with the GitHub Actions `GITHUB_TOKEN` starts no `edited` run, so the pass stays in effect until another run replaces it. [Title-only edit](D-checker.md#title-only-edit)
-- **Upgrade.** Move to option B when the merge queue runs the commit check on `merge_group` as a required check. Checking the live titles against the queued base addresses both gaps. Option B costs merge queue operation and extra `merge_group` CI runs, and authored commits with scope findings block the merge in `enforce` mode. [B. Alternatives](B-alternatives.md#where-to-enforce-scopes)
+- **Accepted technical debt (`TECH-DEBT`).** In steady state a title-only edit can leave the prior passing `pr-title` result in effect for an unmeasured window. An edit made with the GitHub Actions `GITHUB_TOKEN` starts no `edited` run, so the pass stays in effect until another run replaces it. [Title-only edit](D-checker.md#title-only-edit)
+- **Upgrade.** Move to option B when the merge queue reports both required checks on `merge_group`. The `conclusion` check covers authored commits and blocks scope findings in `enforce` mode. The `pr-title` check reads live titles against the queued base to address both gaps. [B. Alternatives](B-alternatives.md#where-to-enforce-scopes)
 - **Undo.** Sync `mode = "evaluate"` to the base, then update open heads that still declare `enforce` to make their title scope findings advisory. To roll back option B, restore advisories for authored-commit scope findings in `enforce` mode.
 - **Record.** This design's pull request.
 
