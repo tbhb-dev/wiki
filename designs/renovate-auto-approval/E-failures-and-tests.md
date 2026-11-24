@@ -24,7 +24,7 @@ The job summary records the head and base snapshot, the CI run ID and attempt, a
 
 | Failure | What the run does | Reason code |
 | --- | --- | --- |
-| A job on a non-default run ref requests `pins-approver` | The tier 2 environment policy blocks the run ref before the job starts or receives either secret. Proven for `agent/probe-2a` and `agent/probe-2b`, and unverified for other branch names, tag refs, and forks ([appendix A](A-evidence.md#the-environment-probe)) | GitHub reports a deployment policy failure |
+| A job on a non-default run ref requests `pins-approver` | The tier 2 environment policy blocks the run ref with no runner assigned and no step run. Proven for the refs `agent/probe-2a` and `agent/probe-2b` run through `workflow_dispatch`. Unverified for a pull request branch run, other branch names, tag refs, and forks ([appendix A](A-evidence.md#the-environment-probe)) | GitHub reports a deployment policy failure |
 | A workflow context field is empty or checkout verification fails | The job fails before requesting the App token | GitHub reports a failed step |
 | A GitHub API read returns 5xx or times out | Retries twice with backoff, then refuses | `api_error` |
 | A call returns 403 or 429 with no remaining quota or a `retry-after` | Refuses at once without waiting | `rate_limited` |
@@ -108,7 +108,7 @@ The gather step and `approve.py` get tests against a fake API client that replay
 
 ### Environment spike
 
-The probe ran on 2026-11-24 and [appendix A](A-evidence.md#the-environment-probe) records the results. Step 1 is proven: the default branch caller's job read both values with no approval wait (run 45443450705). Step 2 is proven for two refs, each run through `workflow_dispatch` on a branch with no pull request. On `agent/probe-2a`, an edited reusable-call caller was denied (run 45443595028). On `agent/probe-2b`, a job declaring `environment: pins-approver` directly was denied (run 45443608258). Neither job got a runner or ran a step. Other branch names, tag refs, and a fork are unverified. The setup and steps below are the plan. The probe used branches without pull requests, so it covers the branch policy and not the pull request path.
+The probe ran on 2026-11-24 and [appendix A](A-evidence.md#the-environment-probe) records the results. Step 1 is proven: the default branch caller's job read both values with no approval wait (run 45443450705). Step 2 as written, an edited caller dispatched from a pull request branch, has not run and stays unverified. The probe proved only that the branch policy denies two non-default refs, each run through `workflow_dispatch` on a branch with no pull request. On `agent/probe-2a`, an edited reusable-call caller was denied (run 45443595028). On `agent/probe-2b`, a job declaring `environment: pins-approver` directly was denied (run 45443608258). Neither job got a runner or ran a step. Other branch names, tag refs, and a fork are unverified. The setup and steps below are the plan. The probe covers the branch policy and not the pull request path.
 
 Set up the tier 2 `pins-approver` environment in a scratch calling repository for plan step 2. Store the dummy values there only. Use the same declarations and caller mappings as the workflow interface so the reusable job can report whether it can read both values.
 
