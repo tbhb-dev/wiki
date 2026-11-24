@@ -16,29 +16,7 @@ Back to [the design](README.md).
 
 ## Open
 
-### D2. Does the workflow's approval replace the one review run that a first-party pin gets today?
-
-- **Recommendation:** yes, for a first-party pin when the workflow proves its source's default branch contains the new commit.
-- **Why:** [Architecture Decision Record (ADR) 0001](../../adrs/0001-the-changed-paths-and-content-set-the-review-tier.md) and [ADR 0024](../../adrs/0024-renovate-pull-requests-automerge-after-approval-and-ci.md) give a pin to a reviewed and merged commit one review run. The workflow checks that condition mechanically, and the daily `pins` group carries the tbhb-dev/rules pins, so without this the group rarely qualifies.
-- **If yes:** plan step 1 writes a decision record that amends both records for pin-only Renovate pull requests, and the matcher applies [appendix C's first-party pin rules](C-matcher.md#workflow-uses-lines).
-- **If no:** the matcher refuses every first-party pin with `first_party_needs_review`. Third-party pins still qualify, and any pull request that moves a tbhb-dev pin keeps its review run.
-- **Reversible:** yes. A later decision record restores the review run, and one input default turns first-party pins off.
-
-### D3. May the administrator create the approver App and its environments?
-
-- **Recommendation:** yes, as `tbhb-dev-pin-approver`, with pull requests write, contents read, checks read, and GitHub's mandatory metadata read, installed on selected repositories only, with no webhook.
-- **Why.** The workflow needs its own identity to approve pull requests independently of Renovate. The tier 2 environment policy restricts the run ref to the default branch, and the spike tests whether GitHub enforces that restriction before making the secrets available.
-- **If yes.** In each calling repository, create `pins-approver` and allow deployments only from the default branch. Leave required reviewers unset. Add `PIN_APPROVER_CLIENT_ID` and `PIN_APPROVER_PRIVATE_KEY` as environment secrets. GitHub counts approvals only from reviewers with write permission. If the spike shows that the App needs contents write for its approval to count, the operator decides whether to grant it. [Setup steps](D-workflow.md#what-the-administrator-sets-up)
-- **If no:** nothing gets an automatic approval, and pin-only pull requests keep waiting for a hand approval.
-- **Reversible.** Revoke the App's private key and uninstall the App to stop approvals across repositories. Remove both environment secrets from `pins-approver` in each calling repository. Past reviews stay on their pull requests.
-
-### D4. Should the matcher also accept the renovate-config preset pins in `.github/renovate.json5`?
-
-- **Recommendation:** yes, after the first repository's evaluate period, under the same merged-at-source rule as a first-party `uses:` pin.
-- **Why:** the `pins` group moves the preset pins and the renovate-config workflow pins together. The workflow pin is in scope and the preset pin names the same commit, so refusing one and accepting the other refuses the whole group anyway.
-- **If yes:** the matcher gains a `renovate-preset` line kind, with its own accept and refuse cases, in the release after the evaluate period.
-- **If no:** any `pins` pull request that touches `.github/renovate.json5` gets `not_a_pin_file` and takes the normal path.
-- **Reversible:** yes, by removing the line kind in a later release.
+None.
 
 ## Decided
 
@@ -98,9 +76,31 @@ Back to [the design](README.md).
 - **Undo.** Two-way door. A later release can change the trigger or extend workflow support.
 - **Record:** this design's pull request.
 
+### D4. Should the matcher also accept the renovate-config preset pins in `.github/renovate.json5`?
+
+- **Decided.** The operator made this choice on 2026-11-23.
+- **Rule.** Keep the pilot's existing pin-file list. A pull request that touches `.github/renovate.json5` gets `not_a_pin_file` and follows the normal review path. Adding the preset pins widens what the workflow can approve, so the rules maintainer takes the evidence to the operator after the first repository's evaluate period. [Rollout follow-up](F-rollout.md#follow-up)
+- **Undo.** The operator can authorize a separate change to add the preset pins after reviewing the pilot evidence.
+- **Record.** See the operator's decision of 2026-11-23.
+
+### D3. May the administrator create the approver App and its environments?
+
+- **Decided.** The operator made this choice on 2026-11-23.
+- **Rule.** The administrator creates `tbhb-dev-pin-approver` with the least permissions that make its review count. Start with pull requests write, contents read, checks read, and GitHub's mandatory metadata read. Install it only on selected repositories and leave its webhook off.
+- **Environment.** In each calling repository, create `pins-approver` with a run-ref restriction to the default branch and leave required reviewers unset. Store both App secrets in that environment. The spike tests the restriction and whether the review counts, and any request for a wider grant goes to the operator. [Setup steps](D-workflow.md#what-the-administrator-sets-up) and [spike checks](A-evidence.md#open-questions-for-the-spike).
+- **Undo.** Revoke the App's private key, uninstall the App, and remove both secrets from each `pins-approver` environment. Past reviews stay on their pull requests.
+- **Record.** See the operator's decision of 2026-11-23.
+
+### D2. Does the workflow's approval replace the one review run that a first-party pin gets today?
+
+- **Decided.** The operator made this choice on 2026-11-23.
+- **Rule.** A qualifying pin-only Renovate pull request gets its approval from the reusable workflow's App. That approval replaces the one review run for a first-party pin, and the workflow must prove that the source's default branch contains the new commit. Pull requests that fail any qualification follow the normal review path. [First-party pin rules](C-matcher.md#workflow-uses-lines)
+- **Undo.** Restore the first-party review run in a later decision record and stop automatic approval for first-party pins.
+- **Record.** See the operator's decision of 2026-11-23.
+
 ### D1. How do pin-only Renovate pull requests get their approval?
 
 - **Decided:** 2026-11-23, by the operator.
 - **Rule.** Pin-only Renovate pull requests still require approval. A reusable workflow gives that approval when the Renovate App authored the pull request, the diff contains only recognized pin moves and their permitted companion lockfile changes, and the required checks passed in that pull request's CI snapshot. The workflow confirms the head and base again before a dedicated GitHub App posts the review. It fails closed and logs its reason.
 - **Undo:** two-way door. Disabling the callers and uninstalling the App returns every Renovate pull request to hand approval.
-- **Record:** the operator's direction to the design's author on 2026-11-23. This design's pull request is its first written record, and plan step 1 turns it into a decision record.
+- **Record:** the operator's decision of 2026-11-23. Plan step 1 records the rule in an Architecture Decision Record (ADR).

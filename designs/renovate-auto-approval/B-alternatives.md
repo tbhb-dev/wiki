@@ -16,11 +16,11 @@ Back to [the design](README.md).
 
 ## Drop the approval requirement for Renovate
 
-A ruleset bypass for the Renovate App, or a second ruleset without the approval rule, would let pin-only pull requests merge on CI alone. It would also let every Renovate pull request through, pin-only or not, because the ruleset can't see the diff's shape. The operator's direction keeps the approval requirement ([D1](decisions.md)).
+A ruleset bypass for the Renovate App, or a second ruleset without the approval rule, would let pin-only pull requests merge on CI alone. It would also let every Renovate pull request through, pin-only or not, because the ruleset can't see the diff's shape. The design keeps the approval requirement and uses the normal review path for Renovate pull requests outside the pin-only scope. [Approval policy](decisions.md)
 
 ## Let Renovate approve its own pull requests
 
-Renovate's identity could post the approval. That makes the author its own approver, which [Architecture Decision Record (ADR) 0009](../../adrs/0009-the-reviews-app-posts-approvals-for-an-independent-approver.md) rules out for reviews, and GitHub doesn't let an author approve its own pull request. The operator's direction names a dedicated App instead.
+Renovate's identity could post the approval. That makes the author its own approver, which [Architecture Decision Record (ADR) 0009](../../adrs/0009-the-reviews-app-posts-approvals-for-an-independent-approver.md) rules out for reviews, and GitHub doesn't let an author approve its own pull request. A dedicated App posts approvals for the reusable workflow. [App setup](D-workflow.md#the-approver-app)
 
 ## Use the reviews App
 

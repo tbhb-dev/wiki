@@ -5,8 +5,8 @@ description: A reusable workflow and a dedicated GitHub App that approve Renovat
 tags: [renovate, approvals, github-actions, design]
 status: draft
 owner: Rules maintainer
-updated: "2026-11-23"
-decisions_open: 3
+updated: "2026-11-24"
+decisions_open: 0
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
@@ -16,7 +16,7 @@ decisions_open: 3
 
 | Status | Owner | Updated | Needs from the operator |
 | --- | --- | --- | --- |
-| Draft | Rules maintainer | 2026-11-23 | 3 open decisions in [decisions.md](decisions.md), about 10 minutes |
+| Draft | Rules maintainer | 2026-11-24 | [0 open decisions](decisions.md) |
 
 ## Summary
 
@@ -24,7 +24,7 @@ In repositories that require an approval, Renovate pull requests that only move 
 
 This design adds a reusable workflow in tbhb-dev/rules for repositories where one CI workflow reports every required check. A dedicated GitHub App approves a pull request only when the Renovate App authored it, the diff moves only recognized pins and their companion entries, and the required checks passed in that pull request's CI run. The workflow checks the head and base again before posting.
 
-For the operator, pin-only updates stop needing a hand approval, and every decision leaves a reason code in the job summary.
+The App's approval also replaces the usual review run for a qualifying first-party pin once the workflow proves that the source's default branch contains the new commit. Pull requests that fail any qualification follow the normal review path. Each decision leaves a reason code in the job summary.
 
 ## Proposal
 
@@ -32,14 +32,14 @@ Once built, the design has four pieces:
 
 - **The decision module**, `repo/private/renovate_approval/` in tbhb-dev/rules (planned). A pure function, `decide(diff, metadata, checks)`, returns `(approve, reason)` with no network access. A gather step around it reads GitHub and hands it plain data.
 - **The reusable workflow**, `.github/workflows/renovate-auto-approval.yml` in tbhb-dev/rules (planned). Its approving job never checks out or executes pull request code.
-- **The approver App**, a GitHub App that the organization's administrator creates and installs on the repositories that opt in (planned, [D3](decisions.md)). It can write pull request reviews and read contents and checks.
+- **The approver App**, `tbhb-dev-pin-approver`, which the organization's administrator creates without a webhook and installs only on selected repositories. It starts with pull requests write, contents read, checks read, and mandatory metadata read. [App setup](D-workflow.md#the-approver-app)
 - **A caller workflow** in each repository that runs from the default branch's workflow definition after CI completes.
 
 The rules maintainer maintains the module, the reusable workflow, and its tests. Each repository's maintainer decides when to switch the caller from `evaluate` to `enforce`. The job writes its decision to the job summary and a run artifact.
 
 The administrator configures the tier 2 `pins-approver` environment in each calling repository for the default branch ref only, with required reviewers unset. The reusable workflow declares both App secrets under `on.workflow_call.secrets`, and the caller maps them by name. The credentials live only in the environment, and the spike verifies that the approving job receives them there. [Workflow interface](D-workflow.md#the-workflow_call-interface)
 
-The operator's direction of 2026-11-23 sets the scope ([D1](decisions.md)). This design adds the mechanics, the refusal list, and the rollout.
+The design is tier 2 and requires two independent reviews of the revised head, including one by Fable.
 
 ## How it works
 
@@ -63,7 +63,7 @@ All of these hold at H, or the run refuses:
 - **Author.** The pull request's author has the Renovate App's bot user ID, login, and type `Bot`. Every commit has that author, GitHub's web-flow committer, and a verified signature. A login match alone fails, as [appendix D](D-workflow.md#the-author-check) explains.
 - **Shape.** The branch lives in the base repository, the pull request targets the default branch, and it's open and not a draft.
 - **Pin-only diff.** Each changed line replaces a recognized pin value or belongs to a companion lockfile change the matcher allows. Text pin lines change only in their value slots. [Appendix C](C-matcher.md) gives the grammar and exemptions, including the exclusion for the reusable approver workflow file.
-- **Pin facts.** Each new pin is an upgrade within the allowed bump levels. A tag names exactly the new commit, the source's default branch contains a branch pin's commit, and a new digest matches the downloaded artifact.
+- **Pin facts.** Each new pin is an upgrade within the allowed bump levels. A tag names exactly the new commit, and the source's default branch contains the new commit for a first-party pin. A new digest matches the downloaded artifact.
 - **Checks.** Every required check concluded `success` for the expected GitHub App in the triggering CI run and attempt for this pull request. Pending, skipped, neutral, missing, and failed checks refuse. Required checks bound to more than one workflow refuse with `multiple_required_workflows`.
 - **Ruleset.** The branch's rules require an approval. The run refuses with `stale_dismissal_off` if either stale approval dismissal on push or last-push approval is off.
 
@@ -76,7 +76,7 @@ All of these hold at H, or the run refuses:
 | `mise.toml` | A version in `[tools]` |
 | `mise.lock`, `MODULE.bazel.lock` | Companion entries for a pin the same pull request moves, checked as parsed documents |
 
-The reusable workflow exposes a [`pin_files` input](D-workflow.md#the-workflow_call-interface). The preset pins in `.github/renovate.json5` stay out until [D4](decisions.md) says otherwise.
+The reusable workflow exposes a [`pin_files` input](D-workflow.md#the-workflow_call-interface). The pilot keeps preset pins in `.github/renovate.json5` on the normal review path. [Rollout follow-up](F-rollout.md#follow-up)
 
 ### Modes
 
@@ -88,7 +88,7 @@ The caller sets `mode`. In `evaluate`, the run does everything except post the r
 | --- | --- | --- | --- |
 | GitHub counts an approval whose `commit_id` is an older commit after a push lands between the re-read and the post | An approval could count for a head nobody checked | Rulesets dismiss stale approvals on push and require last-push approval. The post-check dismisses the review. A spike in plan step 2 tests the race | unverified |
 | GitHub counts an approval after the target branch changes between the re-read and the post | An approval could count for a different target | The third read detects the changed target and attempts dismissal. Plan step 2 tests stale-review behavior during the race | unverified |
-| The App's approval doesn't count toward the required review with contents read only | Enforce mode approves and nothing merges | Plan step 2 tests it. A wider grant goes back to the operator, and nobody adds it alone | unverified |
+| GitHub does not count the App's review with the planned permissions | Enforce mode approves and nothing merges | Plan step 2 tests whether the approval counts. The operator decides any request for a wider grant | unverified |
 | A workflow edit runs from a pull request branch | The branch run tries to read the App's key | Plan step 2 tests whether the tier 2 `pins-approver` policy rejects the run ref before the job can read its secrets | unverified |
 | A matcher bug accepts a non-pin change | A change that nobody reviewed merges | Fail-closed grammar, table tests for every reason code, an evaluate period, and two tier 2 reviews | new |
 | The Renovate App can write checks and statuses | A forged `conclusion` result | The run matches each check's App ID and requires evidence from the triggering CI snapshot | existing |
@@ -102,7 +102,7 @@ The caller sets `mode`. In `evaluate`, the run does everything except post the r
 
 | Step | What lands | Done when | Owner |
 | --- | --- | --- | --- |
-| 1 | A decision record that amends the review rules for pin-only Renovate pull requests that [D1](decisions.md) and [D2](decisions.md) call for | The record merges in `adrs/` after its own two reviews | Rules maintainer |
+| 1 | A decision record that amends the approval requirement and the first-party review rule for qualifying pin-only Renovate pull requests | The record merges in `adrs/` after its own two reviews | Rules maintainer |
 | 2 | The administrator creates the App and sets up `pins-approver` in a scratch repository per [D3](decisions.md). The spike tests that the deployment policy blocks a non-default branch run from reading the secrets. It also checks the other behaviors in [appendix A](A-evidence.md#open-questions-for-the-spike) | The spike's pull request records each result as proven or refuted in [appendix A](A-evidence.md) | Org administrator, then rules maintainer |
 | 3 | `decide()` with its table tests, in tbhb-dev/rules | `bazelisk test //repo/private/renovate_approval:all` passes with one case per reason code | Rules maintainer |
 | 4 | The gather step, the reusable workflow, and its zizmor and actionlint entries | `bazelisk test //...` passes in tbhb-dev/rules, and a manual run against a closed Renovate pull request logs a decision | Rules maintainer |
@@ -112,7 +112,7 @@ The caller sets `mode`. In `evaluate`, the run does everything except post the r
 
 ## Appendices
 
-- [Decisions](decisions.md): 3 open, then the decided record.
+- [Decisions](decisions.md) records the settled scope and rollout choices.
 - [A. Evidence](A-evidence.md): what the repositories, rulesets, Renovate presets, and GitHub docs show, labeled proven, existing, new, or unverified.
 - [B. Alternatives considered](B-alternatives.md): other triggers, other approvers, and dropping the approval requirement.
 - [C. The pin-file matcher](C-matcher.md): the grammar for each file kind, the refusals, and the accept and refuse table.

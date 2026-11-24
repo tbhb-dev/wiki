@@ -16,7 +16,7 @@ Back to [the design](README.md).
 
 ## The fail-closed rule
 
-The decision code either approves with reason `ok_pin_only` or refuses with a reason code. On unexpected exceptions, the entry point records `internal_error` in the summary and exits with status 0. If GitHub blocks the job before it starts, the Actions run shows the failure and the decision code never runs. A CI completion or re-run starts a fresh decision.
+The decision code either approves with reason `ok_pin_only` or refuses with a reason code. On unexpected exceptions, the entry point records `internal_error` in the summary and exits with status 0. If GitHub blocks the job before it starts, the Actions run shows the failure and the decision code never runs. A CI completion or re-run starts a fresh decision. Pull requests that fail any qualification follow the normal review path.
 
 The job summary records the head and base snapshot, the CI run ID and attempt, and the time of each pull request read. It also records the mode, pull request number, decision, reason code, and findings with files and lines. `decision.json` contains the same fields for the rollout review in [appendix F](F-rollout.md).
 
@@ -64,13 +64,11 @@ The codes group by the stage that sets them. `decide()` sets the pull request, d
 | Pull request | `pr_not_unique`, `pr_not_open`, `pr_draft`, `base_not_default`, `fork_head`, `opted_out`, `author_not_renovate`, `author_app_mismatch`, `commit_not_renovate`, `signature_unverified`, `too_many_commits` |
 | Diff, file level | `empty_diff`, `too_many_files`, `diff_too_large`, `file_list_mismatch`, `not_a_pin_file`, `self_pin`, `rename`, `copy`, `new_file`, `deleted_file`, `mode_change`, `binary`, `submodule_or_symlink`, `eol_change`, `encoding` |
 | Diff, hunk level | `line_added`, `line_removed`, `line_count_changed`, `not_a_pin_line`, `mixed_line_kinds`, `key_changed`, `no_value_change`, `parse_doubt` |
-| Pin values | `comment_only_change`, `unversioned_pin`, `unpinned_version`, `unparsed_version`, `downgrade`, `bump_level_not_allowed`, `digest_without_version_change`, `digest_not_updated`, `digest_mismatch`, `url_changed_beyond_version`, `tag_mismatch`, `not_first_party`, `not_merged_at_source`, `first_party_needs_review` |
+| Pin values | `comment_only_change`, `unversioned_pin`, `unpinned_version`, `unparsed_version`, `downgrade`, `bump_level_not_allowed`, `digest_without_version_change`, `digest_not_updated`, `digest_mismatch`, `url_changed_beyond_version`, `tag_mismatch`, `not_first_party`, `not_merged_at_source` |
 | Lockfiles | `lock_not_updated`, `lock_changed_without_pin`, `lock_version_mismatch`, `lock_key_changed`, `lock_asset_mismatch` |
 | Checks and rules | `checks_pending`, `check_skipped`, `check_neutral`, `check_failed`, `check_missing`, `required_check_unbound`, `multiple_required_workflows`, `no_required_checks`, `self_check_required`, `stale_dismissal_off` |
 | Snapshot binding | `head_mismatch_at_start`, `head_moved`, `head_moved_after_approval`, `base_changed`, `base_changed_after_approval` |
 | Gather and API | `api_error`, `rate_limited`, `pagination_truncated`, `diff_unavailable`, `digest_unverifiable`, `fact_missing`, `approval_failed`, `dismissal_failed`, `internal_error` |
-
-`first_party_needs_review` exists only if the operator answers no to [D2](decisions.md).
 
 ## Where the code lives
 
@@ -96,8 +94,8 @@ The package sits at `repo/private/renovate_approval/` in tbhb-dev/rules, beside 
 The tests drive `decide()` from the `testdata/` cases. Each case names its expected reason code, so a test reads as a row: inputs in, one code out.
 
 - **One case per reason code** that `decide()` can set, from the stage table in the previous section. A meta-test lists the codes in `decide.py` and fails if any code has no case.
-- **Every accept row** in [appendix C](C-matcher.md#accept-and-refuse-examples), plus a real `pins` group diff copied from a merged Renovate pull request in tbhb-dev/rules.
-- **Every refuse row** in appendix C.
+- **Every accept row** in [appendix C](C-matcher.md#accept-and-refuse-examples), including first-party pin changes whose new commits belong to their source default branches.
+- **Every refuse row** in appendix C. Replay a real `pins` group diff from a merged Renovate pull request in tbhb-dev/rules and confirm that any preset pin change in `.github/renovate.json5` sends the whole group to normal review.
 - **Ordering.** A diff with two refusals returns the first by path and line, and `findings` holds both.
 - **Fail-closed edges.** Empty inputs, a missing metadata key, a check list with an unknown status, a version with a suffix, a hunk header that doesn't parse, a CRLF line, and a 40-hex value in uppercase all refuse.
 - **Adversarial diffs.** A `uses:` line with a trailing comment after the version, a second `@` in the path, a Unicode lookalike in the owner, and tab indentation all refuse.

@@ -50,9 +50,15 @@ After tbhb-dev/rules enforces, repositories with one CI workflow reporting all r
 
 To stop new approvals across repositories, uninstall the App or revoke its key. Remove both secrets from `pins-approver` in each calling repository when retiring the workflow. Past approvals stay bound to the commits they reviewed.
 
+## Follow-up
+
+After the first repository's evaluate period, the rules maintainer brings the proposed expansion to the operator for review. The expansion would accept renovate-config preset pins in `.github/renovate.json5`. Use the decision log to show which `pins` groups the matcher refused for that file and which would qualify if the preset pins passed the same source default branch check.
+
+Adding the file widens what the workflow can approve and requires a separate operator decision. [Pilot scope](decisions.md)
+
 ## The two tier 2 reviews
 
-The module, the reusable workflow, each caller, the App, and the environment configuration change the review and merge path. Every pull request that adds or changes them is tier 2 and gets two fresh review runs. [Architecture Decision Record (ADR) 0001](../../adrs/0001-the-changed-paths-and-content-set-the-review-tier.md)
+The module, the reusable workflow, each caller, the App, and the environment configuration change the review and merge path. Every pull request that adds or changes them is tier 2 and gets two fresh, independent review runs. This design also requires two independent reviews of the revised head, including one by Fable. [Architecture Decision Record (ADR) 0001](../../adrs/0001-the-changed-paths-and-content-set-the-review-tier.md)
 
 **Review one, the trust boundary**, reads the workflow, `gather.py`, and `approve.py`:
 

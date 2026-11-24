@@ -49,7 +49,7 @@ No spike has run for this design yet, so no row says proven. Plan step 2's spike
 | An approval requires the `conclusion` check and verified signatures on every commit | existing | [ADR 0009](../../adrs/0009-the-reviews-app-posts-approvals-for-an-independent-approver.md) |
 | An update that runs a command with Renovate's token keeps its changes to manifests and lockfiles | existing | ADR 0024 |
 
-Where this design and those records differ, the operator's direction of 2026-11-23 ([D1](decisions.md)) governs pin-only Renovate pull requests, and plan step 1 records it. [D2](decisions.md) asks whether it also replaces the first-party review run.
+The operator's decision of 2026-11-23 governs qualifying pin-only Renovate pull requests. The App's approval replaces the first-party review run when the workflow proves that the source's default branch contains the new commit. Plan step 1 amends the review rules to record the exception. [Decision record](decisions.md#d2-does-the-workflows-approval-replace-the-one-review-run-that-a-first-party-pin-gets-today)
 
 ## GitHub's documented behavior
 
@@ -79,13 +79,14 @@ Where this design and those records differ, the operator's direction of 2026-11-
 Plan step 2 answers these in a scratch repository with a copy of the tbhb-dev/rules ruleset:
 
 - Whether GitHub admits the approving job on the default branch ref and denies it on a non-default ref. Follow [the environment probe](E-failures-and-tests.md#environment-spike) and record whether the job receives both environment secrets when the caller passes them by name.
-- Whether an App's approval counts toward the required review with contents read, given that approvals count only from reviewers with write permission. If it needs contents write, the request goes back to the operator under [D3](decisions.md).
+- Whether GitHub counts the App's approval with pull requests write, contents read, checks read, and mandatory metadata read. If counting the review requires a wider grant, take the result to the operator under [D3](decisions.md).
 - Whether the App can dismiss its own review when the ruleset restricts dismissals, and whether the `dismissal_failed` path then leaves stale dismissal as the only guard.
 - Whether a review posted with an older `commit_id` after a push counts toward the requirement.
 - How GitHub attributes check suites and check runs across reruns. Record the workflow run ID, attempt, job check-run IDs, suite ID, and suite head commit, including when CI tests a merge commit.
 - What associations the event and Actions API return when two or more pull requests share H. Confirm that the workflow refuses another pull request's CI and refuses ambiguous associations.
 - Whether GitHub dismisses or still counts a review after a target branch change that leaves H unchanged. Change the branch between the final pre-post read and the approval, and check the effect of the dismissal call.
 - Whether the reusable job can check out its exact public workflow revision and upload its decision artifact with `permissions: {}` at the caller, workflow, and job levels.
+- Whether the App needs Actions read to gather the required workflow run and job evidence. Test the public pilot repository without that grant.
 - Which permission the branch rules endpoint needs.
 - Whether GitHub counts `skipped` and `neutral` conclusions toward required checks.
 - The author, committer, and `verification` fields of a Renovate `platformCommit` commit, and whether GitHub fills `performed_via_github_app` on Renovate's pull requests.

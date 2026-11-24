@@ -115,15 +115,15 @@ The Renovate App has checks write and statuses write ([appendix A](A-evidence.md
 
 ## The approver App
 
-These are proposals that the org's administrator confirms, under [D3](decisions.md).
+The organization's administrator creates the dedicated App under [D3](decisions.md).
 
 - **Name:** `tbhb-dev-pin-approver`, so its reviews show as `tbhb-dev-pin-approver[bot]`.
-- **Permissions:** pull requests write, contents read, checks read, and metadata read, which GitHub adds to every App. No others, and no organization permissions.
+- **Permissions.** Start with pull requests write, contents read, checks read, and metadata read, which GitHub adds to every App. Use the least permissions that make the review count.
 - **Webhook:** off. The App receives no events, because the workflow does the work.
 - **Where it installs:** only on this account, on selected repositories, starting with tbhb-dev/rules.
 - **Secrets.** `PIN_APPROVER_CLIENT_ID` and `PIN_APPROVER_PRIVATE_KEY` live in the `pins-approver` environment of each calling repository. The administrator keeps the source key in the approved password manager.
 
-Contents read covers the commits and compare endpoints, and checks read covers check runs. Pull requests write permits posting the review. The spike checks whether GitHub counts the approval, whether the App can dismiss it under the ruleset, and whether the partial fetch works for H and the merge base. [Spike list](A-evidence.md#open-questions-for-the-spike)
+Contents read covers the commits and compare endpoints, and checks read covers check runs. Pull requests write permits posting the review. The spike tests whether GitHub counts the approval with these permissions, and the operator decides any request for a wider grant. [Spike list](A-evidence.md#open-questions-for-the-spike)
 
 The gather step reads public pin metadata through public endpoints. A first-party source that's private needs the App installed there with contents read.
 
@@ -142,7 +142,7 @@ Both modes request `permission-contents: read` and `permission-checks: read`. Fo
 In each calling repository, including the first, complete these tier 2 setup steps before enabling the caller.
 
 1. Install the App on the repository.
-2. Create the GitHub Actions environment `pins-approver`. Under **Deployment branches and tags**, choose **Selected branches and tags** and add one branch rule matching the default branch exactly. Leave tag rules and required reviewers unset.
+2. Create the GitHub Actions environment `pins-approver`. Under **Deployment branches and tags**, choose **Selected branches and tags** and add one branch rule that restricts the run ref to the default branch. Leave tag rules and required reviewers unset.
 3. Add the App's client ID as the environment secret `PIN_APPROVER_CLIENT_ID` and its private key as `PIN_APPROVER_PRIVATE_KEY`.
 
 ## The `workflow_call` interface
