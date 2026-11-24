@@ -66,7 +66,7 @@ These come from the template embedded in the v1.32.2 binary ([config_template_em
 - **Existing.** Postgres advises a data directory one level below a secondary volume's mount point, so that a missing volume fails cleanly ([creating a cluster](https://www.postgresql.org/docs/16/creating-cluster.html)).
 - **Existing.** Temporal lists Postgres 12 and later for advanced visibility on server 1.20 and later ([visibility](https://docs.temporal.io/self-hosted-guide/visibility)).
 - **Unverified.** A custom-format dump restores into an instance of the same or a newer Postgres major.
-- **Unverified.** The official `postgres:16` image's `postgres` user has UID 999, and it runs with all capabilities dropped when its data directory belongs to that user.
+- **Unverified.** The official `postgres:16` image's `postgres` user has UID 999. The image's default entrypoint starts as root and switches to that user, so it needs capabilities that `cap_drop: [ALL]` removes and fails to start. The image documents starting it with `--user` set to the data directory's owner, which skips the switch and works with every capability dropped ([Docker Official Image](https://hub.docker.com/_/postgres), section "Arbitrary --user Notice").
 
 ## Observability
 

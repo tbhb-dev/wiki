@@ -31,6 +31,7 @@ services:
   postgres:
     <<: *hardening
     image: postgres:16  # pin by digest at build
+    user: "999:999"  # a root start needs capabilities that cap_drop removes; ops pre-owns the data directory
     mem_limit: 4g
     command: ["postgres", "-c", "max_connections=200", "-c", "shared_buffers=1GB",
               "-c", "logging_collector=off", "-c", "log_destination=jsonlog"]
@@ -137,4 +138,4 @@ Before each upgrade, ops runs a `CHECKPOINT`, takes a capped snapshot of the Tem
 
 ## Restore drill
 
-On a scratch machine with Docker, the drill downloads the newest set, checks it, decrypts it, and restores it with `pg_restore` into a fresh Postgres 16. It starts the same server version against it with no tailnet access. It passes when `temporal workflow list --namespace workflows` returns the dumped workflows.
+On a scratch machine with Docker, the drill downloads the newest set, checks it, decrypts it, and loads the roles file with `psql` into a fresh Postgres 16 first, because `pg_dump` omits cluster-wide roles, and then restores the databases with `pg_restore`. It starts the same server version against it with no tailnet access. It passes when `temporal workflow list --namespace workflows` returns the dumped workflows.
