@@ -5,7 +5,7 @@ description: How issues, org issue fields, and a checked content kernel give the
 tags: [pm, issues, projects, content]
 status: draft
 owner: pm
-updated: "2026-11-23"
+updated: "2026-11-24"
 decisions_open: 1
 generated:
   - role: generated
@@ -24,11 +24,11 @@ generated:
 
 | Status | Owner | Updated | Needs from the operator |
 | --- | --- | --- | --- |
-| Draft | pm | 2026-11-23 | One numbered decision open in [decisions.md](decisions.md). |
+| Draft | pm | 2026-11-24 | One numbered decision open in [decisions.md](decisions.md). |
 
 ## Summary
 
-Each work item starts as an issue in the GitHub repository responsible for the work. The `work` org Project gathers the production backlog. Templates, schemas, and the `tbhbdev pm` verbs come from the pm repository.
+The routing rules select the GitHub repository for each work item. The `work` org Project gathers the production backlog. Templates, schemas, and the `tbhbdev pm` verbs come from the pm repository.
 
 Every write goes through one content kernel in the tools repository. The kernel renders the text and normalizes it into a block model.
 
@@ -45,7 +45,7 @@ Building the design yields these components, each with one role as owner.
 - **The templates** (`templates/` in the pm repository, owner pm) give starting text for one variant each. Constraints belong to the schemas.
 - **The verbs** (`tbhbdev pm`, owner pm) cover create, comment, close, link, and add to Project, on top of the kernel.
 - **The org Projects** `work` and `work-calibration` (owner pm) each use the [four views in B. Routing and taxonomy](B-routing-and-taxonomy.md#project-views). The calibration repository uses `work-calibration`.
-- **The central work repository** (public, owner pm) and its private twin both hold Initiatives, Epics, and Stories. Bugs and tasks stay with the repositories that contain their code.
+- **The central work repository** (public, owner pm) and its private twin both hold Initiatives, Epics, and Features. Tasks, Defects, Chores, Spikes, and Research issues go in the responsible repository, its private twin when the text needs private detail, or the operations repository for application deployment work.
 
 Project management and service management use the [shared issue refinement design](../issue-refinement/README.md). See [tracker import](E-import.md) for staged items.
 
@@ -75,7 +75,7 @@ The tools role defines the issue types, field values, type-by-field matrix, and 
 
 ### Routing
 
-An issue goes in the repository responsible for the work, or in its private twin when the text needs private detail. The private-detail scan picks the twin before any write. Initiatives and Epics go in the public central work repository. Use its private twin when the text needs private detail or the item concerns internal security.
+Initiatives, Epics, and Features go in the central work repository. Use its private twin when the text needs private detail or the item concerns internal security. The private-detail scan picks the twin before any write.
 
 Only people with access to a private repository see its items on the board. See the [routing order](B-routing-and-taxonomy.md#routing-order-for-create).
 
