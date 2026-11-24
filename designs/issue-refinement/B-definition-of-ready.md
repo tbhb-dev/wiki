@@ -157,6 +157,8 @@ A Problem is ready for investigation when it meets four conditions.
 - Owner is one role label from the live list.
 - Next step names one action with a time box. A step too large for one action becomes a Spike sub-issue.
 
+Split an umbrella Problem, which covers several failures, into specific Problems. Close an umbrella Problem as Accepted when it has no dated Incident or Evidence line that names a concrete instance. Close it as not planned with a decision line and a review date, or a note that the component retired. Handle tracked fixes under the [Accepted rule](../itsm-records/problems.md#transitions).
+
 Keep the staged item as a Defect if the work fits that type by itself. If it belongs to an existing Problem, make it a child of that Problem. Otherwise, open a new Problem. Link similar items as Related until evidence shows one cause. A verb sets Priority after refinement. See [Problem refinement](../itsm-records/problems.md#refinement).
 
 ### Records opened complete
