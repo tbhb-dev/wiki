@@ -76,7 +76,9 @@ The title `Fix two tools check errors found in github-metrics reviews` fails spe
 
 ### No procedure
 
-Keep undo, rollback, and how-to steps out of every issue section, including Context, Outcome, and the result sections. Put the undo plan in the risk and rollback text of the pull request. Put standing instructions in a runbook. A check can state what to observe and where. In a Defect, use Reproduction for observed conditions and a reference to the runbook.
+Issue sections give facts, outcomes, or observations. Keep fix, undo, rollback, and runbook steps out of every issue section. Put the undo plan in the risk and rollback text of the pull request. Put standing instructions in a runbook.
+
+A Defect's Reproduction is the only section that allows steps. Use one ordered list of steps that show how to see the fault or one plain paragraph that states the observed conditions if the steps are unknown. You may reference a runbook as `owner/repo#N`.
 
 Allow the exact Defect Reproduction placeholder `Find a reproduction and add it here.` only when the issue has Status `Needs info` or the staged item has a `needs-info` outcome.
 
