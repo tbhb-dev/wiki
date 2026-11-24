@@ -60,6 +60,7 @@ tbhb
 tbhbdev
 tbhbdrafts
 testdata
+textconv
 tfstate
 tombi
 toplevel
