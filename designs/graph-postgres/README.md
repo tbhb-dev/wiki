@@ -1,8 +1,8 @@
 ---
 type: Design Draft
 title: Graph Postgres for the context graph
-description: A self-hosted Postgres container with the Apache AGE graph extension and pg_textsearch, on the data host, that stores the context graph.
-tags: [graph-postgres, postgres, context-graph, design]
+description: A self-hosted Postgres container with the Apache AGE graph extension and pg_textsearch, behind PgBouncer on the data host, that stores the context graph.
+tags: [graph-postgres, postgres, pgbouncer, context-graph, design]
 status: draft
 owner: the ops repository's agent
 updated: "2026-11-24"
@@ -12,6 +12,8 @@ decisions_open: 1
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
+<!-- cspell:words pgbouncer -->
+
 # Graph Postgres for the context graph
 
 | Status | Owner | Updated | Needs from the operator |
@@ -20,78 +22,101 @@ decisions_open: 1
 
 ## Summary
 
-The context graph needs a store that runs graph queries and ranked text search at a size SQLite handles poorly. This design proposes one Postgres 18 container on the data host, with Apache AGE for graph queries and pg_textsearch for ranked search.
+The context graph needs a store that runs graph queries and ranked text search. This design proposes one Postgres 17 container on the data host, with Apache AGE for graph queries and `pg_textsearch` for ranked search, behind a PgBouncer container.
 
-The container's data directory sits on a dedicated logical volume. A nightly encrypted dump goes to the object store, and a restore drill proves it. Credentials come from 1Password Connect, and metrics and logs reach the observability stack.
+Clients reach PgBouncer over the tailnet and nothing else. The database uses one logical volume on the data volume group, a nightly encrypted dump, and credentials from 1Password Connect. Metrics and logs flow to the observability stack.
 
-The one thing it asks of the operator is a tailnet tag and grants for the container.
+The one thing it asks of the operator is a tailnet tag and grants for the sidecar. A private companion holds the deployment specifics.
 
 ## Proposal
 
-One Compose project, `graph-postgres`, runs on the data host from `/srv/graph-postgres`. It follows the pattern of the object store and certificate authority projects: pinned image digests, one Compose network, no published host port, and a Tailscale sidecar that exposes the database on the tailnet only.
+One Compose project, `graph-postgres`, runs on the data host. It follows the object store and certificate authority projects: pinned image digests, one Compose network, no published host port, and a Tailscale sidecar.
 
 | Component | What it is | State |
 | --- | --- | --- |
-| `postgres` | Postgres 18 image built from the official image, with AGE and pg_textsearch added | Data directory on the `pg-graph` volume |
-| `exporter` | The Prometheus community `postgres_exporter`, read-only role | None |
-| `collector` | One Grafana Alloy that scrapes the exporter and reads container logs, then sends both over the observability stack's OTLP service | None |
-| `ts` | Tailscale sidecar that serves Postgres on the tailnet | `./ts-state` |
-| backup unit | A systemd timer that runs `pg_dump` and writes an encrypted archive | Archive directory on the host |
+| `postgres` | Postgres 17 built from the official image, with AGE and `pg_textsearch` added | Data directory on its own logical volume |
+| `pgbouncer` | PgBouncer in session pooling mode, the only container the sidecar exposes | Rendered config and auth file |
+| `postgres-exporter`, `pgbouncer-exporter` | Prometheus community exporters with read-only roles | None |
+| `collector` | One Grafana Alloy that scrapes both exporters and reads container logs, then sends both to the observability stack | None |
+| `ts` | Tailscale sidecar that serves PgBouncer as a Tailscale Service | Sidecar state directory |
+| backup unit | A systemd timer that runs `pg_dump`, encrypts it, and uploads it | Archive directory |
 
-The volume layout also covers the other database on the data host:
-
-| Volume | Size | Mount | Use |
-| --- | --- | --- | --- |
-| `pg-graph` | 2.5 TiB | `/srv/graph-postgres` | This design's data |
-| `pg-temporal` | 500 GiB | `/srv/temporal-postgres` | The workflow engine's database |
-| Free space in the volume group | about 640 GiB | none | Growth and LVM snapshots |
-
-Each volume is ext4 on the data volume group, which holds the second disk. A private appendix holds host names and addresses.
+Each Postgres instance on the data host gets one logical volume on the data volume group, formatted ext4 and mounted under the host's service directory, with free space left for growth and snapshots. The private companion at the same path, `designs/graph-postgres/`, gives sizes, names, and paths.
 
 ## How it works
 
 ### Image and versions
 
-Postgres 18 is the one major both extensions support today (appendix A). A short Dockerfile in the ops repository starts from the official `postgres:18` image by digest, installs the AGE release for Postgres 18, and installs the pg_textsearch release. The built image carries a pinned tag and a digest in the Compose file. A Renovate rule raises each bump as its own pull request.
+Postgres 17 is the major where a published AGE release and `pg_textsearch` both apply, and AGE ships 1.6.0 and 1.7.0 for it. The AGE port to Postgres 18 has only its first release, so 18 waits (appendix A). A short Dockerfile starts from the official image by digest and adds AGE 1.7.0 for Postgres 17 and the `pg_textsearch` release. The Compose file pins the built image by tag and digest, and a Renovate rule raises each bump as its own pull request.
 
-### Roles and access
+### PgBouncer and the pool mode
 
-Four roles exist. `graph_owner` owns the schema and runs migrations. `graph_app` reads and writes through the server. `graph_ro` reads only. `exporter` has the `pg_monitor` role and nothing else. Connections use scram-sha-256 over the tailnet, with the tailnet identity as the first gate and the password as the second. Passwords sit in 1Password and reach the container as files that Connect renders at deploy.
+Session pooling is the recommendation. AGE needs `LOAD 'age'` and a `search_path` change on every connection, and SQL-level `PREPARE` statements, which AGE's parameterized queries use, stay on one server connection only in session mode (appendix A). PgBouncer's reset query runs after each client in session mode and doesn't run in transaction mode.
+
+Two settings remove the per-session setup. The server preloads both extensions, and `ALTER ROLE` sets `search_path` for each client role. Postgres 17 doesn't report `search_path`, so PgBouncer applies only the startup value, and session mode's reset query clears any client change. Transaction pooling is a later spike, because the client count today is small and session pooling already caps server connections.
 
 ### Backup and restore
 
-A nightly `pg_dump` in custom format runs from a one-shot container, then the unit encrypts it, writes a checksum, and uploads the pair to the object store. It keeps seven daily and four weekly archives. The graph is a projection of git and the ledger, so a rebuild is the last-resort restore and the dump saves time.
+A nightly `pg_dump` in custom format runs from a one-shot container, then the unit encrypts it, writes a checksum, and uploads the pair to the object store. It keeps seven daily and four weekly archives. A rebuild from git and the ledger is the last-resort restore.
 
-A restore drill loads the newest archive into a scratch container on the data host and runs a row-count check and one graph query. The drill runs monthly and after each major upgrade.
+A monthly restore drill loads the newest archive into a scratch container on the data host and runs a row-count check and one graph query. It runs again after each major upgrade.
 
 ### Upgrades
 
-Minor releases of Postgres, AGE, and pg_textsearch go through the image build and a pull request. A major upgrade means a new volume, a dump, and a restore into the new image, with the old volume kept until the drill passes.
+Minor releases of Postgres, AGE, `pg_textsearch`, PgBouncer, and the exporters go through the image build and a pull request. A major upgrade means a new volume, a dump, and a restore into the new image. The old volume stays until the drill passes.
 
 ### Limits
 
-The container gets a memory limit, a process limit, and the hardening pair the object store uses: all capabilities dropped and no new privileges. Appendix A gives the first numbers, to adjust after the first week of metrics.
+Every container has a memory limit, a process limit, all capabilities dropped, and no new privileges. Appendix A gives first values to adjust after a week of metrics.
+
+## How clients connect
+
+| Question | Recommendation |
+| --- | --- |
+| Which clients? | The `tbhbdev graph` command on agent hosts and the operator's laptop, and the future indexer service. Agents use the command, never a database client. |
+| Network path? | The tailnet only. A Tailscale Service, like Grafana's, fronts PgBouncer. Postgres has no route except the project network. |
+| Transport encryption? | The tailnet's WireGuard layer for now. Database-level encryption with a certificate from the internal certificate authority waits for the first client that leaves the tailnet. |
+| Authentication? | SCRAM passwords from Connect, one per role. The tailnet grant is the first gate and the password is the second. Client certificates come later. |
+| Roles per client? | The command and the operator read as `graph_ro`. The indexer reads and writes as `graph_app`. `graph_owner` runs migrations from the deploy and PgBouncer never lists it. |
+| How does a client find the address and credentials? | The `tbhbdev` configuration names the Service and a Connect item reference. The command reads the password from Connect at run time and never stores it. |
+
+## Observability
+
+| Signal | Recommendation |
+| --- | --- |
+| Metrics | `postgres_exporter` and `pgbouncer_exporter` scraped by the project's collector, plus container and volume metrics from the host's collector, all into Mimir. |
+| Logs | Postgres logs in JSON, PgBouncer logs as text, through the collector into Loki. |
+| Traces | None. No client traces database calls yet, and the exporters give the same signal. |
+| Dashboards | One Grafana dashboard per service, built live and then backported to the repository, as the capacity dashboards were. |
+| Alerts | Instance down, volume above 85 percent, backup failure or a missed night, and connection saturation. They use the existing Grafana notification policy. |
+| Health checks | A container health check on each service, and the deploy's health gate reads them before it reports success. |
 
 ## Risks and unknowns
 
 | Risk or unknown | Effect if it goes wrong | What handles it | Evidence |
 | --- | --- | --- | --- |
-| AGE for Postgres 18 is a release candidate tag on the releases page | A defect in graph queries | Pin 1.7.0 for Postgres 18 unless the 1.8.0 candidate has a final tag at build time | Unverified: appendix A |
-| The context graph design chose SQLite | This store contradicts a decided record | The context-graph design owner revises it before the build starts | Existing: that design's decided record |
-| The volume sits on one disk | A disk failure loses the data | Nightly dump to the object store and the rebuild path | New |
-| pg_textsearch is new | Index bugs | The extension is optional for the graph, and a rebuild recreates the index | Unverified |
+| Every AGE tag ends in `-rc0`, so release status rests on GitHub's labels | A defect in graph queries | Pin 1.7.0 for Postgres 17, and the build's tests check AGE queries | Unverified: appendix A |
+| The context-graph design chose SQLite | This store contradicts a decided record | The context-graph design owner revises it before the build starts | Existing: that design's decided record |
+| AGE's setup under transaction pooling | Wrong results or errors | Session pooling now, with a spike before any change | Existing: appendix A |
+| One disk holds the volume | A disk failure loses the data | Nightly dump to the object store and the rebuild path | New |
 
 ## Plan
 
 | Step | What lands | Done when | Owner |
 | --- | --- | --- | --- |
-| 1 | This design merges | Two reviews clear the exact head and the operator answers D1 | the ops repository's agent |
-| 2 | `apps/graph-postgres` in the ops repository with the Dockerfile, Compose file, backup unit, and tests | Its pull request's `conclusion` check is green at the head | the ops repository's agent |
-| 3 | The `pg-graph` volume and the deploy from merged code | `docker compose ps` shows the services healthy and the exporter's `pg_up` reads 1 in the metrics store | the ops repository's agent |
+| 1 | This design and its private companion merge | Two reviews clear each exact head and the operator answers D1 | the ops repository's agent |
+| 2 | The project directory in the ops repository: Dockerfile, Compose file, backup unit, tests, dashboards, and alert rules | Its pull request's `conclusion` check is green at the head | the ops repository's agent |
+| 3 | The volume and the deploy from merged code | Every service reports healthy and `pg_up` reads 1 in Mimir | the ops repository's agent |
 | 4 | The first restore drill | The drill's log shows a matching row count | the ops repository's agent |
+
+## Later
+
+- Transaction pooling, after a spike on AGE's prepared queries.
+- Database-level encryption and client certificates.
+- JSON logs from PgBouncer, a base backup if a dump outgrows an hour, and a replica.
 
 ## Appendices
 
 - [Decisions](decisions.md): 1 open, then the decided record.
-- [A. Evidence](A-evidence.md): version sources, the first limits, and the labels for each claim.
+- [A. Evidence](A-evidence.md): version sources, pooling behavior, and first limits.
 - A private appendix holds the host-specific details for this design.
