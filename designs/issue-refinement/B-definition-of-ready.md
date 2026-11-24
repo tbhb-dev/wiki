@@ -69,7 +69,7 @@ Keep a necessary reference once. Use an issue reference where possible in place 
 
 - Identify the thing and the change. Exclude vague objects such as `check errors`, `issues`, `problems`, `improvements`, `follow-ups`, and `debt`.
 - Give each issue one change. Split a title that counts changes with words such as `two`, `three`, `several`, `various`, or `multiple`. Split unrelated changes joined by `and` or `or`.
-- Put provenance in Source or Context. Leave phrases such as `found in ... reviews`, `from the audit`, `raised by`, and `noted during` out of the title.
+- Put provenance only in Source. Leave it out of the title and every body section. Title phrases to omit include `found in ... reviews`, `from the audit`, `raised by`, and `noted during`.
 - Start the title and Outcome with the change or the resulting state. Exclude process verbs such as `Resume`, `Continue`, `Finish`, `Keep`, `Restart`, `Retry`, `Revisit`, and `Follow up`.
 
 The title `Fix two tools check errors found in github-metrics reviews` fails specificity, single-change scope, and provenance.
@@ -81,6 +81,10 @@ Keep undo, rollback, and how-to steps out of every issue section, including Cont
 Allow the exact Defect Reproduction placeholder `Find a reproduction and add it here.` only when the issue has Status `Needs info` or the staged item has a `needs-info` outcome.
 
 A failing Context for a fictional repository reads `Undo: delete the tunnel and remove the staged file.`
+
+### Issue body provenance
+
+State only current facts in Context and every other issue section. Record how someone found the work in `source`.
 
 ## Unresolved hedges
 
