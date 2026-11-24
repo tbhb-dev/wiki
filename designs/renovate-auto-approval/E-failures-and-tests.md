@@ -24,7 +24,7 @@ The job summary records the head and base snapshot, the CI run ID and attempt, a
 
 | Failure | What the run does | Reason code |
 | --- | --- | --- |
-| A workflow edit runs from a pull request branch and requests `pins-approver` | GitHub rejects the non-default ref under the environment's deployment policy. The job never starts or reads either secret | GitHub reports a deployment policy failure |
+| A job on a non-default run ref requests `pins-approver` | The spike tests whether the tier 2 environment policy blocks the run ref before the job starts or receives either secret | GitHub reports a deployment policy failure if the policy blocks the job |
 | A workflow context field is empty or checkout verification fails | The job fails before requesting the App token | GitHub reports a failed step |
 | A GitHub API read returns 5xx or times out | Retries twice with backoff, then refuses | `api_error` |
 | A call returns 403 or 429 with no remaining quota or a `retry-after` | Refuses at once without waiting | `rate_limited` |
@@ -35,6 +35,7 @@ The job summary records the head and base snapshot, the CI run ID and attempt, a
 | A force-push lands between the second read and the post | The post still targets H. The third read sees the new head and attempts to dismiss the review. The spike tests whether the ruleset counts the review in the interval | `head_moved_after_approval` |
 | The base repository, target branch, or merge base changes | The second read refuses even at the same H. The third read attempts dismissal if it discovers the change after the post | `base_changed`, `base_changed_after_approval` |
 | The check came from another pull request, workflow, suite, or attempt | The bound snapshot lacks a qualifying check and the run refuses | `check_missing` |
+| Required checks come from two or more workflows | Refuses because all required checks must come from one CI workflow | `multiple_required_workflows` |
 | The pull request closes or merges by hand during the run | The second read sees it and refuses | `pr_not_open` |
 | A pull request changes 500 files | Refuses from the files count, before any fetch | `too_many_files` |
 | The API truncates a large diff | The run doesn't use the API's diff. It computes the diff with Git, and cross-checks the file list | `file_list_mismatch` |
@@ -49,7 +50,7 @@ The job summary records the head and base snapshot, the CI run ID and attempt, a
 | The App has a currently effective approval at H | Posts nothing | `already_approved` |
 | A pull request carries the opt-out label | Refuses before gathering | `opted_out` |
 | The ruleset doesn't dismiss stale approvals or require last-push approval | Refuses | `stale_dismissal_off` |
-| The job hits its 10-minute timeout | GitHub stops the job, no approval exists, and the summary may be empty | none, the run shows as timed out |
+| The job hits its 10-minute timeout | An approval may exist if GitHub accepted it before the third read. The next run reconciles it before posting again | none, the run shows as timed out |
 | Unexpected exception | Refuses | `internal_error` |
 
 ## Reason codes
@@ -61,11 +62,11 @@ The codes group by the stage that sets them. `decide()` sets the pull request, d
 | Approve | `ok_pin_only` |
 | No-op | `already_approved` |
 | Pull request | `pr_not_unique`, `pr_not_open`, `pr_draft`, `base_not_default`, `fork_head`, `opted_out`, `author_not_renovate`, `author_app_mismatch`, `commit_not_renovate`, `signature_unverified`, `too_many_commits` |
-| Diff, file level | `empty_diff`, `too_many_files`, `diff_too_large`, `file_list_mismatch`, `not_a_pin_file`, `rename`, `copy`, `new_file`, `deleted_file`, `mode_change`, `binary`, `submodule_or_symlink`, `eol_change`, `encoding` |
-| Diff, hunk level | `line_added`, `line_removed`, `line_count_changed`, `not_a_pin_line`, `mixed_line_kinds`, `hunk_spans_kinds`, `key_changed`, `no_value_change`, `parse_doubt` |
+| Diff, file level | `empty_diff`, `too_many_files`, `diff_too_large`, `file_list_mismatch`, `not_a_pin_file`, `self_pin`, `rename`, `copy`, `new_file`, `deleted_file`, `mode_change`, `binary`, `submodule_or_symlink`, `eol_change`, `encoding` |
+| Diff, hunk level | `line_added`, `line_removed`, `line_count_changed`, `not_a_pin_line`, `mixed_line_kinds`, `key_changed`, `no_value_change`, `parse_doubt` |
 | Pin values | `comment_only_change`, `unversioned_pin`, `unpinned_version`, `unparsed_version`, `downgrade`, `bump_level_not_allowed`, `digest_without_version_change`, `digest_not_updated`, `digest_mismatch`, `url_changed_beyond_version`, `tag_mismatch`, `not_first_party`, `not_merged_at_source`, `first_party_needs_review` |
-| Lockfiles | `lock_not_updated`, `lock_changed_without_pin`, `lock_version_mismatch`, `lock_key_changed` |
-| Checks and rules | `checks_pending`, `check_skipped`, `check_neutral`, `check_failed`, `check_missing`, `required_check_unbound`, `no_required_checks`, `self_check_required`, `stale_dismissal_off` |
+| Lockfiles | `lock_not_updated`, `lock_changed_without_pin`, `lock_version_mismatch`, `lock_key_changed`, `lock_asset_mismatch` |
+| Checks and rules | `checks_pending`, `check_skipped`, `check_neutral`, `check_failed`, `check_missing`, `required_check_unbound`, `multiple_required_workflows`, `no_required_checks`, `self_check_required`, `stale_dismissal_off` |
 | Snapshot binding | `head_mismatch_at_start`, `head_moved`, `head_moved_after_approval`, `base_changed`, `base_changed_after_approval` |
 | Gather and API | `api_error`, `rate_limited`, `pagination_truncated`, `diff_unavailable`, `digest_unverifiable`, `fact_missing`, `approval_failed`, `dismissal_failed`, `internal_error` |
 
@@ -102,11 +103,13 @@ The tests drive `decide()` from the `testdata/` cases. Each case names its expec
 - **Adversarial diffs.** A `uses:` line with a trailing comment after the version, a second `@` in the path, a Unicode lookalike in the owner, and tab indentation all refuse.
 - **Property test.** A generator mutates accepted fixtures by one byte outside the value slots, and every mutant must refuse. It uses a fixed seed, so it runs the same way every time without a third-party library.
 
-The gather step and `approve.py` get tests against a fake API client that replays recorded JSON responses. Test check attribution across runs and attempts, checks on the test merge commit, and target branch changes that keep H. Cover reconciliation after an ambiguous post, dismissed approvals, the three pull request reads, pagination, and the errors in the failure table.
+The gather step and `approve.py` get tests against a fake API client that replays recorded JSON responses. Test check attribution across runs and attempts, checks on the test merge commit, and target branch changes that keep H. Cover reconciliation after an ambiguous post or a job timeout after GitHub accepts the review, dismissed approvals, the three pull request reads, pagination, and the errors in the failure table.
 
 ### Environment spike
 
-In plan step 2, set up `pins-approver` in a scratch calling repository. Use dummy values for both secrets. The reusable job declares `environment: pins-approver` and reports only whether it can read both values. Give the scratch caller both `workflow_run` and `workflow_dispatch` triggers.
+Set up the tier 2 `pins-approver` environment in a scratch calling repository for plan step 2. Store the dummy values there only. Use the same declarations and caller mappings as the workflow interface so the reusable job can report whether it can read both values.
+
+Give the scratch caller both `workflow_run` and `workflow_dispatch` triggers.
 
 1. Let a CI completion trigger the caller on the default branch. Confirm that the job sees both dummy values without reviewer approval.
 2. Edit the caller on a pull request branch and trigger it with `workflow_dispatch` on that branch. Confirm that GitHub denies deployment because of the branch policy. The job must never start or receive either value.

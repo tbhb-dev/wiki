@@ -14,7 +14,7 @@ parent: README.md
 
 Back to [the design](README.md).
 
-The matcher is the part of `decide()` that reads the diff. It answers one question: does every changed line replace one pinned value with another, and nothing else? Any doubt is a refusal.
+The matcher is the part of `decide()` that reads the diff. It accepts only pin replacements and the companion lockfile changes defined below. Any doubt is a refusal.
 
 ## Input
 
@@ -22,7 +22,7 @@ The gather step hands the matcher three things for the pull request at its head,
 
 - The output of `git diff --unified=0 -M --no-ext-diff --no-textconv --full-index` from the merge base to H, plus the old and new file modes from `git diff --raw` over the same commits. Zero context lines mean every line in a hunk body is a change.
 - The base and head text of each changed pin file.
-- The pin facts the gather step looked up, keyed by file and line: which commit a tag names, whether its source's default branch contains a commit, and the SHA-256 hash, from the Secure Hash Algorithm (SHA) family, of each downloaded artifact.
+- Pin facts from the gather step, indexed by file and line number. These include tag targets and commit ancestry. For downloads, gather the Secure Hash Algorithm (SHA-256) digest and the release asset metadata needed to match the two URLs in `mise.lock`.
 
 The matcher makes no network calls. A fact it needs and doesn't have is a refusal, `fact_missing`.
 
@@ -33,6 +33,7 @@ The matcher first reads each file's extended header lines in the diff. It requir
 | Header in the diff | Reason code |
 | --- | --- |
 | Path matches no pin glob | `not_a_pin_file` |
+| Path is the reusable approver workflow file | `self_pin` |
 | `rename from` or `similarity index` | `rename` |
 | `copy from` | `copy` |
 | `new file mode` | `new_file` |
@@ -47,7 +48,9 @@ A pull request with no changed lines gets `empty_diff`.
 
 ## Hunk-level rules
 
-Each hunk header reads `@@ -a,b +c,d @@`. A pin-only hunk has `b` equal to `d`, both at least 1. The matcher pairs the `i`-th removed line with the `i`-th added line.
+Git writes the old and new ranges as `@@ -a,b +c,d @@` and may append a section heading. An omitted count on either side means 1, as in `@@ -1 +1 @@`. The matcher checks the body against both counts.
+
+For text pins, the old and new counts must match and be at least 1. Pair the `i`-th removed line with the `i`-th added line, and find the stanza or field containing each line in its own file version. Each pair must belong to the same stanza or field on both sides, even when the hunk covers more than one stanza or pin kind.
 
 | Condition | Reason code |
 | --- | --- |
@@ -56,15 +59,18 @@ Each hunk header reads `@@ -a,b +c,d @@`. A pin-only hunk has `b` equal to `d`, 
 | `b` differs from `d` | `line_count_changed` |
 | A line in a pair matches no pin grammar for its file | `not_a_pin_line` |
 | The two lines of a pair match different grammars | `mixed_line_kinds` |
-| The pairs of one hunk fall in two different stanzas or line kinds | `hunk_spans_kinds` |
 | A pair's lines differ outside the value slots of their grammar | `key_changed` |
 | A pair's lines are identical in every value slot | `no_value_change` |
 
 The last two rules carry most of the weight. Each grammar names its value slots. The matcher blanks those slots in both lines, and the two templates must match byte for byte, so indentation, quoting, keys, names, and comments outside the slots can't change.
 
+Lockfile lines use the parsed-entry rules below. After validating the hunk header and body, the matcher allows unpaired lines that add registry entries under the `MODULE.bazel.lock` rules, including the JSON delimiter changes needed for insertion. Other unpaired lines still trigger the addition, removal, or count refusals.
+
 ## Workflow `uses:` lines
 
 **Files:** `.github/workflows/*.yml`, `.github/workflows/*.yaml`, and `.github/actions/*/action.yml` or `action.yaml`.
+
+The matcher refuses even pin-only changes to `.github/workflows/renovate-auto-approval.yml`, the reusable approver. A pin to the reusable workflow in a separate caller can qualify under [D11](decisions.md).
 
 **Grammar:** an optional indent, an optional list dash and space, then `uses:` and one space, and an `owner/repo` reference with an optional path, `@`, 40 lowercase hexadecimal characters, two spaces, a `#` and one space, and a version comment. The comment is a version such as `v7.0.1` or `7.0.1`, or the word `main`.
 
@@ -86,7 +92,11 @@ Refused shapes include a `docker://` reference, a local `./` action, a tag or br
 
 **Files:** `MODULE.bazel` and `pins/*.bzl`.
 
-The matcher reads the head and base text to find the stanza around each changed line. It walks up from the line to the nearest line at column 0 that opens one of the known calls and down to the `)` at column 0 that closes it. The stanza must open and close the same way on both sides, with the same call name and the same `name` or `module_name` value. Anything else, including a nested bracket that spans lines, a `+` concatenation on a changed line, a variable in a value slot, or a backslash continuation, is `parse_doubt`.
+The matcher scans both base and head text for known calls at any space indentation, including inside a function. It pairs each opening parenthesis with its closing parenthesis by tracking delimiters outside strings and comments, so a call can span lines or occupy one line. It maps each changed line to a unique containing call in its own file version.
+
+For each line pair, the calls on both sides must occupy the same position in the file's stanza order. Compare their call names and their `name` or `module_name` values, and require matching opening and closing forms. Ambiguous boundaries, a nested bracket spanning lines within a pin call, a `+` concatenation on a changed line, a variable in a value slot, and a backslash continuation all give `parse_doubt`.
+
+The matcher gathers all changed lines for each stanza before checking a URL version against its digest or applying other rules that use more than one field.
 
 ### `bazel_dep`
 
@@ -132,13 +142,14 @@ The matcher compares the parsed base and head documents with `tomllib` and `json
 - The `lockfile_version`, the set of tools, each tool's `backend`, and each tool's set of platform tables stay the same.
 - A tool's entry may change only if its `mise.toml` version changed in this pull request. Anything else is `lock_changed_without_pin`.
 - Within a changed tool, `version` and `specifiers` equal the new `mise.toml` version. Each platform's `url` changes only by the version token, `url_api` keeps its owner and repository, and `checksum` equals the SHA-256 of the downloaded new `url`. Failures are `lock_version_mismatch`, `url_changed_beyond_version`, `lock_key_changed`, and `digest_mismatch`.
+- When present, `url_api` must use the form `https://api.github.com/repos/{owner}/{repo}/releases/assets/{id}` with a numeric ID. The gather step reads metadata from that endpoint, and the matcher requires the asset's `browser_download_url` to equal that platform's new `url` exactly. An invalid endpoint or a different artifact URL gives `lock_asset_mismatch`, and missing metadata gives `fact_missing`.
 - Every other key, such as `provenance` and `checksum_source`, stays the same, or the run refuses with `lock_key_changed`.
 
 ### `MODULE.bazel.lock`
 
 - The matcher accepts a change only when a `bazel_dep` version moved in this pull request. Anything else is `lock_changed_without_pin`.
 - `lockFileVersion` and `selectedYankedVersions` stay the same.
-- Changes fall only under `registryFileHashes`. Each added or changed key is a URL under the registry the caller names, which defaults to the Bazel Central Registry, and each value is 64 hexadecimal characters or null.
+- Changes fall only under `registryFileHashes`, and existing keys stay present. Each added or changed key is a URL under the registry the caller names, which defaults to the Bazel Central Registry, and each value is 64 hexadecimal characters or null. Accept standalone additions that pass these rules and match a moved pin.
 - A change under `moduleExtensions` or any other key is `lock_key_changed`. Extension results can carry their own URLs and digests, and this release doesn't judge them.
 
 CI runs Bazel with `--lockfile_mode=error`, which fails when the lockfile disagrees with `MODULE.bazel` ([appendix A](A-evidence.md)). The required checks therefore cover the lock's consistency, and the matcher covers its shape.
@@ -149,7 +160,7 @@ The matcher compares versions as dotted integers after an optional `v`, up to th
 
 ## Accept and refuse examples
 
-Each line shows the removed line, then the added line. This table shortens hashes, and the tests use full ones.
+The table describes the change, with removed lines before added lines where both appear. This table shortens hashes, and the tests use full ones.
 
 | Kind | Removed, then added | Result |
 | --- | --- | --- |
@@ -162,7 +173,9 @@ Each line shows the removed line, then the added line. This table shortens hashe
 | uses | `@a05c…  # main` then `@b51a…  # main` from a fork commit | `not_merged_at_source` |
 | uses | `uses: actions/checkout@…  # v7` and a following `with:` line changed | `not_a_pin_line` |
 | uses | `runs-on: ubuntu-24.04` then `runs-on: ubuntu-26.04` | `not_a_pin_line` |
-| MODULE | `bazel_dep(name = "bazel_env.bzl", version = "0.10.0", …)` then `"0.10.1"` | accept, patch, if the lock change passes |
+| uses | A pin moves in the reusable approver workflow file | `self_pin` |
+| MODULE | `bazel_dep(name = "bazel_env.bzl", version = "0.10.0", …)` then `"0.10.1"` under `@@ -1 +1 @@` | accept, patch, if the lock change passes |
+| MODULE | Two adjacent `bazel_dep` versions rise by a patch in one hunk | accept if each stanza and its lock change pass |
 | MODULE | `bazel_dep(name = "a", …)` then `bazel_dep(name = "b", …)` | `key_changed` |
 | MODULE | a new `bazel_dep` line | `line_added` |
 | MODULE | `commit = "a05c…",` then `commit = "b51a…",` in the `tbhb_rules` `git_override` | accept, digest, if merged at source |
@@ -171,13 +184,17 @@ Each line shows the removed line, then the added line. This table shortens hashe
 | MODULE | `url` changed to `v0.7.3`, `sha256` unchanged | `digest_not_updated` |
 | MODULE | `sha256` changed, `url` unchanged | `digest_without_version_change` |
 | MODULE | `url` changed from one host to another | `url_changed_beyond_version` |
+| `pins/*.bzl` | An indented `http_archive` inside a function changes its URL version and digest | accept if the new digest matches the download and the bump qualifies |
+| `MODULE.bazel.lock` | The diff adds a registry entry for the new version of a bumped `bazel_dep` | accept if the entry passes the lockfile rules |
 | mise.toml | `prek = "0.5.11"` then `prek = "0.5.12"`, with its `mise.lock` entry | accept, patch |
 | mise.toml | `uv = "0.13.9"` then `uv = "latest"` | `unpinned_version` |
 | mise.toml | a change under `[settings]` | `not_a_pin_line` |
 | mise.lock | a tool's `checksum` changed with no `mise.toml` change | `lock_changed_without_pin` |
+| mise.lock | A version bump updates a platform's checksum and both URLs identify the same new artifact | accept if the other lockfile rules pass |
+| mise.lock | A platform's `url_api` names a different release asset from its `url` | `lock_asset_mismatch` |
 | any | `.github/renovate.json5` preset pin changed | `not_a_pin_file`, until [D4](decisions.md) |
 | any | `ci.yml` renamed to `ci.yaml` | `rename` |
 | any | a workflow file's mode changed to executable | `mode_change` |
 | any | a new workflow file | `new_file` |
 | any | a binary file changed | `binary` |
-| MODULE | one hunk that changes a `bazel_dep` version and the adjacent `http_file` digest | `hunk_spans_kinds` |
+| MODULE | One hunk changes a `bazel_dep` version and only the adjacent `http_file` digest | `digest_without_version_change` |

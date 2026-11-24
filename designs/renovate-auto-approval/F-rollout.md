@@ -16,7 +16,9 @@ Back to [the design](README.md).
 
 ## Before enabling a caller
 
-The administrator installs the App and creates `pins-approver` in each calling repository. The deployment policy allows only the default branch. Leave required reviewers unset and add `PIN_APPROVER_CLIENT_ID` and `PIN_APPROVER_PRIVATE_KEY` as environment secrets. The approving job declares `environment: pins-approver` in both modes. [Setup steps](D-workflow.md#what-the-administrator-sets-up)
+In each calling repository, the administrator installs the App and creates the tier 2 `pins-approver` environment. Allow only the default branch ref. Leave required reviewers unset and store `PIN_APPROVER_CLIENT_ID` and `PIN_APPROVER_PRIVATE_KEY` only in that environment. [Setup steps](D-workflow.md#what-the-administrator-sets-up)
+
+The reusable workflow declares both secrets under `on.workflow_call.secrets`, and the caller maps them by name. The approving job declares `environment: pins-approver` in both modes. Enable the caller after the spike confirms that the job receives both secrets through the environment. [Workflow interface](D-workflow.md#the-workflow_call-interface)
 
 ## Evaluate mode
 
@@ -44,18 +46,18 @@ The repository moves to `enforce` in a pull request that links the review. That 
 
 ## Enforcing and widening
 
-After tbhb-dev/rules enforces, each other repository adds its caller in `evaluate`, runs its own period with the same bar, and moves to `enforce` with its own review. A repository can drop back to `evaluate`, or remove its caller, at any time in an ordinary pull request.
+After tbhb-dev/rules enforces, repositories with one CI workflow reporting all required checks can start their own `evaluate` period. Each uses the same criteria and reviews its results before moving to `enforce`. An ordinary pull request can switch a repository back to `evaluate` or remove its caller at any time.
 
 To stop new approvals across repositories, uninstall the App or revoke its key. Remove both secrets from `pins-approver` in each calling repository when retiring the workflow. Past approvals stay bound to the commits they reviewed.
 
 ## The two tier 2 reviews
 
-The module, the reusable workflow, each caller, and the App change the review and merge path, so each pull request that adds or changes them is tier 2 under [Architecture Decision Record (ADR) 0001](../../adrs/0001-the-changed-paths-and-content-set-the-review-tier.md) and gets two fresh review runs. The two reviews of the build split their focus so that one isn't anchored on the other.
+The module, the reusable workflow, each caller, the App, and the environment configuration change the review and merge path. Every pull request that adds or changes them is tier 2 and gets two fresh review runs. [Architecture Decision Record (ADR) 0001](../../adrs/0001-the-changed-paths-and-content-set-the-review-tier.md)
 
 **Review one, the trust boundary**, reads the workflow, `gather.py`, and `approve.py`:
 
 - The caller uses the default branch's workflow definition. The job never checks out or executes pull request code. It skips pull request artifacts and reads event fields from `GITHUB_EVENT_PATH`.
-- The job declares `environment: pins-approver`. Both App credentials live in that environment, and required reviewers stay unset. Confirm the spike shows that GitHub denies the job on a non-default branch before it can read either secret.
+- The job declares `environment: pins-approver`. Both credentials live only in that environment, and the caller maps the secrets by name. Confirm the spike shows that GitHub denies the job on a non-default run ref before it can read either secret.
 - `permissions: {}` holds at the workflow and job level, and the token's scope matches [appendix D](D-workflow.md#minting-the-token).
 - The job verifies the reusable workflow checkout before requesting the token. Both modes launch the isolated entry point from that checkout.
 - The run takes H from the event and checks the head and base again before posting with `commit_id: H`. It confirms the pull request still qualifies. The third read and dismissal match appendix D.

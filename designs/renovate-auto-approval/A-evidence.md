@@ -31,9 +31,10 @@ No spike has run for this design yet, so no row says proven. Plan step 2's spike
 | The daily `pins` group holds action pins, mise versions, renovate-config pins, and the tbhb-dev/rules pins, and major updates get their own pull request | existing | `default.json5` and `bazel.json5` in tbhb-dev/renovate-config |
 | `bazel_dep` updates form a `bazel modules` group that runs `bazel mod deps` to refresh `MODULE.bazel.lock` | existing | `bazel.json5` |
 | The `bazel` manager rewrites the URL version, `strip_prefix`, and `sha256` of tool archives | existing | `bazel.json5` |
+| Renovate updates URL versions and digests for `http_archive` calls indented inside a function | existing | [tbhb-dev/rules#376](https://github.com/tbhb-dev/rules/pull/376/files) |
 | This repository pins tbhb-dev/rules as a `git_override` commit in `MODULE.bazel` and as `@<commit>  # main` in workflow `uses:` lines | existing | `MODULE.bazel` and `.github/workflows/ci.yml` in this repository |
 | CI runs Bazel with `--lockfile_mode=error` | existing | `.bazelrc` and `preset.bazelrc` in this repository |
-| CI doesn't run mise, so CI never checks a `mise.lock` checksum | existing | the comments in `mise.toml` and `ci.yml` in this repository |
+| CI runs without invoking mise or validating the committed `mise.lock` | existing | `mise.toml` and `.github/workflows/ci.yml` in this repository |
 | tbhb-dev/rules' ruleset requires one approval, dismisses stale approvals on push, requires last-push approval, and requires the `conclusion` check from integration 15368 | existing | `.github/rulesets/main.json` in tbhb-dev/rules |
 | This repository's ruleset requires no approval | existing | `.github/rulesets/main.json` in this repository |
 | zizmor here requires every action pinned by commit | existing | `.github/zizmor.yml` in this repository |
@@ -56,7 +57,8 @@ Where this design and those records differ, the operator's direction of 2026-11-
 | --- | --- | --- |
 | `check_suite` and `check_run` don't trigger workflows when GitHub Actions created the check suite | existing | GitHub Docs, "Events that trigger workflows" |
 | `workflow_run` runs only from the default branch's workflow file, can read secrets, and chains at most three levels | existing | the same page |
-| An approving job in a reusable workflow can read `pins-approver` secrets on the default branch of the calling repository. GitHub denies the job on other refs before it can read them | unverified | Plan step 2 tests both refs in a scratch repository |
+| The tier 2 environment policy checks the run ref in the calling repository | existing | GitHub Docs, "Deployments and environments" |
+| With named secret mappings in the caller, an approving job can read its environment secrets on the default branch ref. GitHub denies the reusable job access to the secrets on other refs | unverified | Plan step 2 tests both refs in a scratch repository |
 | `pull_request_target` runs with secrets, and running untrusted code under it can lead to vulnerabilities | existing | the same page |
 | The branch rules endpoint returns every active rule from repository and organization rulesets, and leaves out rulesets in `evaluate` or `disabled` | existing | GitHub REST docs, "Rules for repositories" |
 | The branch rules endpoint's required permission isn't documented | unverified | the same page, which names none. Plan step 2 tests it |
@@ -70,12 +72,13 @@ Where this design and those records differ, the operator's direction of 2026-11-
 | `job.workflow_repository` and `job.workflow_sha` identify the repository and commit of the workflow defining the current job | existing | [GitHub Actions contexts](https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#job-context) |
 | The Actions API exposes workflow runs and jobs for a specific run attempt, including check-run URLs, and allows unauthenticated reads of public data | existing | [Workflow runs](https://docs.github.com/en/rest/actions/workflow-runs) and [workflow jobs](https://docs.github.com/en/rest/actions/workflow-jobs) |
 | The Checks API exposes a check run by ID and reports its suite and head commit | existing | [Check runs](https://docs.github.com/en/rest/checks/runs) |
+| GitHub release asset metadata includes the asset's browser download URL | existing | [Get a release asset](https://docs.github.com/en/rest/releases/assets#get-a-release-asset) |
 
 ## Open questions for the spike
 
 Plan step 2 answers these in a scratch repository with a copy of the tbhb-dev/rules ruleset:
 
-- Whether GitHub admits the approving job on the default branch and denies it on a non-default branch. Follow [the environment probe](E-failures-and-tests.md#environment-spike) and record the default-branch result and the branch-policy rejection.
+- Whether GitHub admits the approving job on the default branch ref and denies it on a non-default ref. Follow [the environment probe](E-failures-and-tests.md#environment-spike) and record whether the job receives both environment secrets when the caller passes them by name.
 - Whether an App's approval counts toward the required review with contents read, given that approvals count only from reviewers with write permission. If it needs contents write, the request goes back to the operator under [D3](decisions.md).
 - Whether the App can dismiss its own review when the ruleset restricts dismissals, and whether the `dismissal_failed` path then leaves stale dismissal as the only guard.
 - Whether a review posted with an older `commit_id` after a push counts toward the requirement.
@@ -84,5 +87,6 @@ Plan step 2 answers these in a scratch repository with a copy of the tbhb-dev/ru
 - Whether GitHub dismisses or still counts a review after a target branch change that leaves H unchanged. Change the branch between the final pre-post read and the approval, and check the effect of the dismissal call.
 - Whether the reusable job can check out its exact public workflow revision and upload its decision artifact with `permissions: {}` at the caller, workflow, and job levels.
 - Which permission the branch rules endpoint needs.
+- Whether GitHub counts `skipped` and `neutral` conclusions toward required checks.
 - The author, committer, and `verification` fields of a Renovate `platformCommit` commit, and whether GitHub fills `performed_via_github_app` on Renovate's pull requests.
 - Whether a fetch of two commits without blobs, followed by `git diff`, works with the installation token on a hosted runner.

@@ -26,11 +26,11 @@ Each approval needs the App's credentials and the CI results at the pull request
 | `workflow_run` | When a named workflow completes | Runs the default branch's workflow on the default branch ref | Fires when CI's result exists. The approving job treats pull request content as data |
 | `check_suite` or `check_run` | When a check suite or check run completes | Runs the default branch's workflow | GitHub doesn't fire either for suites that GitHub Actions created, and every required check here comes from Actions, so neither fires |
 
-The caller uses `workflow_run` with `types: [completed]` and lists every workflow that reports a required check. Each completion triggers a decision. [D5](decisions.md)
+The caller uses `workflow_run` with `types: [completed]` and lists exactly one CI workflow. That workflow must report all required checks, and each completion triggers a decision. [D5](decisions.md)
 
 - To inspect pull request changes, the job reads the diff and file text as data through Git objects and the API. It never checks out or executes pull request code. CI artifacts stay outside the job.
 - GitHub runs the caller's workflow definition from the default branch. The job runs code from tbhb-dev/rules at the commit that definition pins.
-- In the reusable workflow, the approving job declares `environment: pins-approver`. Before the job starts, GitHub checks the run's ref against the environment policy in the calling repository. Only runs from the default branch can read the environment secrets.
+- The approving job declares `environment: pins-approver`. The tier 2 environment policy matches the run ref in the calling repository and doesn't check which workflow file started the run. [The spike](E-failures-and-tests.md#environment-spike) tests whether GitHub admits the job and exposes its secrets only on the default branch ref.
 - No pull request field, such as a title or a branch name, reaches a `run:` script through a `${{ }}` expression. The script reads the event payload from `GITHUB_EVENT_PATH` and gets everything else from the API.
 
 zizmor's `dangerous-triggers` audit flags `workflow_run`. Each caller adds an ignore entry for its caller file, with a comment that points here.
@@ -52,6 +52,8 @@ The reads check for head changes, and the response's `commit_id` confirms the re
 Renovate enables GitHub's auto-merge on its pull requests. An approval can trigger a merge within seconds, and the third read accepts a merged pull request if its head and base match the pre-post snapshot.
 
 Before the final pre-post read, record the approver App's review IDs and use `already_approved` only for a currently effective approval at H. After a timeout or another ambiguous POST result, reconcile against those IDs before any retry. Run the third read for a confirmed new approval at H, repeat the pre-post checks before retrying a confirmed failure to write, or stop if the result remains uncertain.
+
+Record the pre-post head and base snapshot in the App's review body. If the job times out, the next run compares the App's existing approval against that snapshot and applies the third-read dismissal rules before it can return `already_approved` or post again.
 
 ## The author check
 
@@ -75,11 +77,15 @@ Renovate's presets set `platformCommit: "enabled"`, which creates commits throug
 
 ## The required checks
 
-The run reads the required checks from `GET /repos/{owner}/{repo}/rules/branches/{default_branch}`. That endpoint returns every active rule for the branch from both repository and organization rulesets. It's expected to need only metadata read, not administration, and the spike confirms which permission it takes. Each `required_status_checks` rule lists checks as a `context` and an optional `integration_id`. The same response carries the `pull_request` rule that the head binding reads.
+Read the required checks from `GET /repos/{owner}/{repo}/rules/branches/{default_branch}`. The response includes active rules from repository and organization rulesets. Whether metadata read suffices is unverified until the spike.
+
+Each `required_status_checks` rule lists checks as a `context` and an optional `integration_id`. Use the `pull_request` rule from the same response to check the staleness settings.
 
 The tbhb-dev repositories use rulesets, so the run doesn't read classic branch protection. GitHub still enforces any classic required check at merge, so a check the run can't see can block a merge but can't let one through.
 
-The caller supplies the expected workflow ID for each required check from its default-branch workflow definition. Fetch the run by the event's run ID with `GET /repos/{owner}/{repo}/actions/runs/{run_id}` and require the same attempt, workflow ID, `pull_request` event type, head repository ID, and H.
+The caller supplies the expected workflow ID for each required check from its default-branch workflow definition. The matcher supports only repositories whose required checks all come from one CI workflow. After checking that each required check has an integration and workflow binding, it refuses with `multiple_required_workflows` if those bindings name more than one workflow ID.
+
+Fetch the run by the event's run ID with `GET /repos/{owner}/{repo}/actions/runs/{run_id}` and require the same attempt, workflow ID, `pull_request` event type, head repository ID, and H.
 
 Require one association with the target pull request by number and head branch. Its base repository and target branch must match the pull request snapshot, as must the merge base of H and the association's `base.sha`. Refuse if the association is missing or ambiguous or if GitHub reports a newer attempt of that run.
 
@@ -87,17 +93,20 @@ List jobs with `GET /repos/{owner}/{repo}/actions/runs/{run_id}/attempts/{attemp
 
 The suite's head can equal H or the test merge commit. For a test merge commit, verify that its parents are the CI snapshot's `base.sha` and H. A lookup by H alone could miss a merge-commit check or select a different suite for the same commit.
 
+The spike verifies GitHub's check attribution across reruns and on test merge commits.
+
 A check without evidence from that run and attempt ends the decision with `check_missing`. The workflow rejects reruns on other branches and refuses when the completion lacks any required check. It reads public Actions run and job metadata anonymously and refuses if the evidence is unavailable.
 
 | State in the bound CI snapshot | Reason code | Why |
 | --- | --- | --- |
 | `completed` with `success` | passes | |
 | `queued`, `in_progress`, `waiting`, `requested`, or `pending` | `checks_pending` | A later CI completion starts a fresh decision |
-| `completed` with `skipped` | `check_skipped` | GitHub lets a skipped required check pass, but a skip means CI didn't test this head |
-| `completed` with `neutral` | `check_neutral` | GitHub counts it as a pass, and the run doesn't |
+| `completed` with `skipped` | `check_skipped` | A skip supplies no successful CI result. Whether GitHub counts it toward a required check is unverified |
+| `completed` with `neutral` | `check_neutral` | The decision requires `success`. Whether GitHub counts `neutral` toward a required check is unverified |
 | `failure`, `cancelled`, `timed_out`, `action_required`, `stale`, or `startup_failure` | `check_failed` | |
 | No unique check of that name from that App in the bound snapshot | `check_missing` | |
 | A required check with no `integration_id` or expected workflow ID | `required_check_unbound` | The producer or workflow is unknown |
+| Required checks bound to more than one CI workflow | `multiple_required_workflows` | One workflow must produce all required checks |
 | No required checks at all | `no_required_checks` | There is no CI evidence to approve on |
 
 The run refuses with `self_check_required` when the ruleset requires the approving job. That job runs on the default branch and supplies no CI evidence for the pull request.
@@ -114,11 +123,13 @@ These are proposals that the org's administrator confirms, under [D3](decisions.
 - **Where it installs:** only on this account, on selected repositories, starting with tbhb-dev/rules.
 - **Secrets.** `PIN_APPROVER_CLIENT_ID` and `PIN_APPROVER_PRIVATE_KEY` live in the `pins-approver` environment of each calling repository. The administrator keeps the source key in the approved password manager.
 
-Contents read covers the commits and compare endpoints and the Git fetch of H and the merge base. Checks read covers the check runs. Pull requests write covers the review and its dismissal. Lookups in third-party public repositories, such as a tag in `actions/checkout`, work with any token. A first-party source that's private needs the App installed there with contents read.
+Contents read covers the commits and compare endpoints, and checks read covers check runs. Pull requests write permits posting the review. The spike checks whether GitHub counts the approval, whether the App can dismiss it under the ruleset, and whether the partial fetch works for H and the merge base. [Spike list](A-evidence.md#open-questions-for-the-spike)
+
+The gather step reads public pin metadata through public endpoints. A first-party source that's private needs the App installed there with contents read.
 
 ### Minting the token
 
-The approving job requests an installation token with `actions/create-github-app-token` at a pinned commit. Once GitHub admits the job to `pins-approver`, the action gets `${{ secrets.PIN_APPROVER_CLIENT_ID }}` as `client-id` and `${{ secrets.PIN_APPROVER_PRIVATE_KEY }}` as `private-key`. The token covers only the calling repository, as specified by `owner` and `repositories`.
+The job stops before requesting a token if either secret is empty. The pinned `actions/create-github-app-token` action gets `${{ secrets.PIN_APPROVER_CLIENT_ID }}` as `client-id` and `${{ secrets.PIN_APPROVER_PRIVATE_KEY }}` as `private-key`. The `owner` and `repositories` inputs restrict the token to the calling repository.
 
 Both modes request `permission-contents: read` and `permission-checks: read`. For `permission-pull-requests`, the job requests `read` in `evaluate` mode or `write` in `enforce` mode. Only the decision step receives the token. It expires after one hour, and the action revokes it when the job ends.
 
@@ -128,7 +139,7 @@ Both modes request `permission-contents: read` and `permission-checks: read`. Fo
 2. Generate a private key, store it in the approved password manager, and delete the downloaded file.
 3. Record the App's ID and bot user ID in the rules maintainer's tracking issue so the tests and logs can name it.
 
-In each calling repository, including the first, complete these steps before enabling the caller.
+In each calling repository, including the first, complete these tier 2 setup steps before enabling the caller.
 
 1. Install the App on the repository.
 2. Create the GitHub Actions environment `pins-approver`. Under **Deployment branches and tags**, choose **Selected branches and tags** and add one branch rule matching the default branch exactly. Leave tag rules and required reviewers unset.
@@ -141,7 +152,7 @@ The reusable workflow lives at `.github/workflows/renovate-auto-approval.yml` in
 | Input | Type | Default | Meaning |
 | --- | --- | --- | --- |
 | `mode` | string | `evaluate` | `evaluate` logs the decision only. `enforce` also posts the approval |
-| `check_workflows` | string | none | One `context: workflow ID` per required check, from the default branch's caller |
+| `check_workflows` | string | none | One `context: workflow ID` per required check, all naming the same CI workflow |
 | `pin_files` | string | the globs in [appendix C](C-matcher.md) | One `kind: glob` per line. Callers may only narrow the file set for each built-in kind |
 | `allowed_bumps` | string | `patch minor digest` | Space-separated bump levels |
 | `first_party_owners` | string | `tbhb-dev` | Owners whose branch and tag pins need the merged-at-source check |
@@ -153,21 +164,23 @@ The reusable workflow lives at `.github/workflows/renovate-auto-approval.yml` in
 | `opt_out_label` | string | `no-auto-approval` | A pull request with this label gets `opted_out` |
 | `runs-on` | string | `ubuntu-26.04-arm` | The runner label |
 
-The reusable workflow exposes `decision`, `reason`, and `head_sha` as outputs. The approving job reads both credentials directly from `pins-approver` through its `secrets` context.
+The reusable workflow exposes `decision`, `reason`, and `head_sha` as outputs. It declares `PIN_APPROVER_CLIENT_ID` and `PIN_APPROVER_PRIVATE_KEY` under `on.workflow_call.secrets`, both optional at the call boundary, and the caller maps both by name under the calling job's `secrets`.
+
+Store the credentials only in `pins-approver`. The caller's expressions have empty values. The spike checks whether GitHub supplies the matching environment secrets to the approving job after admission.
 
 The reusable workflow sets `permissions: {}` at the workflow and job levels because the job uses the App's token. The job declares `environment: pins-approver` and `timeout-minutes: 10`. Its concurrency group is `renovate-auto-approval-${{ github.repository }}-${{ github.event.workflow_run.head_branch }}` with `cancel-in-progress: false`. Runs for one pull request queue, and GitHub keeps only the newest pending run. The job never cancels a run mid-approval, because a cancel between the post and the third read would leave an approval unchecked.
 
 The job's steps, in order:
 
 1. Fail the job if `job.workflow_repository` or `job.workflow_sha` is empty. Pass those values to `actions/checkout` as `repository` and `ref`, with `persist-credentials: false`, and require the checkout's `HEAD` to equal `job.workflow_sha` before proceeding.
-2. Request the App token only after checkout verification succeeds.
+2. Require both secrets and request the App token only after checkout verification succeeds.
 3. In both modes run `python3 -I -S "$RULES_CHECKOUT/repo/private/renovate_approval/__main__.py"`, where `RULES_CHECKOUT` points to the verified checkout. The entry point appends only the checkout root, derived from its resolved script path, to `sys.path` before importing the decision package by its absolute name. The flags keep the working directory, `PYTHONPATH`, and site packages out of the import path.
 4. Upload `decision.json` as an artifact named `renovate-auto-approval-<pull request number>-<run attempt>`, kept for 90 days.
 
 ### The call a repository adds
 
 ```yaml
-# .github/workflows/renovate-auto-approval.yml
+# .github/workflows/renovate-auto-approval-caller.yml
 name: Renovate auto-approval
 
 on:
@@ -187,6 +200,9 @@ jobs:
     with:
       mode: evaluate
       check_workflows: 'conclusion: <ci workflow ID>'
+    secrets:
+      PIN_APPROVER_CLIENT_ID: ${{ secrets.PIN_APPROVER_CLIENT_ID }}
+      PIN_APPROVER_PRIVATE_KEY: ${{ secrets.PIN_APPROVER_PRIVATE_KEY }}
 ```
 
 The `if:` is a cheap filter that saves a runner for fork and push runs, not a security check. The module repeats both checks against the API.

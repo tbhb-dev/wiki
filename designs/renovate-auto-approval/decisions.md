@@ -27,7 +27,7 @@ Back to [the design](README.md).
 ### D3. May the administrator create the approver App and its environments?
 
 - **Recommendation:** yes, as `tbhb-dev-pin-approver`, with pull requests write, contents read, checks read, and GitHub's mandatory metadata read, installed on selected repositories only, with no webhook.
-- **Why.** The workflow needs its own identity to approve pull requests independently of Renovate. The environment limits access to the credential to jobs that use the default branch ref.
+- **Why.** The workflow needs its own identity to approve pull requests independently of Renovate. The tier 2 environment policy restricts the run ref to the default branch, and the spike tests whether GitHub enforces that restriction before making the secrets available.
 - **If yes.** In each calling repository, create `pins-approver` and allow deployments only from the default branch. Leave required reviewers unset. Add `PIN_APPROVER_CLIENT_ID` and `PIN_APPROVER_PRIVATE_KEY` as environment secrets. GitHub counts approvals only from reviewers with write permission. If the spike shows that the App needs contents write for its approval to count, the operator decides whether to grant it. [Setup steps](D-workflow.md#what-the-administrator-sets-up)
 - **If no:** nothing gets an automatic approval, and pin-only pull requests keep waiting for a hand approval.
 - **Reversible.** Revoke the App's private key and uninstall the App to stop approvals across repositories. Remove both environment secrets from `pins-approver` in each calling repository. Past reviews stay on their pull requests.
@@ -52,8 +52,8 @@ Back to [the design](README.md).
 ### D11. Does the workflow approve a pull request that moves its own reusable workflow pin?
 
 - **Decided:** 2026-11-23, by the rules maintainer.
-- **Rule:** yes, under [appendix C's first-party pin rules](C-matcher.md#workflow-uses-lines), including the merged-at-source check for tagged pins and subject to D2. The default branch's caller selects the reusable workflow, and the job requires `job.workflow_repository` and `job.workflow_sha` to check out and verify that exact revision before requesting the token.
-- **Undo:** two-way door. A `self_pin` refusal is one rule in the matcher.
+- **Rule.** Yes, when the pin appears in a separate caller and passes the [first-party rules in appendix C](C-matcher.md#workflow-uses-lines), subject to D2. Changes in the file that defines the reusable approver refuse with `self_pin`. The caller on the default branch selects the reusable workflow, and the job uses `job.workflow_repository` and `job.workflow_sha` to verify that exact revision before requesting the token.
+- **Undo.** Two-way door. Widen the `self_pin` refusal to cover references to the reusable approver from callers.
 - **Record:** this design's pull request.
 
 ### D10. Where do the code and tests live?
@@ -66,7 +66,7 @@ Back to [the design](README.md).
 ### D9. How does the matcher treat lockfiles?
 
 - **Decided:** 2026-11-23, by the rules maintainer.
-- **Rule:** `mise.lock` and `MODULE.bazel.lock` are companions. The matcher accepts a change to one only when the same pull request moves the pin it belongs to, compares the parsed base and head documents, and refuses any change outside the entries [appendix C](C-matcher.md#lockfiles) lists. The matcher refuses every other lockfile.
+- **Rule.** `mise.lock` and `MODULE.bazel.lock` are companions. The matcher accepts only the parsed entry changes [appendix C](C-matcher.md#lockfiles) permits for a pin the same pull request moves. That includes standalone Bazel registry additions, and a mise entry's `url_api` must identify the same artifact as its download URL.
 - **Undo:** two-way door, by widening the entry list in a later release.
 - **Record:** this design's pull request.
 
@@ -94,13 +94,13 @@ Back to [the design](README.md).
 ### D5. Which event triggers the workflow?
 
 - **Decided:** 2026-11-23, by the rules maintainer.
-- **Rule:** `workflow_run` with `types: [completed]`, listing each workflow that reports a required check. `pull_request_target` and `check_suite` aren't used, for the reasons in [appendix D](D-workflow.md#the-trigger).
-- **Undo:** two-way door. The caller's `on:` block is the only change.
+- **Rule.** The caller uses `workflow_run` with `types: [completed]` and lists one CI workflow, which must report all required checks. The matcher returns `multiple_required_workflows` if required checks come from more than one workflow. [Trigger and required checks](D-workflow.md#the-trigger)
+- **Undo.** Two-way door. A later release can change the trigger or extend workflow support.
 - **Record:** this design's pull request.
 
 ### D1. How do pin-only Renovate pull requests get their approval?
 
 - **Decided:** 2026-11-23, by the operator.
-- **Rule:** pin-only Renovate pull requests still require approval. A reusable workflow gives that approval when the Renovate App authored the pull request, each hunk only replaces a known pin's version or digest, and the required checks passed in that pull request's CI snapshot. The workflow confirms the head and base again before a dedicated GitHub App posts the review. It fails closed and logs its reason.
+- **Rule.** Pin-only Renovate pull requests still require approval. A reusable workflow gives that approval when the Renovate App authored the pull request, the diff contains only recognized pin moves and their permitted companion lockfile changes, and the required checks passed in that pull request's CI snapshot. The workflow confirms the head and base again before a dedicated GitHub App posts the review. It fails closed and logs its reason.
 - **Undo:** two-way door. Disabling the callers and uninstalling the App returns every Renovate pull request to hand approval.
 - **Record:** the operator's direction to the design's author on 2026-11-23. This design's pull request is its first written record, and plan step 1 turns it into a decision record.
