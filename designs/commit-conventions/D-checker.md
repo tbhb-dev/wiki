@@ -40,8 +40,8 @@ check_subject --repo-root DIR [--base-repo-root DIR | --evaluate | --enforce] [-
 
 | Order | Check | Evaluate | Enforce |
 | --- | --- | --- | --- |
-| 1 | Apply `limits.title` to all titles, including dependency updates and quoted reverts. | Blocks | Blocks |
-| 2 | Pass a commit subject matching the configured quoted `Revert` or `Reapply` form. | Passes | Passes |
+| 1 | Apply `limits.title` to every title, including dependency updates and quoted `Revert` and `Reapply` forms. | Blocks | Blocks |
+| 2 | Pass a subject or title that matches the configured quoted `Revert` or `Reapply` form. Titles must first pass step 1. | Passes | Passes |
 | 3 | Check `rewrite_prefixes` and `unfinished` words. Apply `limits.subject` to commit subjects unless a `long_prefixes` entry matches. | Blocks | Blocks |
 | 4 | Parse `type(scope)!: summary` with optional scope and `!`. Keep the current scope syntax (`[^()\s][^()]*`) and retain the spelling for the scope checks. | Blocks | Blocks |
 | 5 | Check that the parsed type appears in `types`. | Blocks | Blocks |
@@ -94,10 +94,10 @@ The rollout report retains each repository's commit and title results and sums b
 | Caller | Invocation | Stage |
 | --- | --- | --- |
 | Shared CI workflow | `@tbhb_rules//lint:commit_messages -- --repo-root "$PR_CONFIG_ROOT" --base-repo-root "$BASE_CONFIG_ROOT" --pr-number "$PR_NUMBER" --title="$PR_TITLE" "$BASE_SHA" "$PR_HEAD_SHA"`, with the event's title in an environment variable | `pull_request` events `opened`, `edited`, `synchronize`, and `reopened` |
-| `tbhbdev alpha pr check` and `pr create` | `bazelisk run @tbhb_rules//lint:commit_subject -- --repo-root <worktree> --title -- <title>` | Before opening. The checker supplies the title length check from `limits.title`. |
+| `tbhbdev alpha pr check` and `pr create` | `bazelisk run @tbhb_rules//lint:commit_subject -- --repo-root <worktree> --title -- <title>` | Before opening. The checker uses the worktree's mode and skips the base tree. |
 | `tbhbdev alpha merge` | `commit_subject -- --repo-root <head-config> --base-repo-root <live-base-config> --title -- <latest-title>` | Before merging, alongside validation of the final subject with `limits.subject` |
 | A future tools commit command | `commit_subject` without `--title` | Before a commit or a push |
-| The `commit-msg` hook | `commit_subject` through a `bazel_env` shim, with `--file` | At commit creation, before push. A later change after title enforcement. |
+| The planned `commit-msg` hook | `commit_subject` through a `bazel_env` shim, with `--file` | At commit creation, before push. The hook comes after title enforcement. |
 
 Both Bazel targets bundle `check_subject.py` with the loader from the pinned tools source, `tbhb_rules_tbhbdev_src`, and the pinned `cue` binary. CI, `pr check`, and `pr create` all apply the same `limits.title` key through that loader and checker. `pr check` and `pr create` remove their hard-coded title cap and keep their other pull request checks.
 
@@ -105,7 +105,7 @@ Both Bazel targets bundle `check_subject.py` with the loader from the pinned too
 
 The title job runs the range target on all four pull request events and passes only after the target checks the title and succeeds. On those events, `conclusion` runs even if a dependency fails and requires an explicit `success` from the title job. A skipped or missing title result fails `conclusion`.
 
-The ruleset requires `conclusion` for the GitHub merge button and GitHub auto-merge. At checker release, the administrator account applies the ruleset as a [rollout dependency](README.md#plan).
+The ruleset requires `conclusion` for the GitHub merge button and GitHub auto-merge. The workflow lands before the administrator account applies the ruleset in [step 5a](README.md#plan).
 
 ### Pull request configuration
 
@@ -115,7 +115,7 @@ Both callers copy the tracked files `.tbhb/global/commits.toml`, `.tbhb/schema/c
 
 The loaded head configuration supplies the scope lists and the other checker settings. The base configuration supplies only its mode. Both callers apply the stricter mode to the title. CI also checks the authored commits in `BASE..HEAD` from the event, with advisory scope findings in both modes.
 
-CI reruns use the base from the original event. The merge command checks the latest title against the stricter of the head mode and the fetched base mode for early warning. A blocking title finding or a check error stops the command.
+CI reruns use the base from the original event. At merge time the merge command rechecks only the latest title, using the stricter of the head mode and the fetched base mode. A blocking title finding or a check error stops the command.
 
 The merge request requires the hash of the checked head. A head change requires a fresh check.
 
@@ -127,7 +127,7 @@ Option B resolves the race by running the required check on `merge_group` agains
 
 ### Title-only edit
 
-**Accepted technical debt (`TECH-DEBT`).** A title-only edit leaves the hash of the head commit unchanged, and the ruleset accepts the previous passing `conclusion` until the run for `edited` registers its replacement. In that window of a few seconds, the GitHub merge button or auto-merge can land a title that fails the checker. The gap exists in steady state, including in `enforce` mode.
+**Accepted technical debt (`TECH-DEBT`).** A title-only edit keeps the same head hash, so the ruleset accepts the previous passing `conclusion` until the run for `edited` registers its replacement. The window is unmeasured, and the GitHub merge button or auto-merge can land a title that fails the checker even in steady-state `enforce` mode. An edit made with the GitHub Actions `GITHUB_TOKEN` starts no `edited` run, so the previous pass stays in effect until another run replaces it.
 
 `alpha merge` rechecks the live title, which narrows the gap for that path. Option B prevents those merges by requiring the merge queue to check the title on `merge_group`. [B. Alternatives](B-alternatives.md#where-to-enforce-scopes)
 
@@ -147,7 +147,7 @@ Option B resolves the race by running the required check on `merge_group` agains
 | CI skips the title check or omits its result on a pull request event | The required `conclusion` fails. |
 | A pull request head predates the enforce sync | If the base says `enforce`, CI and the merge command enforce the title's scope rules using the head's scope lists. |
 | The base rolls back to `evaluate` while an open head still declares `enforce` | Title scope findings continue to block on that head until both modes are `evaluate`. |
-| CI or the merge command cannot read the base revision, schema, or mode | The check fails with a configuration error. |
+| CI or the merge command can't load the base revision or its configuration | The check exits 2 with a configuration error. A missing global file on the base, as in a first baseline sync pull request, blocks the check and prints the sync hint. |
 
 ## Test plan
 
@@ -163,7 +163,7 @@ The rules maintainer writes the checker tests under `lint/private/commit_message
 - A scope name that breaks the grammar or runs past 24 characters, in either file: `ConfigError`.
 - A missing `schema_version` or `schema_version = 2` in either file raises `ConfigError`.
 - Control and separator characters in a scope name or description raise `ConfigError`. Run the [schema verification cases](C-configuration.md#schema-verification) with each configuration definition. A one-line description passes.
-- A global title limit above the subject limit raises `ConfigError`. A title limit of 65 with a subject limit of 72 passes.
+- A global title limit above the subject limit raises `ConfigError`. A fixture with a title limit of 65 and a subject limit of 72 passes schema validation.
 - A section name with `/` or `..`: the loader rejects it before it reads any path.
 - The same fixture driven through `load("taxonomy", …)` with a schema laid out for the taxonomy, to prove the loader doesn't contain code specific to commits.
 
@@ -175,9 +175,9 @@ The rules maintainer writes the checker tests under `lint/private/commit_message
 - **Unknown type.** `sync: copy the shared files` fails with the type message in both modes.
 - **Spellings.** `_`, `` `bazel` ``, `claude_code`, `src/main.py`, `a,b`, and `e-000001` each produce a scope finding. The first three get the near-miss text where a listed scope matches.
 - **Breaking marker.** `feat(mcp)!: require a relay endpoint` passes, and `!` counts toward the length.
-- **Lengths.** With the default limits, a 64-character title passes and a 65-character title fails in both modes. An ordinary 72-character commit subject passes. Adding one character makes it fail with exit 1 in both modes. A 90-character Renovate `chore(deps): update …` subject passes as a commit and fails as a title in both modes. An over-limit quoted revert title also fails in both modes.
-- **Shared title limit.** Set `limits.title = 65` with `limits.subject = 72`. Verify that CI, `pr check`, and `pr create` all accept the same valid 65-character title and reject it after adding one character.
-- **Final subject limit.** The merge command validates the final subject against `limits.subject`, so a 65-character title plus a space and `(#9999)` fails at merge with a 73-character subject. With a 72-character subject cap, set `limits.title` to 63 to fit every pull request number up to five digits.
+- **Lengths.** With the default limits, a 64-character title passes and a 65-character title fails in both modes. An ordinary 72-character commit subject passes. Adding one character makes it fail with exit 1 in both modes. A 90-character Renovate `chore(deps): update …` subject passes as a commit and fails as a title in both modes. Quoted `Revert` and `Reapply` titles pass within the title limit and fail above it in both modes.
+- **Shared title limit.** In a test fixture, set `limits.title = 65` with `limits.subject = 72`. Verify that CI, `pr check`, and `pr create` all accept the same valid 65-character title and reject it after adding one character.
+- **Final subject limit.** Verify that the merge command accepts a 64-character title with a space and `(#9999)` at the seed limits. In the 65-character test fixture, verify that the title check passes and the merge command rejects the 73-character subject. See the [suffix margin](C-configuration.md#the-global-file).
 - **Rewrite prefix.** `fixup! feat: add export` fails with exit 1 in both modes and reports a rewrite-prefix finding.
 - **Summary quality.** `feat: update` fails with exit 1 and a generic-summary finding in both modes. Check it as a commit subject and as a title through each step 5 caller.
 - **Existing behavior.** Run the cases in today's `test_check_subject.py` in both modes with the seed global file. Preserve existing blocking commit results and exemptions. Use exit 2 for usage and configuration errors.
@@ -190,9 +190,10 @@ The rules maintainer writes the checker tests under `lint/private/commit_message
 - **Required title check.** Trigger `opened`, `edited`, `synchronize`, and `reopened` and verify that every run checks the event's title. Edit a passing title to one with a blocking finding and verify that the failing `conclusion` blocks the GitHub merge button and auto-merge. Verify that skipped and missing title results also fail `conclusion`.
 - **Merge title caller.** Use the same pull request fixture from a worktree without the added scope. Verify that the merge command checks the title using the API's head SHA and sends that SHA as the merge precondition. If the head changes, the merge fails until the command checks the new revision.
 - **Title mode at the two revisions.** Set the pull request head to `evaluate` and the base and checked-out merge tree to `enforce`. Put a repository scope only in the head and a global scope only in the base. Verify that CI and the merge command accept a title with the head-only scope and reject one with the base-only scope. Reverse the modes and verify the same results. With both modes set to `evaluate`, the base-only scope yields an advisory.
-- **Base configuration errors.** An unavailable base revision or invalid base mode blocks CI and the merge command.
+- **Base configuration errors.** Verify that CI and the merge command report a configuration error with exit 2 when the base revision is unavailable or the base mode is invalid. With the global file present on the head but absent on the base, verify exit 2 with the sync hint.
 - **Base advances after CI and before the merge command fetches it.** Start in `evaluate` with an unlisted scope in the title. Advance the base to `enforce` and leave the head unchanged. Verify that CI still passes on a rerun of the original event and the merge command blocks on the latest title.
-- **Known gap after the merge command fetches the base.** If the same flip happens after the fetch, the merge command can pass the title using the fetched `evaluate` mode, and GitHub can still accept the passing CI result on the unchanged head. The required `merge_group` check in option B resolves this race.
-- **Known gap after a title-only edit.** In steady-state `enforce` mode, edit a passing title to one with a blocking finding without changing the head commit. Expect the ruleset to accept the previous passing `conclusion` for the GitHub merge button and auto-merge until the run for `edited` registers its replacement. Expect `alpha merge` to reject the title if it reads it after the edit, and the required `merge_group` check in option B to block the merge.
-- **The `commit-msg` hook.** In both modes, a commit with an unlisted scope or a scope outside its type's policy produces an advisory before push. A `fixup!` subject or empty description still blocks the commit.
+- **Known gap after the merge command fetches the base.** Pause the command after it fetches an `evaluate` base, flip the base to `enforce`, then resume with the same head and a passing CI result. Verify that the command still submits the merge and that GitHub accepts it in the test repository.
+- **Check of open titles.** Before flipping the fixture base to `enforce`, verify that the check lists the pull request with the unlisted scope. Correct its title and verify that a rerun reports no failures.
+- **Known gap after a title-only edit.** On a test pull request in `enforce` mode with a passing title, use a workflow's `GITHUB_TOKEN` to edit only the title and introduce a blocking finding. Read `mergeStateStatus` and verify that GitHub still considers the unchanged head mergeable, while `alpha merge` rejects the live title. With option B enabled, verify that the required `merge_group` check blocks the merge.
+- **The planned `commit-msg` hook.** In both modes, a commit with an unlisted scope or a scope outside its type's policy produces an advisory before push. A `fixup!` subject or empty description still blocks the commit.
 - **Mutation testing.** The checker and the loader run under the repositories' mutation test setup, and every surviving mutant gets a test or a recorded reason.

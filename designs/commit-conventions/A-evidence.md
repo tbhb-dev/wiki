@@ -85,3 +85,8 @@ This public appendix gives scope values and counts, never the repository that us
 - **Existing.** `designs/pm/B-routing-and-taxonomy.md` assigns the shared issue taxonomy design to the tools role, at `designs/issue-taxonomy/`. The brief places it at `designs/taxonomy/`.
 - **Unverified.** None of the wiki mirror's branches contains the issue taxonomy design, and its loader contract is unknown. Appendix C defines the contract this design needs.
 - **Existing.** The wiki's own `.pre-commit-config.yaml` checks commit messages with `cog verify` and doesn't run `check_subject`.
+
+### GitHub Actions
+
+- **Existing.** A title edit made with the workflow's `GITHUB_TOKEN` doesn't start an `edited` run. [Workflow triggers](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#triggering-a-workflow-from-a-workflow)
+- **Unverified.** Option B needs a queue fixture to confirm that the group's first-parent range identifies every queued pull request by its second parent under the merge-commit policy. The `merge_group` event gives the base and head but carries no pull request title. [Merge group event](https://docs.github.com/en/webhooks/webhook-events-and-payloads#merge_group)
