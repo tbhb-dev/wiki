@@ -24,14 +24,18 @@ Back to [the design](README.md).
 
 ## Routing order for create
 
-1. Before creating an issue, the kernel scans the exact rendered text. Refuse the write if the scan finds a secret. End routing.
-2. Route private details to the twin. The scan looks for private repository names, hosts, and internal paths.
-3. An item about [internal security](../issue-refinement/A-refinement-procedure.md#internal-security-topics) goes in a private repository regardless of the scan result. Use the private twin of the central work repository for any Initiative, Epic, Feature, or item whose responsible repository has no private twin. For other items, use the responsible repository's private twin.
-4. A Task, Defect, Chore, Spike, or Research issue goes in the responsible repository, its private twin when the text needs private detail, or the operations repository for application deployment work.
+Before creating an issue, the kernel scans the exact rendered text. The first matching step wins.
+
+1. If the scan finds a secret, refuse the write and end routing.
+2. The scan looks for private repository names, hosts, and internal paths. If it finds private detail, use the private twin of the repository that would otherwise hold the issue. An app has no private twin: its private items go in the operations repository, and anything else about it goes in the app's own repository written without private detail.
+3. An item about [internal security](../issue-refinement/A-refinement-procedure.md#internal-security-topics) goes in a private repository regardless of the scan result. Apply the app rule in step 2 to internal security items about an app. For other items, use the central work repository's private twin for an Initiative, Epic, Feature, or item whose responsible repository has no private twin. Otherwise, use the responsible repository's private twin.
+4. A Task, Defect, Chore, Spike, or Research issue with a responsible repository goes there or to the repository picked in step 2 or 3.
 5. An Initiative, Epic, or Feature goes in the central work repository. Use its private twin when the text needs private detail or the item concerns internal security.
-6. Refuse a work item without a responsible repository. Ask the caller to name a parent in the central work repository or its private twin.
+6. Refuse a Task, Defect, Chore, Spike, or Research issue without a responsible repository. Ask the caller to name a parent in the central work repository or its private twin.
 
 The kernel creates the issue in the chosen repository and uses that repository's configured Project. Issues from the calibration repository go only to `work-calibration`. A sub-issue link can tie a work item to its parent across repositories in the same organization. The link keeps a private parent hidden from a public child.
+
+A public Initiative, Epic, or Feature may have private children, and a private one may have Initiative, Epic, or Feature children only when those children are private. A public Task, Defect, or Chore may sit under a private Feature only when its own text contains no private detail.
 
 ## One home per fact
 

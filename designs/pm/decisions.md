@@ -108,9 +108,9 @@ The design relies on D1 to D4 and D6 as requirements. D5 only places the design.
 
 - **Decided:** 2026-11-22, by the operator.
 - **Amended.** On 2026-11-24, the operator ruled that the central work repository and its private twin both hold Initiatives, Epics, and Features.
-- **Rule.** Initiatives, Epics, and Features go in the central work repository or its private twin when the text needs private detail or the item concerns internal security. Tasks, Defects, Chores, Spikes, and Research issues go in the responsible repository, its private twin when the text needs private detail, or the operations repository for application deployment work. The [routing order](B-routing-and-taxonomy.md#routing-order-for-create) selects the repository, which determines the org Project. Feature is the unit of user-visible work.
+- **Rule.** Initiatives, Epics, and Features go in the central work repository or its private twin when the text needs private detail or the item concerns internal security. Tasks, Defects, Chores, Spikes, and Research issues go in the responsible repository or the private repository selected by the [routing order](B-routing-and-taxonomy.md#routing-order-for-create). The selected repository determines the org Project. Feature is the unit of user-visible work.
 - **Undo:** transfer issues. Two-way door.
-- **Record.** The operator's project management issues ruling, the rename ruling, and the 2026-11-24 visibility ruling recorded in [docs(pm): route Initiatives and Epics by visibility](https://github.com/tbhb-dev/wiki/pull/153).
+- **Record.** The operator's project management issues ruling and the 2026-11-24 “Story means Feature” ruling with its work/private twin clarification.
 
 ## Asks of other roles
 

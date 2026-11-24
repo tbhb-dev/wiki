@@ -45,7 +45,7 @@ Building the design yields these components, each with one role as owner.
 - **The templates** (`templates/` in the pm repository, owner pm) give starting text for one variant each. Constraints belong to the schemas.
 - **The verbs** (`tbhbdev pm`, owner pm) cover create, comment, close, link, and add to Project, on top of the kernel.
 - **The org Projects** `work` and `work-calibration` (owner pm) each use the [four views in B. Routing and taxonomy](B-routing-and-taxonomy.md#project-views). The calibration repository uses `work-calibration`.
-- **The central work repository** (public, owner pm) and its private twin both hold Initiatives, Epics, and Features. Tasks, Defects, Chores, Spikes, and Research issues go in the responsible repository, its private twin when the text needs private detail, or the operations repository for application deployment work.
+- **The central work repository** (public, owner pm) and its private twin both hold Initiatives, Epics, and Features. Tasks, Defects, Chores, Spikes, and Research issues go in the responsible repository or the private repository selected by the [routing order](B-routing-and-taxonomy.md#routing-order-for-create).
 
 Project management and service management use the [shared issue refinement design](../issue-refinement/README.md). See [tracker import](E-import.md) for staged items.
 
