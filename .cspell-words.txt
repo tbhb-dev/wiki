@@ -19,7 +19,6 @@ complexipy
 distroless
 frontmatter
 genrule
-gpgdesign
 hardwrap
 headscale
 healthz

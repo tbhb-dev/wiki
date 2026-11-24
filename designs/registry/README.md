@@ -59,7 +59,7 @@ Choices use one recommendation each. D1 through D7 live in [decisions.md](decisi
 
 New: Zot stores blobs and metadata in a directory beside the other apps on the storage host's volume ([D4](decisions.md#d4-data-location)). Ops sets ownership for the non-root container and keeps the data outside its writable layer. An operator-created share with a quota comes later; ops does not create shares in DiskStation Manager (DSM).
 
-Unverified: host capacity and filesystem hard-link support. The local spike measures memory and disk behavior before ops sets limits or enables filesystem-dependent optimizations ([storage evidence](A-evidence.md#storage-and-cleanup)).
+Unverified: not measured yet: host capacity and filesystem hard-link support. The local spike measures memory and disk behavior before ops sets limits or enables filesystem-dependent optimizations ([storage evidence](A-evidence.md#storage-and-cleanup)).
 
 ### Network
 
@@ -85,7 +85,7 @@ Omit anonymous policies and turn anonymous catalog access off. Keep the global a
 
 ### Observability
 
-New: Alloy scrapes Zot's Prometheus metrics endpoint into the metrics store and forwards JSON container logs into the log store. Follow the object store project's `apps/s3` pattern and the observability stack's Alloy wiring. The deployment configuration, collector placement, endpoint authentication, and current wiring remain unverified because this run did not read those implementations.
+New: Alloy scrapes Zot's Prometheus metrics endpoint into the metrics store and forwards JSON container logs into the log store. Follow the object store app's pattern and the observability stack's Alloy wiring. Unverified: no read of the deployment configuration, collector placement, endpoint authentication, or current wiring yet.
 
 Dashboards show pushes, pulls, request latency, and disk use. Alerts cover registry down, elevated 5xx rate, garbage collection (GC) errors, and storage use. Step 6 verifies metric names and labels against the pinned build and tests log delivery before clients rely on alerts ([operational evidence](A-evidence.md#deployment-and-operational-patterns)).
 
@@ -97,7 +97,7 @@ Turn GC on with the default `gcDelay` of one hour. Set `gcInterval` explicitly a
 
 New: use on-demand anonymous sync from fixed `docker.io`, `ghcr.io`, and `quay.io` upstreams into separate `mirror/<upstream>/**` prefixes. Keep the complete upstream paths and digests. No Docker Hub account exists for this project now; ask again only if rate limits bite ([D6](decisions.md#d6-docker-hub-account)).
 
-The credential-forwarding check must show that client credentials stay at the mirror. Keep upstream endpoints fixed and anonymous because the supplied report describes an earlier sync credential-forwarding failure. Vendor support for periodic sync does not change the on-demand recommendation, and Docker Hub must not use catalog polling ([mirror evidence](A-evidence.md#mirrors-and-upstream-limits)).
+The credential-forwarding check must show that client credentials stay at the mirror. Keep upstream endpoints fixed and anonymous because an earlier research report (internal record) describes an earlier sync credential-forwarding failure. Vendor support for periodic sync does not change the on-demand recommendation, and Docker Hub must not use catalog polling ([mirror evidence](A-evidence.md#mirrors-and-upstream-limits)).
 
 Apply the object store app's hardening pattern: non-root, `cap_drop: ALL`, `no-new-privileges`, and `pids_limit`. Set bounded `json-file` logs and a memory limit that the spike sizes. The current object store configuration and suitable limits remain unverified.
 
@@ -112,7 +112,7 @@ The backup operator adds a job to the secondary NAS only after D2. A later resto
 These are planned build and deploy runs, not completed checks. Deploy only from merged main; each step records evidence and links it from the tracker.
 
 1. **Merge the design pull requests.** Owner: registry maintainer. Exposure: public design text only. Done when both design reviews clear their exact heads, the paired designs agree, and the operator answers D1 and D2 before merge under the repository review rules. Undo: supersede the design or stop the project.
-2. **Merge the app implementation.** Owner: ops. Exposure: repository changes only; this step starts nothing. Add `apps/registry` with Compose, Zot configuration, and the htpasswd renderer as a Python subcommand in the tbhbops command-line tool, with renderer and policy tests. Done when tests cover secret handling, bcrypt output, least-privilege grants, no anonymous catalog, and digest pins on merged main. Undo: revert the app changes.
+2. **Merge the app implementation.** Owner: ops. Exposure: repository changes only; this step starts nothing. Add the registry app with Compose, Zot configuration, and the htpasswd renderer as a Python subcommand in the tbhbops command-line tool, with renderer and policy tests. Done when tests cover secret handling, bcrypt output, least-privilege grants, no anonymous catalog, and digest pins on merged main. Undo: revert the app changes.
 3. **Start on loopback.** Owner: ops. Exposure: the storage host and an SSH tunnel only. Create the data directory and start from merged main. Done when **check 1** pushes Docker schema 2 from the classic builder and OCI from buildx, then pulls both with the lab hosts' Docker and the storage host's Docker 24; **check 4** compares GC and retention dry-run logs with documented results, then proves real GC deletes only the expected disposable data; **check 5, memory** records resident memory at idle and during a parallel multi-GB push to size the limit; and **check 6, local copy** restores a file-level copy taken while Zot runs into an isolated registry that serves pulls. Undo: stop Zot, preserve the data, and keep direct image loads.
 4. **Add the tailnet route.** Owner: network operator and ops. Exposure: approved tailnet clients only. Merge the policy pull request only after D1's recorded answer and accept and deny tests, then deploy the sidecar to serve the Tailscale Service from merged main. Done when **check 5, throughput** records a multi-GB push and pull through Tailscale Serve; **check 2** proves `cosign sign`, `cosign attest`, and `cosign verify` through the referrers API; and **check 3** proves on-demand sync from all three upstreams returns identical digests while client credentials stay at the mirror. Use a temporary spike configuration for sync, then leave routine mirrors off until step 8. Undo: stop the sidecar and revert the route and grants.
 5. **Add the backup job and restore drill.** Owner: backup operator. Exposure: the secondary NAS, only after D2. Done when the job from merged main copies the live registry and a fresh restore serves digest-pinned pulls, repeating check 6 at the backup destination. Undo: stop the job and remove its grants, keeping the source data.
@@ -126,14 +126,14 @@ These are planned build and deploy runs, not completed checks. Deploy only from 
 | Risk | Effect | Mitigation or first check | Evidence |
 | --- | --- | --- | --- |
 | One storage host holds the registry and other services | A host failure blocks fresh pulls and deployments | Running containers keep running; new deploys fall back to direct image loads | Existing constraint; outage behavior unverified locally, [A](A-evidence.md#authority-and-existing-constraints) |
-| Host capacity and hard-link support are unknown | Writes fail or resource use harms neighboring services | Step 3 measures capacity, resident memory, and filesystem behavior before limits | Unverified, [A](A-evidence.md#storage-and-cleanup) |
+| Host capacity and hard-link support are unknown | Writes fail or resource use harms neighboring services | Step 3 measures capacity, resident memory, and filesystem behavior before limits | Unverified: not measured yet, [A](A-evidence.md#storage-and-cleanup) |
 | `keepTags` defaults to deleting unmatched tags once rules apply | A rule mistake removes needed tags | Catch-all keep policy last, dry runs for a week, and a tested restore | Vendor claim, [A](A-evidence.md#storage-and-cleanup) |
 | `gcInterval` documentation conflicts | Cleanup runs at an unexpected frequency | Set the interval explicitly and observe step 3 | Existing documentation conflict, [A](A-evidence.md#storage-and-cleanup) |
 | Zot v2.1.21 changed blob reads to repository-local | A shared digest fails in a repository without its local blob link | Step 3 tests cross-repository pushes, pulls, and explicit blob mounts | Vendor claim, [A](A-evidence.md#storage-and-cleanup) |
-| Earlier sync credential-forwarding failure | A mirror request exposes a client credential upstream | Fixed anonymous upstreams and check 3 before mirror use | Unverified report claim, [A](A-evidence.md#mirrors-and-upstream-limits) |
+| Earlier sync credential-forwarding failure | A mirror request exposes a client credential upstream | Fixed anonymous upstreams and check 3 before mirror use | Existing (internal record): an earlier research report; unverified behavior, [A](A-evidence.md#mirrors-and-upstream-limits) |
 | Repository names enter every digest-pinned Compose file | Renaming breaks consumer references | Treat names under the registry service as a one-way door and settle them before migration | New constraint, [A](A-evidence.md#deployment-and-operational-patterns) |
 | Anonymous upstream limits or outages | A cache miss fails during deployment | Preserve bootstrap sources and direct loads; revisit an account only after rate-limit evidence | Vendor limit claim, [A](A-evidence.md#mirrors-and-upstream-limits) |
-| A live file copy misses consistent metadata | A restore fails to serve images | Check 6 gates dependence on the copy method | Unverified, [A](A-evidence.md#backup-and-restore) |
+| A live file copy misses consistent metadata | A restore fails to serve images | Check 6 gates dependence on the copy method | Unverified: not measured yet, [A](A-evidence.md#backup-and-restore) |
 
 ## Later
 
