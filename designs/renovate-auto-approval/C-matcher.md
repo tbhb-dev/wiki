@@ -64,7 +64,7 @@ For text pins, the old and new counts must match and be at least 1. Pair the `i`
 
 The last two rules carry most of the weight. Each grammar names its value slots. The matcher blanks those slots in both lines, and the two templates must match byte for byte, so indentation, quoting, keys, names, and comments outside the slots can't change.
 
-Lockfile lines use the parsed-entry rules below. After validating the hunk header and body, the matcher allows unpaired lines that add registry entries under the `MODULE.bazel.lock` rules, including the JSON delimiter changes needed for insertion. Other unpaired lines still trigger the addition, removal, or count refusals.
+Lockfile lines use the parsed-entry rules below. After validating the hunk header and body, the matcher checks unpaired `MODULE.bazel.lock` lines for registry entry additions or removals and the JSON delimiter changes they need. Other unpaired lines still trigger the addition, removal, or count refusals.
 
 ## Workflow `uses:` lines
 
@@ -135,7 +135,7 @@ A URL held in a variable, such as a module-level base URL joined with `+`, is `p
 
 ## Lockfiles
 
-The matcher compares the parsed base and head documents with `tomllib` and `json` from the standard library. It maps changed lines to the source spans of changed parsed entries on each side and requires each entry to match the manifest pin by tool and version in `mise.lock` or by module and version in the registry URL in `MODULE.bazel.lock`.
+The matcher compares the parsed base and head documents with `tomllib` and `json` from the standard library. It maps changed lines to the source spans of affected entries on each side. It matches `mise.lock` entries by tool and version, and matches `MODULE.bazel.lock` registry additions to the new pin and removals to the old pin by module name and version.
 
 ### `mise.lock`
 
@@ -149,8 +149,9 @@ The matcher compares the parsed base and head documents with `tomllib` and `json
 
 - The matcher accepts a change only when a `bazel_dep` version moved in this pull request. Anything else is `lock_changed_without_pin`.
 - `lockFileVersion` and `selectedYankedVersions` stay the same.
-- Changes fall only under `registryFileHashes`, and existing keys stay present. Each added or changed key is a URL under the registry the caller names, which defaults to the Bazel Central Registry, and each value is 64 hexadecimal characters or null. Accept standalone additions that pass these rules and match a moved pin.
-- A change under `moduleExtensions` or any other key is `lock_key_changed`. Extension results can carry their own URLs and digests, and this release doesn't judge them.
+- Only `registryFileHashes` can change. A key under `<registry>/modules/<module>/<version>/<file>` can disappear only when its module and version segments match the module and its old version on the pre-change `bazel_dep` or applicable override line, and the same pull request bumps that module's `bazel_dep` version. If another module still requests the old version, the matcher accepts any old keys that Bazel retains unchanged.
+- The head must contain the new version's `MODULE.bazel` and `source.json` keys, or the run refuses with `lock_not_updated`. Those keys and any added keys must use the registry URL the caller names, which defaults to the Bazel Central Registry, and have values of 64 hexadecimal characters or null. Any added key must match the module and new version of a moved pin, and it can appear in a standalone addition.
+- The matcher returns `lock_key_changed` for any other registry key removal, any change to an existing registry key's value, or any change outside `registryFileHashes`, including under `moduleExtensions` or `facts`. Extension results can carry their own URLs and digests.
 
 CI runs Bazel with `--lockfile_mode=error`, which fails when the lockfile disagrees with `MODULE.bazel` ([appendix A](A-evidence.md)). The required checks therefore cover the lock's consistency, and the matcher covers its shape.
 
@@ -174,8 +175,8 @@ The table describes the change, with removed lines before added lines where both
 | uses | `uses: actions/checkout@…  # v7` and a following `with:` line changed | `not_a_pin_line` |
 | uses | `runs-on: ubuntu-24.04` then `runs-on: ubuntu-26.04` | `not_a_pin_line` |
 | uses | A pin moves in the reusable approver workflow file | `self_pin` |
-| MODULE | `bazel_dep(name = "bazel_env.bzl", version = "0.10.0", …)` then `"0.10.1"` under `@@ -1 +1 @@` | accept, patch, if the lock change passes |
-| MODULE | Two adjacent `bazel_dep` versions rise by a patch in one hunk | accept if each stanza and its lock change pass |
+| MODULE | `bazel_dep(name = "bazel_env.bzl", version = "0.10.0", …)` then `"0.10.1"` under `@@ -1 +1 @@`, with registry keys for `0.10.1` added | accept, patch, if the lock change passes, including any removal of `0.10.0` keys |
+| MODULE | Two adjacent `bazel_dep` versions rise by a patch in one hunk and each gains its new registry keys | accept if both stanzas and their lock changes pass, including any removal of their old keys |
 | MODULE | `bazel_dep(name = "a", …)` then `bazel_dep(name = "b", …)` | `key_changed` |
 | MODULE | a new `bazel_dep` line | `line_added` |
 | MODULE | `commit = "a05c…",` then `commit = "b51a…",` in the `tbhb_rules` `git_override` | accept, digest, if merged at source |
@@ -185,7 +186,8 @@ The table describes the change, with removed lines before added lines where both
 | MODULE | `sha256` changed, `url` unchanged | `digest_without_version_change` |
 | MODULE | `url` changed from one host to another | `url_changed_beyond_version` |
 | `pins/*.bzl` | An indented `http_archive` inside a function changes its URL version and digest | accept if the new digest matches the download and the bump qualifies |
-| `MODULE.bazel.lock` | The diff adds a registry entry for the new version of a bumped `bazel_dep` | accept if the entry passes the lockfile rules |
+| `MODULE.bazel.lock` | A `bazel_env.bzl` bump from `0.9.0` to `0.10.0` replaces both old registry keys with the new version's `MODULE.bazel` and `source.json` keys | accept if the new hashes pass the lockfile rules |
+| `MODULE.bazel.lock` | A `bazel_dep` bump adds the new version's registry keys in standalone hunks and retains the old keys unchanged | accept if the new hashes pass the lockfile rules |
 | mise.toml | `prek = "0.5.11"` then `prek = "0.5.12"`, with its `mise.lock` entry | accept, patch |
 | mise.toml | `uv = "0.13.9"` then `uv = "latest"` | `unpinned_version` |
 | mise.toml | a change under `[settings]` | `not_a_pin_line` |

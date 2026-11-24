@@ -41,6 +41,8 @@ The job summary records the head and base snapshot, the CI run ID and attempt, a
 | The API truncates a large diff | The run doesn't use the API's diff. It computes the diff with Git, and cross-checks the file list | `file_list_mismatch` |
 | The Git fetch of H or the merge base fails | Refuses | `diff_unavailable` |
 | The computed diff exceeds 1 MB | Refuses before parsing | `diff_too_large` |
+| A `bazel_dep` bump removes its old registry keys and the new version lacks a required key | Refuses | `lock_not_updated` |
+| A `bazel_dep` bump also removes an unrelated registry key, changes an existing registry hash, or changes `moduleExtensions` or `facts` | Refuses | `lock_key_changed` |
 | An artifact download fails, or runs over `max_download_mb` | Refuses | `digest_unverifiable` |
 | A tag or ancestry lookup fails | Refuses | `fact_missing` |
 | A Renovate group pull request, such as the daily `pins` group | Decides on the whole diff. One refused hunk refuses the whole pull request, and the summary lists every finding | the first finding's code |
@@ -95,6 +97,7 @@ The tests drive `decide()` from the `testdata/` cases. Each case names its expec
 
 - **One case per reason code** that `decide()` can set, from the stage table in the previous section. A meta-test lists the codes in `decide.py` and fails if any code has no case.
 - **Every accept row** in [appendix C](C-matcher.md#accept-and-refuse-examples), including first-party pin changes whose new commits belong to their source default branches.
+- **Bazel registry keys.** Accept a `bazel_dep` bump that replaces both old registry keys, and accept the bump when another module still requests the old version and Bazel retains its keys. Omit a required new key and expect `lock_not_updated`. Expect `lock_key_changed` in separate cases for removal of a different module's key or a different version's key, a change to an existing hash, and a change to either `moduleExtensions` or `facts`.
 - **Every refuse row** in appendix C. Replay a real `pins` group diff from a merged Renovate pull request in tbhb-dev/rules and confirm that any preset pin change in `.github/renovate.json5` sends the whole group to normal review.
 - **Ordering.** A diff with two refusals returns the first by path and line, and `findings` holds both.
 - **Fail-closed edges.** Empty inputs, a missing metadata key, a check list with an unknown status, a version with a suffix, a hunk header that doesn't parse, a CRLF line, and a 40-hex value in uppercase all refuse.

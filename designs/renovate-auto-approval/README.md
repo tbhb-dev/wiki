@@ -20,11 +20,11 @@ decisions_open: 0
 
 ## Summary
 
-In repositories that require an approval, Renovate pull requests that only move a pin still wait for a person. CI covers the pins its checks exercise. This repository's CI doesn't run mise or use `mise.lock` for validation.
+In repositories that require approval, pin-only Renovate pull requests still wait for a person. CI covers the pins it checks. This repository's CI skips mise and `mise.lock` validation.
 
-This design adds a reusable workflow in tbhb-dev/rules for repositories where one CI workflow reports every required check. A dedicated GitHub App approves a pull request only when the Renovate App authored it, the diff moves only recognized pins and their companion entries, and the required checks passed in that pull request's CI run. The workflow checks the head and base again before posting.
+This design adds a reusable workflow in tbhb-dev/rules for repositories where one CI workflow reports every required check. A dedicated GitHub App approves only Renovate App pull requests that move recognized pins and their companion entries, pass the required checks in their CI run, and pass a final head and base check. A `bazel_dep` bump requires registry keys for the new version and can drop the bumped module's old registry keys.
 
-The App's approval also replaces the usual review run for a qualifying first-party pin once the workflow proves that the source's default branch contains the new commit. Pull requests that fail any qualification follow the normal review path. Each decision leaves a reason code in the job summary.
+For a qualifying first-party pin, the App's approval replaces the usual review run once the workflow verifies that the source's default branch contains the new commit. Refusals go through normal review. Each decision logs a reason code in the job summary.
 
 ## Proposal
 
@@ -72,7 +72,7 @@ All of these hold at H, or the run refuses:
 | File | Pin lines it accepts |
 | --- | --- |
 | Workflow and action YAML files, excluding the file that defines the reusable approver | `uses: owner/repo[/path]@<40 hex>  # <version or main>` |
-| `MODULE.bazel` and listed `.bzl` files | `bazel_dep` version, the shared-rules `git_override` commit, and the URL version with its digest in `http_archive`, `http_file`, and `archive_override` |
+| `MODULE.bazel` and `pins/*.bzl` | `bazel_dep` version, the shared-rules `git_override` commit, and the URL version with its digest in `http_archive`, `http_file`, and `archive_override` |
 | `mise.toml` | A version in `[tools]` |
 | `mise.lock`, `MODULE.bazel.lock` | Companion entries for a pin the same pull request moves, checked as parsed documents |
 
