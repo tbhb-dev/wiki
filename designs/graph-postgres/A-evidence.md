@@ -37,11 +37,9 @@ Read on 2026-11-24.
 | Claim | Label | Source |
 | --- | --- | --- |
 | AGE's README lists Postgres 11 through 18 as supported | Existing | <https://github.com/apache/age> |
-| Every AGE tag ends in `-rc0`, and the releases page marks only the 1.8.0 build for 15 as a pre-release | Existing | <https://github.com/apache/age/releases> |
+| AGE names every tag `-rc0`, but GitHub marks the 1.7.0 builds as releases (`prerelease` false): Postgres 17 published 2026-02-11 and Postgres 18 published 2026-01-21. Only the 1.8.0 build for 15, published 2026-09-19, is a pre-release. Read 2026-11-24 with the GitHub releases API | Existing | <https://github.com/apache/age/releases> |
 | The 1.7.0 notes for 18 say no earlier AGE exists for 18, so it has no upgrade path | Existing | <https://github.com/apache/age/releases/tag/PG18%2Fv1.7.0-rc0> |
 | The overlap of AGE 1.7.0 and `pg_textsearch` is Postgres 17 and 18, and 17 has the older and wider AGE history | New | The matrix |
-| The release pages show day and month only, so each AGE release year is unverified | Unverified | The same pages |
-| Whether the Apache project counts an `-rc0` tag as a vote-approved release is unverified | Unverified | The same pages |
 
 ## Pooling
 

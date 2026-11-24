@@ -95,7 +95,7 @@ Every container has a memory limit, a process limit, all capabilities dropped, a
 
 | Risk or unknown | Effect if it goes wrong | What handles it | Evidence |
 | --- | --- | --- | --- |
-| Every AGE tag ends in `-rc0`, so release status rests on GitHub's labels | A defect in graph queries | Pin 1.7.0 for Postgres 17, and the build's tests check AGE queries | Unverified: appendix A |
+| AGE names its tags `-rc0`, and GitHub marks the 1.7.0 builds as releases | A defect in graph queries | Pin 1.7.0 for Postgres 17, and the build's tests check AGE queries | Dates and flags in appendix A |
 | The context-graph design chose SQLite | This store contradicts a decided record | The context-graph design owner revises it before the build starts | Existing: that design's decided record |
 | AGE's setup under transaction pooling | Wrong results or errors | Session pooling now, with a spike before any change | Existing: appendix A |
 | One disk holds the volume | A disk failure loses the data | Nightly dump to the object store and the rebuild path | New |
