@@ -24,8 +24,6 @@ Back to [the design](README.md).
 
 ## Open
 
-The choice between Epics as design documents and an Epic issue type remains open. References to Epic issues in this draft are provisional.
-
 ### D8. Should ordinary refinement send questions of operator intent as one approval Request per batch?
 
 This decision covers ordinary refinement. The tracker import records gaps in staging. A created issue that still needs an answer has Status `Needs info`. See [decision D11](#d11-which-issue-types-does-the-tracker-import-create).
@@ -107,7 +105,8 @@ The design relies on D1 to D4 and D6 as requirements. D5 only places the design.
 ### D1. Where do issues go?
 
 - **Decided:** 2026-11-22, by the operator.
-- **Rule.** Every work item is an issue in the repository responsible for it. That repository determines the org Project. Larger units go in a private central work repository. Feature is the unit of user-visible work.
+- **Amended.** On 2026-11-24, the operator chose a public central work repository with a private twin. Both hold Initiatives, Epics, and Stories. Use the twin for an item whose text needs private detail or that concerns internal security. Links between parents and children can cross the two repositories.
+- **Rule.** The [routing order](B-routing-and-taxonomy.md#routing-order-for-create) picks the repository for each work item. That repository determines the org Project. Feature is the unit of user-visible work.
 - **Undo:** transfer issues. Two-way door.
 - **Record:** the operator's project-management issues ruling and the rename ruling.
 

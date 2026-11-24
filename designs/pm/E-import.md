@@ -16,7 +16,7 @@ Back to [the design](README.md).
 
 About 700 issues enter the backlog from the earlier tracker under the [import plan](README.md#plan). In staging, the imports role refines the files before the kernel creates each issue in its destination type.
 
-GitHub issues go on the target repository's org Project. One Epic in the central work repository covers the import. Give each batch a Chore under the Epic. Record the batch query and outcome counts on the Chore. About 28 batches of 25 fit within GitHub's cap of 100 sub-issues per parent.
+GitHub issues go on the target repository's org Project. One Epic covers the import. The [routing order](B-routing-and-taxonomy.md#routing-order-for-create) places the Epic in the central work repository or its private twin. Give each batch a Chore under the Epic. Record the batch query and outcome counts on the Chore. About 28 batches of 25 fit within GitHub's cap of 100 sub-issues per parent.
 
 ## Staging and refinement
 
