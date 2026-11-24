@@ -16,6 +16,8 @@ bxox
 cgnat
 complexipy
 distroless
+dumpall
+dynamicconfig
 frontmatter
 genrule
 hardwrap
@@ -26,6 +28,7 @@ hermeticity
 hprof
 hskey
 ITIL
+jsonlog
 keepalive
 lockfiles
 mcpjson
@@ -36,8 +39,12 @@ noexperimental
 noremote
 nosandbox
 onepassword
+pgdata
+pids
+pooler
 pousr
 prek
+prometheuscommunity
 pycache
 pyproject
 pytest
@@ -59,6 +66,7 @@ tailnet
 tbhb
 tbhbdev
 tbhbdrafts
+tdbg
 testdata
 textconv
 tfstate
@@ -70,6 +78,7 @@ unbuilt
 uncomparables
 unkeyed
 unmatch
+userspace
 venv
 worktrees
 xoxa
