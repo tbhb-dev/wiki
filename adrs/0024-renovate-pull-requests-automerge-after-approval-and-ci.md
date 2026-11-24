@@ -23,4 +23,8 @@ If an update runs a command with Renovate's access token, approval also requires
 
 The approver handles successful CI notifications until a queue worker, a service that processes queued work, takes over automated approval. GitHub performs the merge once the requirements are met. The release cooldown adds no waiting period after approval. Disabling automerge in the preset shared by repositories restores a separate merge step.
 
-The planned title checker adds a required input to `conclusion` on `pull_request` events `opened`, `edited`, `synchronize`, and `reopened`. The ruleset uses `conclusion` to block GitHub auto-merge and the merge button on a failed, skipped, or missing title result. [Commit types and scopes design](../designs/commit-conventions/D-checker.md#required-title-check)
+Under the commit conventions rollout, the active ruleset requires both `conclusion` and `pr-title` for GitHub auto-merge and the merge button. The `conclusion` job combines the other required CI results, and the standalone `pr-title` workflow reports the title result. A pull request `edited` event runs only the title workflow. [Required title check](../designs/commit-conventions/D-checker.md#required-title-check)
+
+The title ruleset runs in `evaluate` mode for at least seven days. The administrator account switches it to `active` once those seven days have elapsed and the pre-flip list of open pull requests that would fail is empty. [Commit conventions rollout](../designs/commit-conventions/README.md#rollout)
+
+At the later checker mode flip from `evaluate` to `enforce`, GitHub can still accept an earlier pass from `evaluate` on a head behind the base. Before flipping the mode, the operator lists open pull requests whose titles would fail under `enforce`, fixes the titles or scope configuration, and reruns the check. [Commit conventions rollout](../designs/commit-conventions/README.md#rollout)

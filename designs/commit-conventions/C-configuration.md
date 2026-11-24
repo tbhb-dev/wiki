@@ -31,7 +31,7 @@ Every section that the loader serves follows one contract. The commits section a
 - **Files.** The global file is `<repo_root>/.tbhb/global/<section>.toml`, the schema is `<repo_root>/.tbhb/schema/<section>.cue`, and the repository file is `<repo_root>/.tbhb/<section>.toml`.
 - **Schema.** Each schema file declares `package schema` and two closed definitions, `#Global` and `#Repo`. `#Repo` holds `schema_version` and only the tables a repository may extend.
 - **Extendable tables.** Each table that `#Repo` declares maps a name to a one-line description. The commits schema rejects control characters and line and paragraph separators in names and descriptions. The loader merges by key, global entries first, and records each key's class as `global` or `repo`.
-- **Result.** `Loaded` contains `values`, the merged mapping, `classes`, the class of each key in each extendable table, and `notices`, the duplicate keys the repository file repeats.
+- **Result.** `Loaded.values` holds the merged settings. `Loaded.classes` records the class of each key in the extendable tables, and `Loaded.notices` lists the duplicate keys.
 - **Errors.** The loader raises `ConfigError(path, finding)` for a missing or unreadable global file, a missing schema, a missing `cue` binary, any schema finding, a TOML parse error, and a repository file that exists but that the loader can't read. An absent repository file isn't an error.
 - **Versions.** Both files must declare `schema_version = 1`. The schema rejects a missing or different version. A version change releases a new schema and global file together.
 
@@ -106,7 +106,7 @@ long_prefixes = [
 ]
 ```
 
-`limits.title` is the sole title cap, with a baseline default of 64 characters. CI, `pr check`, and `pr create` read it through the shared loader and checker. The schema requires `limits.title <= limits.subject`.
+`limits.title` caps the title before GitHub appends a space and `(#N)`. The seed leaves 8 characters between the 64-character title cap and the 72-character merge subject cap, enough for four-digit pull request numbers, while five digits need 9 characters. The schema requires `limits.title <= limits.subject`, and the merge command checks the final length with the actual suffix.
 
 ## A repository file
 
