@@ -12,12 +12,14 @@ bbolt
 buildcop
 buildifier
 buildmeta
+buildx
 bxox
 cgnat
 complexipy
 distroless
 frontmatter
 genrule
+gpgdesign
 hardwrap
 headscale
 healthz
@@ -36,6 +38,7 @@ noexperimental
 noremote
 nosandbox
 onepassword
+pids
 pousr
 prek
 pycache
@@ -47,6 +50,7 @@ relayclient
 rumdl
 runfile
 runfiles
+runsc
 rylignore
 sandboxed
 shellcheck
@@ -59,6 +63,7 @@ tailnet
 tbhb
 tbhbdev
 tbhbdrafts
+tbhbops
 testdata
 textconv
 tfstate
@@ -70,6 +75,7 @@ unbuilt
 uncomparables
 unkeyed
 unmatch
+Valkey
 venv
 worktrees
 xoxa
