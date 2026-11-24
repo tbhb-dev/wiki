@@ -15,7 +15,7 @@ Repositories that require one approval make a person approve every Renovate pull
 
 ## Decision
 
-A pull request qualifies when the Renovate App authored it, it is open and not a draft, a pure decision function finds that it changes only recognized pins within the allowed bump levels and their companion lockfile entries, and every required check passed in the triggering CI run. Just before approving, the workflow rechecks the head, base, and checks and refuses if any changed. The App's approval then satisfies the approval requirement. For a first-party pin, the approval also replaces the review run once the workflow verifies that the source repository's default branch contains the new commit. Every other pull request goes through normal review. Each decision logs a reason code.
+A pull request qualifies when the Renovate App authored it from a branch in the repository to the default branch, it is open, not a draft, and has no opt-out label, a pure decision function finds only recognized pins within the allowed bump levels and their companion lockfile entries, and every required check passed in the triggering CI run. Just before approving, the workflow rechecks the head, base, and checks and refuses if any changed. The workflow then posts the App's approval, and the design's spike verifies that GitHub counts it. For a first-party pin, the approval replaces the one review run that [0024](0024-renovate-pull-requests-automerge-after-approval-and-ci.md) requires, once the source repository's default branch contains the new commit. Others get normal review.
 
 ## Scope
 
