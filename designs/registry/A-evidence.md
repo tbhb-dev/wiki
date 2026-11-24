@@ -19,6 +19,7 @@ Labels distinguish evidence from intent. **Proven** means a recorded observation
 ## Authority and existing constraints
 
 - **Existing (internal record):** the 2026-11-24 decisions entry and operator answers take precedence over the tracker, then the 2026-11-14 research report. **Unverified: no read of those original records yet.**
+- **Existing (operator answer relayed by the coordination role):** the 2026-11-24 Open 290 decisions entry approves D1 and D2. D1 adds a registry tag, a Tailscale Service, and least-privilege grants; both the internal DNS name and the Tailscale Service are `images.tbhb.cloud`. D2 approves secondary NAS backup as follow-up infrastructure debt, outside the critical path to standing the registry up.
 - **Existing (internal record):** the Open 228 decision, dated 2026-11-14, selects Zot on the storage host under `runc` with tailnet-only access; undo means stop the project. The operator ordered the resume on 2026-11-24; D7 records this authority.
 - **Existing (internal record):** the 2026-11-24 decisions entry records that the coordination role chose per-agent-account read-only credentials in Connect, separate from push credentials, and anonymous Docker Hub sync without an account on 2026-11-24. D5 and D6 record both rules and their undo paths.
 - **Existing (internal record):** the 2026-11-12 decisions entry keeps agent-capacity as a direct load until the registry serves it. A later follow-up moves it to registry pulls.
@@ -54,7 +55,7 @@ Labels distinguish evidence from intent. **Proven** means a recorded observation
 - **Existing, vendor claim:** the guide provides authenticated catalog access controls and separate metrics access policy. No anonymous repository policy plus anonymous catalog off still needs denial tests on the pinned service.
 - **New:** a Python renderer in the tbhbops command-line tool reads 1Password references through Connect and writes protected htpasswd output, following the object store identity pattern. Public configuration uses `<secret-reference>` placeholders; only private configuration contains actual 1Password URI references.
 - **New:** publishers get per-repository read/create/update from main-branch continuous integration (CI) jobs only; production daemons and each agent account get distinct read-only credentials. A metrics-only identity serves Alloy, and the global administrator credential stays break-glass only.
-- **Unverified: not measured yet:** current object store renderer details, production Docker config delivery, rootless daemon login behavior, credential rotation, cross-repository denial, and anonymous denial. Steps 2, 3, and 7 test these paths without logging credentials.
+- **Unverified: not measured yet:** current object store renderer details, production Docker config delivery, rootless daemon login behavior, credential rotation, cross-repository denial, and anonymous denial. Steps 2, 3, and 6 test these paths without logging credentials.
 
 ## Mirrors and upstream limits
 
@@ -63,23 +64,23 @@ Labels distinguish evidence from intent. **Proven** means a recorded observation
 - **Existing, vendor claim:** [Docker Hub usage](https://docs.docker.com/docker-hub/usage/), read 2026-11-24, lists 100 anonymous pulls per IPv4 address per six hours. A shared egress uses that allowance. **Unverified: not measured yet:** local pull demand.
 - **Existing (internal record):** an earlier research report describes an earlier sync credential-forwarding failure. **Unverified: no read of the failing build, patch, or security report yet.** Fixed anonymous upstreams are a constraint, not proof that the failure is absent.
 - **New:** anonymous on-demand sync from each fixed upstream registry into `mirror/<upstream>/**`, with full upstream paths and identical digests. No Docker Hub account now, and no upstream credential forwarding.
-- **Unverified: not measured yet:** check 3's digest comparison and credential-boundary test for all three upstreams, with request evidence that excludes secret values. Step 4 uses temporary sync configuration; step 8 repeats the check before routine use.
+- **Unverified: not measured yet:** check 3's digest comparison and credential-boundary test for all three upstreams, with request evidence that excludes secret values. Step 4 uses temporary sync configuration; step 7 repeats the check before routine use.
 
 ## Deployment and operational patterns
 
 - **Existing (internal record):** an earlier research report names the object store app's hardening and identity rendering, plus the observability stack's Alloy wiring. **Unverified: no read of those implementations yet.** The design proposes following the pattern; a match remains unverified.
 - **New:** non-root containers, `cap_drop: ALL`, `no-new-privileges`, `pids_limit`, bounded `json-file` logs, and a memory limit from the spike. Step 2 defines the configuration, and step 3 tests it.
 - **New:** Alloy scrapes Zot Prometheus metrics into the metrics store and forwards JSON logs to the log store. Dashboards cover pushes, pulls, latency, and disk; alerts cover downtime, 5xx rate, GC errors, and storage use.
-- **Unverified: not measured yet:** collector placement, metric names, scrape authentication, current log wiring, and delivery to the observability host. Step 6 checks dashboards and triggers each alert.
-- **New:** a loopback-only first start, then a tailnet-only Tailscale Serve sidecar after D1. Check 5 measures push and pull throughput through the sidecar. **Unverified: not measured yet:** throughput and memory.
+- **Unverified: not measured yet:** collector placement, metric names, scrape authentication, current log wiring, and delivery to the observability host. Step 5 checks dashboards and triggers each alert.
+- **New:** a loopback-only first start, then a tailnet-only Tailscale Serve sidecar for `images.tbhb.cloud`, approved in D1. Check 5 measures push and pull throughput through the sidecar. **Unverified: not measured yet:** throughput and memory.
 - **New:** bootstrap components keep direct upstream images, and deployment uses merged main only. Repository names become a one-way door once digest-pinned Compose references depend on them.
-- **Unverified: not measured yet:** current network policy, sidecar Service support, and accept and deny behavior. Step 4 checks these after the operator records D1; this document does not authorize a policy merge.
+- **Unverified: not measured yet:** current network policy, sidecar Service support, and accept and deny behavior. With D1 decided, step 4 checks these before deployment.
 
 ## Backup and restore
 
 - **New:** a local file-level copy taken while Zot runs, followed by an isolated restore that serves pulls, is acceptance check 6. The copy includes content, metadata, and recovery configuration; secrets stay within protected recovery procedures.
 - **Unverified: not measured yet:** live-copy consistency, filesystem copy semantics, secondary NAS access and capacity, and recovery of the sidecar and credential renderer. A vendor's online GC claim does not prove backup consistency.
-- **New:** D2 gates a backup job to the secondary NAS and a second restore drill in step 5. If D2 stays open, no job touches that destination.
+- **New:** D2 approves a backup job to the secondary NAS and a second restore drill as follow-up infrastructure debt. Neither gates standing the registry up; the local restore check remains in step 3.
 
 ## Design scope
 

@@ -6,7 +6,7 @@ tags: [registry, containers, design]
 status: draft
 owner: Registry maintainer
 updated: "2026-11-24"
-decisions_open: 2
+decisions_open: 0
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
@@ -16,7 +16,7 @@ decisions_open: 2
 
 | Status | Owner | Updated | Needs from the operator |
 | --- | --- | --- | --- |
-| Draft | Registry maintainer | 2026-11-24 | 2 open items in [decisions.md](decisions.md) |
+| Draft | Registry maintainer | 2026-11-24 | 0 open items in [decisions.md](decisions.md) |
 
 ## Summary
 
@@ -24,7 +24,7 @@ Recommend Zot as the internal container registry and cache for public upstream i
 
 A private companion design holds the host-level details.
 
-The proposal runs Zot on the storage host, with a Tailscale Serve sidecar and file storage. A staged rollout checks Docker compatibility, signatures, mirrors, cleanup, resource use, and restore before clients depend on it. The operator has two open asks: network policy and backup to the secondary NAS.
+The proposal runs Zot on the storage host, with a Tailscale Serve sidecar and file storage. A staged rollout checks Docker compatibility, signatures, mirrors, cleanup, resource use, and restore before clients depend on it. The operator approved the registry tag, Tailscale Service, least-privilege grants, and backup to the secondary NAS. The backup is infrastructure debt and does not gate standing the registry up.
 
 ## Proposal
 
@@ -38,7 +38,7 @@ This is a new service, not a deployed one. [Appendix A](A-evidence.md) labels th
 | Image publishers | The CI runner pool; per-repository push credentials in the job's secret delivery | Build maintainer limits jobs to main |
 | Image consumers | Production daemons and each agent account's rootless daemon; local Docker credential config | Ops manages production; an agent account manages its own daemon |
 | Telemetry collector | Alloy forwards registry telemetry to the observability host's metrics and log stores | Observability maintainer owns wiring, dashboards, and alerts |
-| Backup job | Copies registry files to the secondary NAS after D2; backup state stays there | Backup operator owns scheduling and restore drills |
+| Backup job | Deferred follow-up: copies registry files to the secondary NAS; backup state stays there | Backup operator owns scheduling and restore drills |
 
 Choices use one recommendation each. D1 through D7 live in [decisions.md](decisions.md); the remaining reversible implementation choices follow here.
 
@@ -65,9 +65,9 @@ Unverified: not measured yet: host capacity and filesystem hard-link support. Th
 
 ### Network
 
-The first start binds only to loopback, and checks use a Secure Shell (SSH) tunnel. The later sidecar serves a Tailscale Service over the tailnet, using a name under the internal domain. Zot has no public listener.
+The first start binds only to loopback, and checks use a Secure Shell (SSH) tunnel. The later sidecar serves a Tailscale Service over the tailnet, with both the internal DNS name and the Tailscale Service named `images.tbhb.cloud`. Zot has no public listener.
 
-New: the sidecar needs a tag for the registry sidecar and grants for approved clients. D1 needs the operator's recorded answer before any policy pull request merges. Policy tests must accept approved publishers and consumers and deny unrelated clients ([network evidence](A-evidence.md#deployment-and-operational-patterns)).
+Decided in D1: add a registry tag, a Tailscale Service named `images.tbhb.cloud`, and least-privilege grants for approved clients. Policy tests must accept approved publishers and consumers and deny unrelated clients ([network evidence](A-evidence.md#deployment-and-operational-patterns)).
 
 ### Clients
 
@@ -75,7 +75,7 @@ The continuous integration (CI) runner pool pushes only from main-branch jobs wi
 
 Bootstrap images never come from the registry. This includes the registry's own image, the Tailscale sidecar, 1Password Connect, the object store, and the DNS server. The agent-capacity image stays a direct load until the registry serves it; migration to a registry pull is a later follow-up ([authority](A-evidence.md#authority-and-existing-constraints)).
 
-Clients write `mirror/<upstream>/**` beneath the registry name in their image references, with a separate prefix for each upstream registry. The Docker daemon mirror setting covers Docker Hub only. Consumers pin digests, and the namespace preserves upstream repository paths, including Docker Hub's library prefix ([mirror evidence](A-evidence.md#mirrors-and-upstream-limits)).
+Clients write `mirror/<upstream>/**` beneath `images.tbhb.cloud` in their image references, with a separate prefix for each upstream registry. The Docker daemon mirror setting covers Docker Hub only. Consumers pin digests, and the namespace preserves upstream repository paths, including Docker Hub's library prefix ([mirror evidence](A-evidence.md#mirrors-and-upstream-limits)).
 
 ### Auth
 
@@ -89,7 +89,7 @@ Omit anonymous policies and turn anonymous catalog access off. Keep the global a
 
 New: Alloy scrapes Zot's Prometheus metrics endpoint into the metrics store and forwards JSON container logs into the log store. Follow the object store app's pattern and the observability stack's Alloy wiring. Unverified: no read of the deployment configuration, collector placement, endpoint authentication, or current wiring yet.
 
-Dashboards show pushes, pulls, request latency, and disk use. Alerts cover registry down, elevated 5xx rate, garbage collection (GC) errors, and storage use. Step 6 verifies metric names and labels against the pinned build and tests log delivery before clients rely on alerts ([operational evidence](A-evidence.md#deployment-and-operational-patterns)).
+Dashboards show pushes, pulls, request latency, and disk use. Alerts cover registry down, elevated 5xx rate, garbage collection (GC) errors, and storage use. Step 5 verifies metric names and labels against the pinned build and tests log delivery before clients rely on alerts ([operational evidence](A-evidence.md#deployment-and-operational-patterns)).
 
 ### Lifecycle and mirrors
 
@@ -107,21 +107,20 @@ Apply the object store app's hardening pattern: non-root, `cap_drop: ALL`, `no-n
 
 New: a file-level copy includes registry content and metadata, app configuration, and the sidecar's identity state. Secret material stays within the protected backup and 1Password recovery procedures, outside public files. A local copy taken while Zot runs must restore into an isolated registry that serves digest-pinned pulls before anyone treats the method as safe.
 
-The backup operator adds a job to the secondary NAS only after D2. A later restore drill checks the copied data, configuration, secret rendering, and sidecar recovery without reusing a live service identity. Copy consistency and the backup destination's current setup remain unverified ([restore evidence](A-evidence.md#backup-and-restore)).
+D2 approves a job to the secondary NAS as a follow-up; it does not gate standing the registry up. Until it lands, track it as infrastructure debt. A later restore drill checks the copied data, configuration, secret rendering, and sidecar recovery without reusing a live service identity. Copy consistency and the backup destination's current setup remain unverified ([restore evidence](A-evidence.md#backup-and-restore)).
 
 ## Rollout
 
 These are planned build and deploy runs, not completed checks. Deploy only from merged main; each step records evidence and links it from the tracker.
 
-1. **Merge the design pull requests.** Owner: registry maintainer. Exposure: public design text only. Done when both design reviews clear their exact heads, the paired designs agree, and the operator answers D1 and D2 before merge under the repository review rules. Undo: supersede the design or stop the project.
+1. **Merge the design pull requests.** Owner: registry maintainer. Exposure: public design text only. Done when both design reviews clear their exact heads, the paired designs agree, and D1 and D2 are recorded as decided under the repository review rules. Undo: supersede the design or stop the project.
 2. **Merge the app implementation.** Owner: ops. Exposure: repository changes only; this step starts nothing. Add the registry app with Compose, Zot configuration, and the htpasswd renderer as a Python subcommand in the tbhbops command-line tool, with renderer and policy tests. Done when tests cover secret handling, bcrypt output, least-privilege grants, no anonymous catalog, and digest pins on merged main. Undo: revert the app changes.
 3. **Start on loopback.** Owner: ops. Exposure: the storage host and a Secure Shell (SSH) tunnel only. Create the data directory and start from merged main. Done when **check 1** pushes Docker schema 2 from the classic builder and Open Container Initiative (OCI) images from buildx, then pulls both with the lab hosts' Docker and the storage host's Docker 24; **check 4** compares retention preview logs with the expected candidate list and separately checks actual orphan-blob deletion, running `verify-feature retention` only on disposable data with the local server stopped because it previews retention but executes garbage collection; **check 5, memory** records resident memory at idle and during parallel pushes to size the limit; and **check 6, local copy** restores a file-level copy taken while Zot runs into an isolated registry that serves pulls. Undo: stop Zot, preserve the data, and keep direct image loads.
-4. **Add the tailnet route.** Owner: network operator and ops. Exposure: approved tailnet clients only. Merge the policy pull request only after D1's recorded answer and accept and deny tests, then deploy the sidecar to serve the Tailscale Service from merged main. Done when **check 5, throughput** records push and pull throughput through Tailscale Serve; **check 2** proves `cosign sign`, `cosign attest`, and `cosign verify` through the referrers application programming interface (API); and **check 3** proves on-demand sync from all three upstreams returns identical digests while client credentials stay at the mirror. Use a temporary spike configuration for sync, then leave routine mirrors off until step 8. Undo: stop the sidecar and revert the route and grants.
-5. **Add the backup job and restore drill.** Owner: backup operator. Exposure: the secondary NAS, only after D2. Done when the job from merged main copies the live registry and a fresh restore serves digest-pinned pulls, repeating check 6 at the backup destination. Undo: stop the job and remove its grants, keeping the source data.
-6. **Connect telemetry.** Owner: observability maintainer. Exposure: authenticated collector access and the existing metrics and log stores. Done when Alloy delivers metrics and JSON logs, dashboards show all four views, and test failures trigger each named alert. Undo: revert collector wiring, dashboards, and alerts.
-7. **Enable publishers.** Owner: build maintainer and ops. Exposure: per-repository write access for main-branch CI jobs only. Done when a main job pushes, another repository and a non-main job fail to push, production credentials only pull, and each agent account only pulls with its own Connect credential. Undo: revoke the new identities and return affected clients to direct loads.
-8. **Enable mirrors.** Owner: ops. Exposure: outbound requests to the three fixed public upstreams. Done when check 3 passes again with routine on-demand configuration from merged main, explicit client paths work, and bootstrap references still use upstream sources. Undo: turn sync off and restore direct upstream references.
-9. **Enable retention deletion.** Owner: registry maintainer and ops. Exposure: deletion of eligible registry data. Done when a week of logged retention previews matches the expected candidate list, each repository's first matching policy explicitly protects its required tags, and check 4 passes again on disposable data before `dryRun` turns off through merged main. A final catch-all policy protects only repositories that no earlier policy matches. Undo: restore dry-run configuration and recover deleted content from backup or its publisher.
+4. **Add the tailnet route.** Owner: network operator and ops. Exposure: approved tailnet clients only. With D1 decided, merge the policy pull request after accept and deny tests, then deploy the sidecar to serve the Tailscale Service `images.tbhb.cloud` from merged main. Done when **check 5, throughput** records push and pull throughput through Tailscale Serve; **check 2** proves `cosign sign`, `cosign attest`, and `cosign verify` through the referrers application programming interface (API); and **check 3** proves on-demand sync from all three upstreams returns identical digests while client credentials stay at the mirror. Use a temporary spike configuration for sync, then leave routine mirrors off until step 7. Undo: stop the sidecar and revert the route and grants.
+5. **Connect telemetry.** Owner: observability maintainer. Exposure: authenticated collector access and the existing metrics and log stores. Done when Alloy delivers metrics and JSON logs, dashboards show all four views, and test failures trigger each named alert. Undo: revert collector wiring, dashboards, and alerts.
+6. **Enable publishers.** Owner: build maintainer and ops. Exposure: per-repository write access for main-branch CI jobs only. Done when a main job pushes, another repository and a non-main job fail to push, production credentials only pull, and each agent account only pulls with its own Connect credential. Undo: revoke the new identities and return affected clients to direct loads.
+7. **Enable mirrors.** Owner: ops. Exposure: outbound requests to the three fixed public upstreams. Done when check 3 passes again with routine on-demand configuration from merged main, explicit client paths work, and bootstrap references still use upstream sources. Undo: turn sync off and restore direct upstream references.
+8. **Enable retention deletion.** Owner: registry maintainer and ops. Exposure: deletion of eligible registry data. Done when a week of logged retention previews matches the expected candidate list, each repository's first matching policy explicitly protects its required tags, and check 4 passes again on disposable data before `dryRun` turns off through merged main. A final catch-all policy protects only repositories that no earlier policy matches. Undo: restore dry-run configuration and recover deleted content from backup or its publisher.
 
 ## Risks
 
@@ -141,14 +140,15 @@ These are planned build and deploy runs, not completed checks. Deploy only from 
 
 These are deferred options, not requirements for this rollout.
 
-A general internal package registry could later serve Python packages, container images, and Go modules outside the current build. Unverified: confirm against the vendor documentation when the work starts: Zot supports OCI only, storing OCI images and OCI artifacts without speaking the Python package index or Go module proxy protocols. Clients reach Zot through one stable service name behind the tailnet proxy with the same per-repository authentication. Another package server could sit beside Zot behind the same proxy and authentication, or a multi-format server could replace Zot without changing consumer references, provided repository names remain one-way doors as the Risks section says. Nothing in the current design blocks this later work.
+A general internal package registry could later serve Python packages, container images, and Go modules outside the current build. Unverified: confirm against the vendor documentation when the work starts: Zot supports OCI only, storing OCI images and OCI artifacts without speaking the Python package index or Go module proxy protocols. Clients reach Zot through `images.tbhb.cloud` behind the tailnet proxy with the same per-repository authentication. Another package server could sit beside Zot behind the same proxy and authentication, or a multi-format server could replace Zot without changing consumer references, provided repository names remain one-way doors as the Risks section says. Nothing in the current design blocks this later work.
 
 | Follow-up | Options and recommendation |
 | --- | --- |
+| Infrastructure debt: secondary NAS backup | Approved in D2; the backup operator checks destination access, adds the job from merged main, and proves a restored registry serves digest-pinned pulls; this follow-up does not gate the registry rollout |
 | Agent-capacity image | Keep direct loads or use registry pulls after the registry serves it; recommend the later pull migration |
 | Metrics-exporter image | Direct upstream pulls or a mirror; recommend adding a mirror later |
 | Signature enforcement | Advisory verification or enforcement in the deploy account's receive program; recommend later enforcement |
 | Runtime placement | Keep `runc` on the storage host or move to `runsc` elsewhere; recommend a later placement study off the storage host |
 | Storage backend | Local files or an S3-compatible object store backend; recommend evaluating the backend later |
 
-Evidence: [A. Evidence](A-evidence.md). Open items and authority: [decisions.md](decisions.md).
+Evidence: [A. Evidence](A-evidence.md). Decisions and authority: [decisions.md](decisions.md).

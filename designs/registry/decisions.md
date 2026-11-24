@@ -1,7 +1,7 @@
 ---
 type: Design Appendix
 title: Internal container registry decisions
-description: Two operator asks and the authority for registry choices.
+description: Operator decisions and the authority for registry choices.
 tags: [registry, decisions, design]
 status: draft
 parent: README.md
@@ -16,29 +16,29 @@ Back to [the design](README.md).
 
 ## Open
 
+Open decisions: 0.
+
+## Decided
+
 ### D1. Registry tag, Tailscale Service, and grants
 
 - **Options:** dedicated registry tag, Service, and grants, or loopback-only access.
-- **Recommendation:** yes, add a tag for the registry sidecar, a Tailscale Service, and least-privilege grants.
+- **Decided:** yes, by the operator on 2026-11-24, relayed by the coordination role in the Open 290 decisions entry.
+- **Rule:** add a registry tag, a Tailscale Service, and least-privilege grants. Both the internal DNS name and the Tailscale Service are `images.tbhb.cloud`.
 - **Why:** approved clients need tailnet access, and a new tag or grant needs the operator's recorded decision before any policy pull request merges.
-- **If yes:** the network operator writes the policy with accept and deny tests, then ops deploys from merged main.
-- **If no:** keep the loopback spike and direct image loads; do not merge the new policy.
+- **Implementation:** the network operator writes the policy with accept and deny tests, then ops deploys from merged main.
 - **Reversible:** yes, stop the sidecar and remove the Service and grants.
-- **Evidence:** new request dated 2026-11-24. **Unverified: no read of current policy or available Service support on the tailnet yet.** Step 4 checks both before deployment.
+- **Evidence:** operator answer relayed for Open 290 on 2026-11-24. **Unverified: no read of current policy or available Service support on the tailnet yet.** Step 4 checks both before deployment.
 
 ### D2. Backup to the secondary NAS
 
 - **Options:** a backup on the secondary NAS or a local test copy only.
-- **Recommendation:** yes, let the backup operator add the job and restore drill.
+- **Decided:** yes, by the operator on 2026-11-24, relayed by the coordination role in the Open 290 decisions entry.
+- **Rule:** backup to the secondary NAS is a follow-up, not on the critical path to standing the registry up. Track it as infrastructure debt until it lands.
 - **Why:** the job touches the secondary NAS, so it needs an operator answer rather than an ops assumption.
-- **If yes:** the backup operator checks destination access, adds the job from merged main, and proves a restored registry serves pulls.
-- **If no:** keep the local restore check, record the missing off-host copy, and avoid treating the registry as the only image source.
+- **Follow-up:** the backup operator checks destination access, adds the job from merged main, and proves a restored registry serves pulls.
 - **Reversible:** yes, stop the job and revoke its access while preserving source data.
-- **Evidence:** new request dated 2026-11-24. **Unverified: no read of destination access, capacity, or backup wiring on the secondary NAS yet.**
-
-The operator can answer each item in one line, such as `D1: yes`.
-
-## Decided
+- **Evidence:** operator answer relayed for Open 290 on 2026-11-24. **Unverified: no read of destination access, capacity, or backup wiring on the secondary NAS yet.**
 
 D3 and D4 are recommended ops calls for the build, not claims of completed deployment. D5 through D7 carry prior authority from internal decision records. **Unverified: no read of the original records yet.**
 
