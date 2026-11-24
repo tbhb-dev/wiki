@@ -86,7 +86,7 @@ None.
 ### D3. May the administrator create the approver App and its environments?
 
 - **Decided.** The operator made this choice on 2026-11-23.
-- **Rule.** The administrator creates `tbhb-dev-pin-approver` with the least permissions that make its review count. Start with pull requests write, contents read, checks read, and GitHub's mandatory metadata read. Install it only on selected repositories and leave its webhook off.
+- **Rule.** The administrator creates `tbhb-dev-renovate-approver` with the least permissions that make its review count. Start with pull requests write, contents read, checks read, and GitHub's mandatory metadata read. Install it only on selected repositories and leave its webhook off.
 - **Environment.** In each calling repository, create `pins-approver` with a run-ref restriction to the default branch and leave required reviewers unset. Store both App secrets in that environment. The spike tests the restriction and whether the review counts, and any request for a wider grant goes to the operator. [Setup steps](D-workflow.md#what-the-administrator-sets-up) and [spike checks](A-evidence.md#open-questions-for-the-spike).
 - **Undo.** Revoke the App's private key, uninstall the App, and remove both secrets from each `pins-approver` environment. Past reviews stay on their pull requests.
 - **Record.** See the operator's decision of 2026-11-23.

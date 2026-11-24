@@ -32,7 +32,7 @@ Once built, the design has four pieces:
 
 - **The decision module**, `repo/private/renovate_approval/` in tbhb-dev/rules (planned). A pure function, `decide(diff, metadata, checks)`, returns `(approve, reason)` with no network access. A gather step around it reads GitHub and hands it plain data.
 - **The reusable workflow**, `.github/workflows/renovate-auto-approval.yml` in tbhb-dev/rules (planned). Its approving job never checks out or executes pull request code.
-- **The approver App**, `tbhb-dev-pin-approver`, which the organization's administrator creates without a webhook and installs only on selected repositories. It starts with pull requests write, contents read, checks read, and mandatory metadata read. [App setup](D-workflow.md#the-approver-app)
+- **The approver App**, `tbhb-dev-renovate-approver`, which the organization's administrator creates without a webhook and installs only on selected repositories. It starts with pull requests write, contents read, checks read, and mandatory metadata read. [App setup](D-workflow.md#the-approver-app)
 - **A caller workflow** in each repository that runs from the default branch's workflow definition after CI completes.
 
 The rules maintainer maintains the module, the reusable workflow, and its tests. Each repository's maintainer decides when to switch the caller from `evaluate` to `enforce`. The job writes its decision to the job summary and a run artifact.
