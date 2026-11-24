@@ -6,7 +6,7 @@ tags: [temporal, postgres, deployment, design]
 status: draft
 owner: ops
 updated: "2026-11-24"
-decisions_open: 3
+decisions_open: 0
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
@@ -16,7 +16,7 @@ decisions_open: 3
 
 | Status | Owner | Updated | Needs from the operator |
 | --- | --- | --- | --- |
-| Draft | ops | 2026-11-24 | 3 open decisions in [decisions.md](decisions.md), about 10 minutes |
+| Draft | ops | 2026-11-24 | Nothing |
 
 ## Summary
 
@@ -52,13 +52,13 @@ The roles:
 - **The administrator role** sets up the Tailscale Services after the policy change merges.
 - **The gateway maintainer** points the gateway's Temporal target at this server with a client certificate ([event gateway](../event-gateway/README.md)).
 - **tools** runs the workflow workers, which connect the same way.
-- **The operator** answers the open decisions.
+- **The operator** answered D1, D2, and D3 on 2026-11-24.
 
 ## How it works
 
 ### One process, one database instance
 
-One process runs all four services, because the expected load of a few workflows an hour needs no split ([D4](decisions.md#d4-does-temporal-run-as-one-process-or-as-separate-services)). Temporal gets its own Postgres instance, a second one beside the graph instance on the data host, so neither one's load, upgrade, or crash touches the other ([D9](decisions.md#d9-where-does-the-temporal-database-live)). Temporal tests Postgres up to 16, so this instance runs 16 ([appendix A](A-evidence.md#versions)).
+One process runs all four services, because the expected load of a few workflows an hour needs no split ([D4](decisions.md#d4-does-temporal-run-as-one-process-or-as-separate-services)). Temporal gets its own Postgres instance, a second one beside the shared Postgres instance on the data host, so neither one's load, upgrade, or crash touches the other ([D9](decisions.md#d9-where-does-the-temporal-database-live)). Temporal tests Postgres up to 16, so this instance runs 16 ([appendix A](A-evidence.md#versions)).
 
 The data host's second disk is one volume group, with one logical volume per Postgres instance and free space for growth and snapshots. The private companion states the sizes and paths. The data directory sits one level below the mount point, so an unmounted volume makes Postgres fail rather than start empty.
 
@@ -101,7 +101,7 @@ A nightly `pg_dump` of both databases, encrypted, goes to Temporal's own bucket 
 | CA leaves expire after 72 hours by default | Clients and the server fail mutual TLS within days | A renewal timer on each host, and an alert at 24 hours left | Existing lifetime, unverified renewal path |
 | Every client certificate has full rights | A leaked worker key can reset or stop any workflow | Short certificate lifetimes, the tailnet grant, and a later claim mapper | New |
 | One disk holds both Postgres instances | A disk failure loses both databases | Nightly dumps leave the host | New |
-| A snapshot fills the volume group's free space | The snapshot becomes invalid, and the graph volume can't grow | Snapshot size cap, removal within 24 hours, and a fill alert | New |
+| A snapshot fills the volume group's free space | The snapshot becomes invalid, and the shared Postgres volume can't grow | Snapshot size cap, removal within 24 hours, and a fill alert | New |
 
 ## Plan
 
@@ -131,7 +131,7 @@ These wait for a need, and nothing in today's deploy depends on them:
 
 ## Appendices
 
-- [Decisions](decisions.md): 3 open, then the decided record.
+- [Decisions](decisions.md): 0 open, then the decided record.
 - [A. Evidence](A-evidence.md): the sources for each claim, labeled proven, existing, new, or unverified.
 - [B. Alternatives considered](B-alternatives.md): the options not taken, and why.
 - [C. Deployment](C-deployment.md): the Compose sketch, ports, credentials, observability, and backups.

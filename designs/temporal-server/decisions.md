@@ -16,36 +16,14 @@ Back to [the design](README.md).
 
 ## Open
 
-### D1. May ops add a tailnet tag, two Tailscale Services, and their grants for Temporal?
-
-- **Recommendation:** yes. The tailnet policy on main already defines the frontend service on TCP 7233 and the UI service on TCP 443, with grants and tests for the operator and the operator's devices. This adds one new tag for the Temporal sidecar, approved as the host of both services, and grants with policy tests: the event gateway's host and the agent hosts reach the frontend, and the data host reaches the object store for backups.
-- **Why:** the sidecar is the only way in, as for the CA and 1Password Connect apps. A new tag or grant needs the operator's decision before the policy change merges.
-- **If yes:** plan step 1 opens the policy pull request with an `accept` test for each path and a `deny` test for every other port on the tag. The administrator role then sets up both services.
-- **If no:** only containers on the data host reach Temporal, so the gateway and the workers must run there too.
-- **Reversible:** yes. Revert the policy pull request, and the next apply removes the grants.
-
-### D2. Is mutual Transport Layer Security the only access control on the frontend?
-
-- **Recommendation:** yes, for now. The frontend accepts only client certificates from the internal certificate authority (CA) and runs without an authorizer. The CA gains Temporal's server name and client issuance for the gateway, the workers, the UI, and the server itself.
-- **Why:** Temporal's built-in claim mapper reads JSON Web Tokens (JWT) from a key set, and nothing here issues them. Any client with a valid certificate gets full rights in every namespace, and the tailnet grant of D1 narrows who reaches the port.
-- **If yes:** plan step 2 changes the CA, and the server sets `TEMPORAL_TLS_REQUIRE_CLIENT_AUTH` and `TEMPORAL_ALLOW_NO_AUTH`.
-- **If no:** the server waits for a token issuer and the JWT claim mapper, a new service and a signing key before the first workflow runs.
-- **Reversible:** yes. Adding an authorizer later changes server configuration only, and clients keep their certificates.
-
-### D3. How many history shards does the Temporal database get?
-
-- **Recommendation:** 128.
-- **Why:** Temporal fixes the shard count when it first writes the database. The template's default of 4 suits a test server, and 128 leaves headroom for one small process.
-- **If yes:** `NUM_HISTORY_SHARDS=128` goes into the Compose file before the first start.
-- **If no:** name another count, such as 4 or 512.
-- **Reversible:** no. A new count needs a new database and a drain of the old cluster's workflows.
+None.
 
 ## Decided
 
 ### D14. Does Temporal connect through PgBouncer?
 
 - **Decided:** 2026-11-24, by ops.
-- **Rule:** no. Temporal connects straight to its own Postgres. PgBouncer serves the graph instance only, and this design runs no PgBouncer exporter.
+- **Rule:** no. Temporal connects straight to its own Postgres. PgBouncer serves the shared Postgres instance only, and this design runs no PgBouncer exporter.
 - **Why:** Temporal's own connection pools have fixed maximums in its persistence config, so the server never opens more connections than the instance allows.
 - **Undo:** two-way door. Put a pooler in front later and point `POSTGRES_SEEDS` at it.
 - **Record:** the pull request that adds this decision.
@@ -54,7 +32,7 @@ Back to [the design](README.md).
 
 - **Decided:** 2026-11-24, by ops.
 - **Rule:** Postgres 4G with 1G of shared buffers and 200 connections, the server 2G, Alloy 512M, the UI, the proxy, and the sidecar 256M each, the exporter 128M, and the one-shot jobs 256M. Nobody has measured these, and plan step 8 checks peak use against them.
-- **Why:** limits keep Temporal from starving the graph instance on the same host.
+- **Why:** limits keep Temporal from starving the shared Postgres instance on the same host.
 - **Undo:** two-way door. Change a limit in a reviewed pull request.
 - **Record:** the pull request that adds this decision.
 
@@ -75,7 +53,7 @@ Back to [the design](README.md).
   - **Dashboard:** one Grafana dashboard, built live, then backported into the observability stack's dashboard files as the capacity dashboards were.
   - **Alerts:** instance down, volume fill, backup failure, connection saturation, persistence latency, and task backlog, routed through the existing notification policy.
   - **Health:** Compose health checks on every long-running container, which the deploy's health gate reads, as the observability role's gate does.
-- **Why:** it matches the graph Postgres design and keeps the scrape inside the project network.
+- **Why:** it matches the shared Postgres design and keeps the scrape inside the project network.
 - **Undo:** two-way door. Remove the Alloy container and the dashboard.
 - **Record:** the pull request that adds this decision.
 
@@ -89,8 +67,8 @@ Back to [the design](README.md).
 ### D9. Where does the Temporal database live?
 
 - **Decided:** 2026-11-24, by ops.
-- **Rule:** a second Postgres instance on its own ext4 logical volume in the data host's volume group, beside the graph instance's volume. Free space stays unallocated for growth and snapshots. The private companion states sizes and paths.
-- **Why:** a full graph volume, a graph upgrade, or a graph crash leaves Temporal running.
+- **Rule:** a second Postgres instance on its own ext4 logical volume in the data host's volume group, beside the shared Postgres instance's volume. Free space stays unallocated for growth and snapshots. The private companion states sizes and paths.
+- **Why:** a full shared Postgres volume, an upgrade or crash of the shared Postgres instance leaves Temporal running.
 - **Undo:** two-way door until data grows. Dump the databases and restore them elsewhere.
 - **Record:** the pull request that adds this decision.
 
@@ -130,4 +108,28 @@ Back to [the design](README.md).
 - **Rule:** one container runs all four services in one process.
 - **Why:** the expected load of a few workflows an hour, an estimate nobody has measured, needs no split.
 - **Undo:** two-way door. Start one container per service with `TEMPORAL_SERVICES`, against the same database.
+- **Record:** the pull request that adds this decision.
+
+### D3. How many history shards does the Temporal database get?
+
+- **Decided:** 2026-11-24, by tbhb, through the coordination pane.
+- **Rule:** 128 history shards, as recommended.
+- **Why:** Temporal fixes the shard count when it first writes the database. The template's default of 4 suits a test server, and 128 leaves headroom for one small process.
+- **Undo:** one-way door. A new count needs a new database and a drain of the old cluster's workflows.
+- **Record:** the pull request that adds this decision.
+
+### D2. Is mutual Transport Layer Security the only access control on the frontend?
+
+- **Decided:** 2026-11-24, by tbhb, through the coordination pane.
+- **Rule:** yes, as recommended, for now. The frontend accepts only client certificates from the internal certificate authority (CA) and runs without an authorizer. The CA gains Temporal's server name and client issuance for the gateway, the workers, the UI, and the server itself.
+- **Why:** Temporal's built-in claim mapper reads JSON Web Tokens (JWT) from a key set, and nothing here issues them. Any client with a valid certificate gets full rights in every namespace, and the tailnet grant of D1 narrows who reaches the port.
+- **Undo:** two-way door. Adding an authorizer later changes server configuration only, and clients keep their certificates.
+- **Record:** the pull request that adds this decision.
+
+### D1. May ops add a tailnet tag, two Tailscale Services, and their grants for Temporal?
+
+- **Decided:** 2026-11-24, by tbhb, through the coordination pane.
+- **Rule:** yes, as recommended. The tailnet policy on main already defines the frontend service on TCP 7233 and the UI service on TCP 443, with grants and tests for the operator and the operator's devices. This adds one new tag for the Temporal sidecar, approved as the host of both services, and grants with policy tests: the event gateway's host and the agent hosts reach the frontend, and the data host reaches the object store for backups.
+- **Why:** the sidecar is the only way in, as for the CA and 1Password Connect apps. A new tag or grant needs the operator's decision before the policy change merges.
+- **Undo:** two-way door. Revert the policy pull request, and the next apply removes the grants.
 - **Record:** the pull request that adds this decision.
