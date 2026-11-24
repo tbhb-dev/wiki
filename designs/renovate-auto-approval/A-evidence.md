@@ -59,7 +59,7 @@ The operator's decision of 2026-11-23 governs qualifying pin-only Renovate pull 
 | `workflow_run` runs only from the default branch's workflow file, can read secrets, and chains at most three levels | existing | the same page |
 | The tier 2 environment policy checks the run ref in the calling repository | existing | GitHub Docs, "Deployments and environments" |
 | With named secret mappings in the caller, an approving job can read its environment secrets on the default branch ref | proven | A `workflow_run` caller on the default branch passed both secrets by name to a cross-repository reusable job. The job read both (length 48, hash match) with no approval wait: run 45443450705, job 138620660924 in tbhb-dev/pins-probe-caller |
-| GitHub denies a job on a non-default run ref that requests `pins-approver`, before the job starts and before any secret is available | proven | Run 45443595028 (job 138621235602, an edited reusable-call caller on `agent/probe-2a`) and run 45443608258 (job 138621258121, a job declaring `environment: pins-approver` directly, on `agent/probe-2b`) in tbhb-dev/pins-probe-caller. Both ran zero steps on an empty runner, with the annotation "Branch ... is not allowed to deploy to pins-approver due to environment protection rules." The control, CI run 45443403838, succeeded on the same runner label, `ubuntu-26.04-arm` |
+| GitHub denies a job on a non-default run ref that requests `pins-approver`, before the job starts and before any secret is available | proven | Run 45443595028 (job 138621235602, an edited reusable-call caller on `agent/probe-2a`) and run 45443608258 (job 138621258121, a job declaring `environment: pins-approver` directly, on `agent/probe-2b`) in tbhb-dev/pins-probe-caller. Both ran through `workflow_dispatch` on a branch with no pull request. Each job record shows no runner assigned (`runner_id` 0, empty `runner_name`), an empty steps list, and the annotation "Branch ... is not allowed to deploy to pins-approver due to environment protection rules." The control, CI run 45443403838, succeeded on the same runner label, `ubuntu-26.04-arm`, with an assigned runner and three steps |
 | `pull_request_target` runs with secrets, and running untrusted code under it can lead to vulnerabilities | existing | the same page |
 | The branch rules endpoint returns every active rule from repository and organization rulesets, and leaves out rulesets in `evaluate` or `disabled` | existing | GitHub REST docs, "Rules for repositories" |
 | The branch rules endpoint's required permission isn't documented | unverified | the same page, which names none. Plan step 2 tests it |
@@ -79,13 +79,13 @@ The operator's decision of 2026-11-23 governs qualifying pin-only Renovate pull 
 
 Run on 2026-11-24 in two scratch repositories, tbhb-dev/pins-probe-caller and tbhb-dev/pins-probe-callee. Both are public, call across repositories, and have no rulesets. The `pins-approver` environment used a custom branch policy with one rule, `main`, no required reviewers, and no tag rules. Only dummy secrets were stored. The callee stub set `permissions: {}` at workflow and job level.
 
-Untested: the probe saw only `main` allowed and `agent/probe-*` denied. Other branch names, tag refs, and a fork were not tested.
+Untested: the probe saw only `main` allowed and `agent/probe-2a` and `agent/probe-2b` denied. Other branch names, tag refs, and a fork were not tested.
 
 ## Open questions for the spike
 
 Plan step 2 answers these in a scratch repository with a copy of the tbhb-dev/rules ruleset:
 
-- Whether the environment policy also holds for other branch names, tag refs, and a fork. [The environment probe](#the-environment-probe) proved `main` allowed and `agent/probe-*` denied only.
+- Whether the environment policy also holds for other branch names, tag refs, and a fork. [The environment probe](#the-environment-probe) proved `main` allowed and `agent/probe-2a` and `agent/probe-2b` denied only.
 - Whether GitHub counts the App's approval with pull requests write, contents read, checks read, and mandatory metadata read. If counting the review requires a wider grant, take the result to the operator under [D3](decisions.md).
 - Whether the App can dismiss its own review when the ruleset restricts dismissals, and whether the `dismissal_failed` path then leaves stale dismissal as the only guard.
 - Whether a review posted with an older `commit_id` after a push counts toward the requirement.
