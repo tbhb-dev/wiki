@@ -38,7 +38,7 @@ A Configure Unify Execute (CUE) schema checks the block model. The kernel checks
 10. **A Request specifies its answer path.** See the [Request workflow check](#requests).
 11. **The title and Outcome name the change and its end state.** Apply the [title and process-verb rules](#titles-and-process-verbs). The refiner splits unrelated changes through the [split outcome](A-refinement-procedure.md#outcome-writes).
 12. **Context gives current readers the facts they need.** Apply the [durable references rule](#durable-references). The refiner judges whether the reference adds information and still identifies the intended work.
-13. **Decision work uses a Request.** File a choice that needs an answer as a Request, including a Chore titled `Decide X`. Apply the [Handler rule](#requests) to determine who answers.
+13. **Decision work uses a Decision issue.** A Decision is a separate issue type from a Request.
 14. **Resolve factual uncertainty.** Apply the [hedge check by type](#unresolved-hedges).
 15. **Issue sections contain no procedure.** Apply the [no-procedure rule](#no-procedure) to every section.
 
