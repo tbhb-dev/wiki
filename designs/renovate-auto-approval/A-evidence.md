@@ -79,13 +79,13 @@ The operator's decision of 2026-11-23 governs qualifying pin-only Renovate pull 
 
 Run on 2026-11-24 in two scratch repositories, tbhb-dev/pins-probe-caller and tbhb-dev/pins-probe-callee. Both are public, call across repositories, and have no rulesets. The `pins-approver` environment used a custom branch policy with one rule, `main`, no required reviewers, and no tag rules. Only dummy secrets were stored. The callee stub set `permissions: {}` at workflow and job level.
 
-Untested: the probe saw only `main` allowed and `agent/probe-2a` and `agent/probe-2b` denied. Other branch names, tag refs, and a fork were not tested.
+Untested: the probe saw only `main` allowed and `agent/probe-2a` and `agent/probe-2b` denied. A run dispatched from a pull request branch, other branch names, tag refs, and a fork were not tested.
 
 ## Open questions for the spike
 
 Plan step 2 answers these in a scratch repository with a copy of the tbhb-dev/rules ruleset:
 
-- Whether the environment policy also holds for other branch names, tag refs, and a fork. [The environment probe](#the-environment-probe) proved `main` allowed and `agent/probe-2a` and `agent/probe-2b` denied only.
+- Whether the environment policy also holds for a run dispatched from a pull request branch, other branch names, tag refs, and a fork. [The environment probe](#the-environment-probe) proved `main` allowed and `agent/probe-2a` and `agent/probe-2b` denied only.
 - Whether GitHub counts the App's approval with pull requests write, contents read, checks read, and mandatory metadata read. If counting the review requires a wider grant, take the result to the operator under [D3](decisions.md).
 - Whether the App can dismiss its own review when the ruleset restricts dismissals, and whether the `dismissal_failed` path then leaves stale dismissal as the only guard.
 - Whether a review posted with an older `commit_id` after a push counts toward the requirement.
