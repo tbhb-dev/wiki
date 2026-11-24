@@ -5,7 +5,7 @@ description: How issues, org issue fields, and a checked content kernel give the
 tags: [pm, issues, projects, content]
 status: draft
 owner: pm
-updated: "2026-11-23"
+updated: "2026-11-24"
 decisions_open: 1
 generated:
   - role: generated
@@ -24,11 +24,11 @@ generated:
 
 | Status | Owner | Updated | Needs from the operator |
 | --- | --- | --- | --- |
-| Draft | pm | 2026-11-23 | One numbered decision open in [decisions.md](decisions.md). |
+| Draft | pm | 2026-11-24 | One numbered decision open in [decisions.md](decisions.md). |
 
 ## Summary
 
-Each work item starts as an issue in the GitHub repository responsible for the work. The `work` org Project gathers the production backlog. Templates, schemas, and the `tbhbdev pm` verbs come from the pm repository.
+The routing rules select the GitHub repository for each work item. The `work` org Project gathers the production backlog. Templates, schemas, and the `tbhbdev pm` verbs come from the pm repository.
 
 Every write goes through one content kernel in the tools repository. The kernel renders the text and normalizes it into a block model.
 
@@ -45,7 +45,7 @@ Building the design yields these components, each with one role as owner.
 - **The templates** (`templates/` in the pm repository, owner pm) give starting text for one variant each. Constraints belong to the schemas.
 - **The verbs** (`tbhbdev pm`, owner pm) cover create, comment, close, link, and add to Project, on top of the kernel.
 - **The org Projects** `work` and `work-calibration` (owner pm) each use the [four views in B. Routing and taxonomy](B-routing-and-taxonomy.md#project-views). The calibration repository uses `work-calibration`.
-- **The central work repository** (private, owner pm) stores Initiatives and Epics. Bugs and tasks stay with the repositories that contain their code.
+- **The central work repository** (public, owner pm) and its private twin both hold Initiatives, Epics, and Features. Tasks, Defects, Chores, Spikes, and Research issues go in the responsible repository or the private repository selected by the [routing order](B-routing-and-taxonomy.md#routing-order-for-create).
 
 Project management and service management use the [shared issue refinement design](../issue-refinement/README.md). See [tracker import](E-import.md) for staged items.
 
@@ -75,7 +75,7 @@ The tools role defines the issue types, field values, type-by-field matrix, and 
 
 ### Routing
 
-An issue goes in the repository responsible for the work, or in its private twin when the text needs private detail. The private-detail scan picks the twin before any write. Larger units go in the central work repository.
+Initiatives, Epics, and Features go in the central work repository. Use its private twin when the text needs private detail or the item concerns internal security. The private-detail scan picks the twin before any write.
 
 Only people with access to a private repository see its items on the board. See the [routing order](B-routing-and-taxonomy.md#routing-order-for-create).
 
@@ -98,7 +98,7 @@ Only people with access to a private repository see its items on the board. See 
 | 3 | The `guide` generator | `tbhbdev pm guide feature` prints sections, caps, hints, and an example | pm |
 | 4 | Templates with schemas, in draft until the operator says go | Each template renders text that passes its own variant | pm |
 | 5 | The administrator creates the Source and Status org issue fields. The administrator sets up `work` and `work-calibration`. | Each board has the four views in [B. Routing and taxonomy](B-routing-and-taxonomy.md#project-views). Each view matches the table's layout, filter, grouping, sort order, and visible fields. | pm, administrator |
-| 6 | First real items under an Epic in the central work repository | The items exist and pass the kernel checks | pm |
+| 6 | First real items under an Epic in the central work repository or its private twin | The items exist and pass the kernel checks | pm |
 | 7 | Sync job | Status follows GitHub state within one run | pm |
 | 8 | [Shared refinement](../issue-refinement/README.md) and [batch review](F-refinement-runs.md#review-checklist) | The sync job shows Ready on a test item only with its own current record and, for a batch, a passing review | pm, `sm` |
 | 9 | [Tracker import](E-import.md) | Each staged item has a recorded outcome. Each item approved for creation has one issue in its destination type. The import Epic's closing comment gives the outcome counts. | imports |
