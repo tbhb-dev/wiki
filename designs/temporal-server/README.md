@@ -38,7 +38,7 @@ The data host runs one Docker Compose project, `temporal`, from files ops review
 | `schema` | `temporalio/admin-tools`, same version as the server | `temporal-sql-tool update-schema` once per deploy, then exits |
 | `temporal` | `temporalio/server:1.32.2` | `temporal-server start` with the frontend, history, matching, and worker services in one process |
 | `ui` | `temporalio/ui`, the newest release at build | The Temporal Web UI, read-only |
-| `ui-tls` | `nginx`, the version the observability stack pins | The HTTPS proxy in front of the UI, as Grafana's `grafana-tls` |
+| `ui-tls` | `nginxinc/nginx-unprivileged`, the nginx version the observability stack pins | The HTTPS proxy in front of the UI, as Grafana's `grafana-tls` |
 | `postgres-exporter` | `prometheuscommunity/postgres-exporter:v0.21.1` | Postgres metrics |
 | `alloy` | `grafana/alloy`, the version the observability stack pins | Scrapes and log collection, sent over OpenTelemetry Protocol (OTLP) |
 | `ts` | `tailscale/tailscale`, the version the other apps pin | The sidecar that hosts the frontend and UI Tailscale Services |

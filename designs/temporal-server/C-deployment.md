@@ -106,11 +106,12 @@ services:
       TEMPORAL_TLS_CERT: /certs/client.pem
       TEMPORAL_TLS_KEY: /certs/client-key.pem
       TEMPORAL_TLS_SERVER_NAME: temporal
+      TEMPORAL_TLS_ENABLE_HOST_VERIFICATION: "true"
       TEMPORAL_DISABLE_WRITE_ACTIONS: "true"
 
   ui-tls:
     <<: *hardening
-    image: nginx  # the observability stack's pin
+    image: nginxinc/nginx-unprivileged  # the observability stack's nginx version, pin by digest at build
     volumes:
       - ./ui-tls.conf:/etc/nginx/conf.d/default.conf:ro
       - ./certs/ui-proxy:/etc/nginx/certs:ro
@@ -124,6 +125,7 @@ services:
   alloy:
     <<: *hardening
     image: grafana/alloy  # the observability stack's pin
+    user: "999:999"  # read Postgres logs as their owner, with all capabilities dropped
     volumes:
       - ${POSTGRES_LOG_DIR:?}:/var/log/postgresql:ro
 
@@ -135,11 +137,13 @@ services:
       - ./serve.json:/config/serve.json:ro
 ```
 
-`TEMPORAL_VOLUME` is the dedicated volume's host mount point. ops creates its `pgdata` subdirectory and owns it as the Postgres user; the bind fails if that subdirectory is missing. The host writes `.secrets/pg` from the superuser's `op://` item, readable by that user, and `.secrets/temporal.env` from the application role's item with `POSTGRES_USER`, `POSTGRES_PWD`, and the schema tool's `SQL_PASSWORD`. `POSTGRES_LOG_DIR` is a small mounted log volume, writable by Postgres and readable by Alloy.
+`TEMPORAL_VOLUME` is the dedicated volume's host mount point. ops creates its `pgdata` subdirectory and owns it as the Postgres user; the bind fails if that subdirectory is missing. The host writes `.secrets/pg` from the superuser's `op://` item, readable by that user, and `.secrets/temporal.env` from the application role's item with `POSTGRES_USER`, `POSTGRES_PWD`, and the schema tool's `SQL_PASSWORD`. `POSTGRES_LOG_DIR` is a small mounted log volume, writable by Postgres. Alloy runs as the same UID 999 to read the mode 0600 logs through its read-only mount, with all capabilities dropped.
 
-Step 5 writes `schema-job.sh`: on the first deploy the `init` job runs `temporal-sql-tool --plugin postgres12 --ep postgres -u temporal --db <database> create` and `setup-schema -v 0.0` for both databases. The schema job runs `temporal-sql-tool --plugin postgres12 --ep postgres -u temporal --db <database> update-schema -d /etc/temporal/schema/postgresql/v12/<schema>/versioned` for `temporal` (schema `temporal`) and `temporal_visibility` (schema `visibility`), then exits with the command's status. It uses the application role and password from the environment. The Postgres health check runs `pg_isready`, satisfying the schema job's `service_healthy` dependency.
+Before the first `init` or `schema` job, ops runs a first-run `psql -U postgres -d postgres` step inside the `postgres` container as UID 999. It runs `SET password_encryption = 'scram-sha-256'`, then `CREATE ROLE temporal LOGIN CREATEDB PASSWORD :'temporal_password'`, `CREATE ROLE temporal_exporter LOGIN PASSWORD :'exporter_password'`, and `GRANT pg_monitor TO temporal_exporter`. The deploy supplies the two `psql` password variables from each role's own `op://` item; the SQL quotes them as literals.
 
-The server keeps its default ports inside the project: 7233 to 7239 for gRPC and 6933 to 6939 for membership. Nothing outside the network sees them. The server's client-auth variable sets the frontend and internode blocks together. Its `server.pem` has both server and client usages and the Compose service name `temporal` as a subject alternative name; the template also uses it for internode and built-in worker client connections. The UI mounts its own client certificate and key. Step 2 includes the frontend service's name in the server certificate for remote clients.
+Step 5 writes `schema-job.sh`: on the first deploy the `init` job runs `temporal-sql-tool --plugin postgres12 --ep postgres -p 5432 -u temporal --db <database> create` and `setup-schema -v 0.0` with the same connection flags for both databases. The schema job runs `temporal-sql-tool --plugin postgres12 --ep postgres -p 5432 -u temporal --db <database> update-schema -d /etc/temporal/schema/postgresql/v12/<schema>/versioned` for `temporal` (schema `temporal`) and `temporal_visibility` (schema `visibility`), then exits with the command's status. It uses the application role and password from the environment. The Postgres health check runs `pg_isready`, satisfying the schema job's `service_healthy` dependency.
+
+The server keeps its default ports inside the project: 7233 to 7239 for gRPC and 6933 to 6939 for membership. Nothing outside the network sees them. The server's client-auth variable sets the frontend and internode blocks together. Its `server.pem` has both server and client usages and the Compose service name `temporal` as a subject alternative name; the template also uses it for internode and built-in worker client connections. The UI mounts its own client certificate and key and verifies the frontend certificate against the name `temporal` that it carries. Step 2 includes the frontend service's name in the server certificate for remote clients.
 
 ## Sidecar services
 
@@ -148,7 +152,7 @@ The server keeps its default ports inside the project: 7233 to 7239 for gRPC and
 | Frontend | TCP 7233 | Raw TCP to `temporal:7233` | The Temporal server, which checks the client certificate |
 | Web UI | TCP 443 | Raw TCP to `ui-tls:8443` | The `ui-tls` proxy, with the `temporal.tbhb.cloud` certificate |
 
-The `ui-tls` proxy follows the observability stack's `grafana-tls` container: nginx, a certificate directory mounted read-only, container port 8443, and a Compose health check that runs `nginx -t`.
+The `ui-tls` proxy uses the unprivileged nginx image so it runs as a non-root user with all capabilities dropped. It follows the observability stack's `grafana-tls` pattern: a certificate directory mounted read-only, container port 8443, and a Compose health check that runs `nginx -t`. ops makes the certificate files readable by the proxy's user.
 
 Step 5 writes `ui-tls.conf` with this listener and `serve.json` with these service forwards:
 
