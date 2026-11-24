@@ -63,7 +63,7 @@ Follow this list before asking for review of a design. Use the skeletons in [TEM
 ## Privacy and style
 
 - [ ] The change has no secrets and no public IP addresses, and quotes no words of the operator verbatim.
-- [ ] The public design names no private repository, host, tailnet detail, or internal URL. Private specifics go in a private appendix with the same slug, and the design says in one line that one exists.
+- [ ] The public design names no private host, tailnet detail, or internal URL; a private repository's name is allowed. Private specifics go in a private appendix with the same slug, and the design says in one line that one exists.
 - [ ] Each Markdown paragraph is on one line and runs 3 sentences or fewer. Headings use sentence case.
 - [ ] Each file spells out an acronym at its first use there, and lists use the Oxford comma.
 - [ ] `vale`, `rumdl check`, and `cspell` pass on the changed files, or `bazelisk test //...` passes.

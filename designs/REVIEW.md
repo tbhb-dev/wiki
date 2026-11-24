@@ -70,7 +70,7 @@ A design takes two reviews, and the pair follows the model that wrote the design
 
 - [ ] The change has no secrets and no public IP addresses.
 - [ ] It quotes no words of the operator verbatim.
-- [ ] A public design names no private repository, host, tailnet detail, or internal URL. When a private appendix exists, the design says so in one line and links nothing private.
+- [ ] A public design names no private host, tailnet detail, or internal URL; a private repository's name is allowed. When a private appendix exists, the design says so in one line and links nothing private.
 
 ## Non-blocking
 
