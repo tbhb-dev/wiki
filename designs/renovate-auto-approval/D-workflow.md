@@ -117,7 +117,7 @@ The Renovate App has checks write and statuses write ([appendix A](A-evidence.md
 
 The organization's administrator creates the dedicated App under [D3](decisions.md).
 
-- **Name:** `tbhb-dev-pin-approver`, so its reviews show as `tbhb-dev-pin-approver[bot]`.
+- **Name:** `tbhb-dev-renovate-approver`, so its reviews show as `tbhb-dev-renovate-approver[bot]`.
 - **Permissions.** Start with pull requests write, contents read, checks read, and metadata read, which GitHub adds to every App. Use the least permissions that make the review count.
 - **Webhook:** off. The App receives no events, because the workflow does the work.
 - **Where it installs:** only on this account, on selected repositories, starting with tbhb-dev/rules.
