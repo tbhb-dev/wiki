@@ -150,12 +150,15 @@ Kind `command` uses the command sections Changes, Checks first, Exit codes, Undo
 
 ### Problems
 
-A Problem is ready for investigation when it meets four conditions.
+A Problem is ready for investigation when it meets five conditions.
 
 - Scope states the symptoms and the hosts or repositories in scope in one sentence.
 - Evidence includes at least one dated Incident, occurrence, or failing check.
 - Owner is one role label from the live list.
 - Next step names one action with a time box. A step too large for one action becomes a Spike sub-issue.
+- The Problem names one specific recurring failure by its class, the acts that trigger it, and the sessions or hosts it affects. Resolution criteria name the fix that must land and a measured quiet period, such as `No such denial appears in 7 days of classifier logs.`
+
+Split an umbrella Problem into specific Problems. Close an umbrella Problem when it has zero concrete instances.
 
 Keep the staged item as a Defect if the work fits that type by itself. If it belongs to an existing Problem, make it a child of that Problem. Otherwise, open a new Problem. Link similar items as Related until evidence shows one cause. A verb sets Priority after refinement. See [Problem refinement](../itsm-records/problems.md#refinement).
 
