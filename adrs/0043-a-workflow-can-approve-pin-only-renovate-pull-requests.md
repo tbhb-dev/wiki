@@ -23,7 +23,7 @@ This applies to repositories that call the workflow. Each caller starts in `eval
 
 ## Consequences
 
-Pin-only updates merge without a person once a repository enforces. The matcher becomes part of the merge path, so a matcher bug could let an unreviewed change merge. The design bounds that with a fail-closed grammar, tests for every reason code, an evaluate period, and two independent tier 2 reviews. The App holds a credential for every repository that calls the workflow.
+Pin-only updates merge without a person once a repository enforces. The matcher becomes part of the merge path, so a matcher bug could let a change that nobody reviewed merge. The design bounds that with a fail-closed grammar, tests for every reason code, an evaluate period, and two independent tier 2 reviews. The App holds a credential for every repository that calls the workflow.
 
 ## Confirmation
 
