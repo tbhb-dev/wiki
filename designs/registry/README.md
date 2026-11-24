@@ -22,6 +22,8 @@ decisions_open: 2
 
 Recommend Zot as the internal container registry and cache for public upstream images. Publishers push once, and consumers pull digest-pinned images over the tailnet. Separate credentials limit each publisher and consumer to its repositories.
 
+A private companion design holds the host-level details.
+
 The proposal runs Zot on the storage host, with a Tailscale Serve sidecar and file storage. A staged rollout checks Docker compatibility, signatures, mirrors, cleanup, resource use, and restore before clients depend on it. The operator has two open asks: network policy and backup to the secondary NAS.
 
 ## Proposal
@@ -138,6 +140,8 @@ These are planned build and deploy runs, not completed checks. Deploy only from 
 ## Later
 
 These are deferred options, not requirements for this rollout.
+
+A general internal package registry could later serve Python packages, container images, and Go modules outside the current build. Unverified: confirm against the vendor documentation when the work starts: Zot supports OCI only, storing OCI images and OCI artifacts without speaking the Python package index or Go module proxy protocols. Clients reach Zot through one stable service name behind the tailnet proxy with the same per-repository authentication. Another package server could sit beside Zot behind the same proxy and authentication, or a multi-format server could replace Zot without changing consumer references, provided repository names remain one-way doors as the Risks section says. Nothing in the current design blocks this later work.
 
 | Follow-up | Options and recommendation |
 | --- | --- |
