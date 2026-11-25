@@ -140,18 +140,6 @@ Use at most 110 words for the base body and at most 70 characters for the title.
 
 The workflow moves `open` to `waiting on operator` when the check passes. An operator question moves it to `waiting on author`. During refinement, any author edit returns it to `open` for another check.
 
-Kind `decision` uses the sections below in order and caps the body at 150 words. Set Priority and Handler. For Handler Agent, use exactly one area label. For Handler Operator, omit area labels.
-
-| Section | Check |
-| --- | --- |
-| Question | Ask one question in 3 to 25 words. |
-| Options | Give two to four items with unique labels. Write each as `Label - tradeoff` in at most 15 words. |
-| Recommendation | Use the exact label of one option in 1 to 10 words. |
-| Answer path | Give one outcome per option as `Label - outcome` in at most 15 words per item. |
-| Approval | Ask for `approve <option label>` in 1 to 25 words. |
-
-Before closing a decision Request, the closer checks that its `adr` link points to a merged decision record pull request.
-
 Kind `command` uses the command sections Changes, Checks first, Exit codes, Undo, Dry run, Why not an agent, and Command. Its variant caps the body at 80 words. Kind `change` is a Request for Change (RFC). Its variant has What, Why, Risk, and Approver and authority sections and requires a Class of `normal` or `emergency`. On approval, the verb opens a Change and links the Change and the Request in both directions. These are the service workflow's current shapes. See [operator requests](../itsm-records/D-operator-requests.md#kinds-of-request) and the [recorded conflicts](decisions.md#d4-which-service-rules-conflict-with-the-shared-rules).
 
 ### Problems

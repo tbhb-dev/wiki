@@ -37,7 +37,7 @@ Earlier pm drafts proposed a refinement run and a ready record for Requests. For
 
 Command Requests require checks, undo, dry-run steps, and a command. Those sections conflict with the no-procedure rule. In the Problem design, Workaround and Recurrence check can also contain procedures. Migration examples for Problems still use the retired import marker. For Problems, the service design calls Priority a Project field, while pm treats it as an org issue field. Those records remain in the service design for `sm` review.
 
-Different schemas define the base, command, decision, and change body shapes. An author edit reopens an active Request for a check. In later states, the [service workflow](../itsm-records/D-operator-requests.md#the-workflow-side) leaves running and terminal states alone. For commands, the schema requires an area label even though the service design says Operator Requests omit it. Command, base, and change schemas also permit Work type. See the tools taxonomy for the field matrix.
+Different schemas define the base, command, and change body shapes. An author edit reopens an active Request for a check. In later states, the [service workflow](../itsm-records/D-operator-requests.md#the-workflow-side) leaves running and terminal states alone. For commands, the schema requires an area label even though the service design says Operator Requests omit it. Command, base, and change schemas also permit Work type. See the tools taxonomy for the field matrix.
 
 ### D3. Where does procedure go?
 
