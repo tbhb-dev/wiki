@@ -29,7 +29,7 @@ The monorepo starts at about 5,100 files and 23 MB. At that size a full copy per
 Each host keeps one bare mirror of the monorepo under the launcher's state directory. Only the launcher writes to it, and every write holds the mirror lock that exists today.
 
 ```sh
-git clone --bare --filter=blob:none <monorepo URL> <state>/mirrors/monorepo.git
+git clone --bare --filter=blob:none <monorepo URL> <state>/mirrors/tbhbdev.git
 git -C <mirror> config remote.origin.fetch '+refs/heads/main:refs/remotes/origin/main'
 git -C <mirror> fetch origin main          # at each run start, under the lock
 ```
@@ -44,7 +44,7 @@ The companion gets a plain full mirror and copy clones, as today. It's small, an
 2. **Compute the cone.** The launcher keeps one full checkout per host, the index worktree, which no agent uses. It moves that checkout to the fetched commit and asks Bazel which folders the run needs:
 
    ```sh
-   bazel query 'buildfiles(deps(//factory/cli/tbhbdev/...))' --output=package
+   bazel query 'buildfiles(deps(//factory/services/event-gateway/...))' --output=package
    ```
 
    `deps` lists everything the targets depend on, and `buildfiles` adds the build and rule files those packages load. The cone is the set of folders in the answer, plus the target paths themselves and `factory/build/policy`.
@@ -58,7 +58,7 @@ The companion gets a plain full mirror and copy clones, as today. It's small, an
 
    Cone mode always includes the files at the repository root, so `MODULE.bazel`, the lock files, and the lint configuration are present. The checkout fetches all missing blobs for the cone in one request (per docs, tested in plan step 2).
 4. **Install hooks.** The launcher installs the same read-only hooks as today, plus the push hook from [appendix D](D-public-private.md#keeping-private-content-out).
-5. **Run.** The agent builds and tests its own paths, such as `bazelisk test //factory/cli/tbhbdev/...`. It doesn't run `//...`, because a sparse tree doesn't hold every package. CI runs whatever else the change affects.
+5. **Run.** The agent builds and tests its own paths, such as `bazelisk test //factory/services/event-gateway/...`. It doesn't run `//...`, because a sparse tree doesn't hold every package. CI runs whatever else the change affects.
 
 The run's brief names its target paths. A brief with no paths gets a full checkout, through the same `--full` flag an agent can ask for.
 
@@ -94,11 +94,10 @@ Items 1 to 3 are a function of the base and head commits, so any reviewer on any
 
 Bazel keeps one output base per workspace path. Today each run clone has a new path, so each run starts cold and leaves an output base behind. One host holds 598 of them (proven).
 
-- **Slot paths.** Worktrees live at a fixed set of paths, `<state>/worktrees/monorepo/slot-01` to `slot-NN`. A run takes a free slot under a lock and gives it back at the end. Bazel sees the same path again, so the next run reuses that slot's output base and its fetched external repositories. The count of output bases can't pass the count of slots.
+- **Slot paths.** Worktrees live at a fixed set of paths, `<state>/worktrees/tbhbdev/slot-01` to `slot-NN`. A run takes a free slot under a lock and gives it back at the end. Bazel sees the same path again, so the next run reuses that slot's output base and its fetched external repositories. The count of output bases can't pass the count of slots.
 - **A shared disk cache.** One `--disk_cache` folder per host serves every slot, so a target built in one slot isn't rebuilt in another. Bazel trims it to a size limit (per docs).
 - **A shared repository cache.** Downloads of external dependencies are stored once per host, which is Bazel's default (per docs).
 - **The remote cache.** Hosts read it with the trusted host role that exists today, and CI's results reach every host.
-- **Server lifetime.** The Bazel server for a slot exits after 600 idle seconds, as the tools' settings say today.
 
 How much a warm slot saves is unverified, and plan step 2 measures it. A slot's output base holds results from an earlier run, which is the same trust the shared caches already need. Whether the launcher confines a run to its own folder today wasn't read in this pass (unverified).
 
@@ -133,5 +132,7 @@ Worktrees write their objects and their branch refs into the mirror. A run can t
 - Git objects are named by the hash of their contents, so a run can't replace an object under the same name.
 - Review runs check out a commit hash from GitHub, never a local branch.
 - The reference-transaction hook and the guard from the worktree record gain two rules: no ref update outside the run's own branch, and no pruning command from a run (new).
+
+These are guards against mistakes, not isolation. A process that writes the mirror's files directly passes every hook, and a run's commits that it has not pushed then have no second copy. D3 puts that trade to the operator.
 
 The record that says a clone's main worktree stays clean assumes a clone with a main worktree. A bare mirror has none, which satisfies the rule's intent and not its wording, so D8 asks to amend it.

@@ -18,14 +18,14 @@ Back to [the design](README.md).
 
 ## What goes where
 
-The companion mirrors the public paths, so a private file sits at the same path as the public code that reads it.
+The companion is `tbhbdev-private`, and it's the only private repository in the pair (D20). It mirrors the public paths, so a private file sits at the same path as the public code that reads it.
 
 | Source today | Public monorepo | Private companion |
 | --- | --- | --- |
 | ops | Ansible roles and playbooks, service definitions, dashboards, the ops packages, OpenTofu modules, and the schema for inventory and values | The inventory, group and host variables, OpenTofu variable files and backend settings, and the overlay network's configuration |
 | agent-config | Agent and ops configuration, routing, schemas, and docs | The operator-account folder |
 | agent-memories | Memories marked public | Every other memory |
-| wiki, research, spikes, evals, tools | The public repositories as they are | Their private counterparts, at `docs/wiki`, `docs/research`, `docs/spikes`, `factory/evals`, and `factory/cli/tbhbdev` |
+| wiki, research, spikes, evals, tools | The public repositories as they are | Their private counterparts, at `docs/wiki`, `docs/research`, `docs/spikes`, `factory/evals`, and the tool's folder |
 | sm | Code and docs that pass the scan | Anything the scan holds back |
 | New | A stub of the companion with fake values | The private-name list, and each import's scan report |
 
@@ -49,7 +49,7 @@ local_path_override(module_name = "tbhb_private", path = "third_party/private_st
 
 ```sh
 # on a host that deploys, with the companion checked out beside the monorepo
-bazel run //factory/infra/ops:deploy --override_module=tbhb_private=../companion
+bazel run //factory/infra/ops:deploy --override_module=tbhb_private=../tbhbdev-private
 ```
 
 Public targets refer to `@tbhb_private//factory/infra/ops:inventory` and get the stub unless a command overrides it. Whether the command-line override wins over the one in `MODULE.bazel` is unverified, and plan step 2 tests it.
@@ -60,7 +60,7 @@ The public repository owns the schema for every private value. The stub must val
 
 The rule is that the public repository builds and tests, and the companion deploys.
 
-1. The companion pins one monorepo commit in a single file. This is the only first-party pin left in the factory.
+1. The companion pins one monorepo commit in a single file. This is the only first-party pin left in the factory, and it points at the new repository, never at an old one.
 2. The companion's workflow checks out both repositories, passes the override, and runs the deploy target on private runners.
 3. Deploy logs stay in the private repository. Public CI logs never print a real value, because public CI never has one.
 
@@ -92,9 +92,9 @@ Hooks come from `tbhbdev alpha install` only, as today (existing rule). The push
 2. The import tool builds the public tree from the map, and the companion tree from the rest.
 3. It runs gitleaks and the name scan over the public tree, and writes a report: every file, every finding, and every file held back.
 4. The operator signs off the report (D4).
-5. The tool commits the public tree as one signed commit under the target path, and the companion tree as one commit in the companion. No history comes along, so nothing that was removed in the past is published.
+5. The tool commits the public tree as one signed copy commit, as for every import, and the companion tree as one commit in the companion. No history comes along, so nothing that was removed in the past is published.
 
-The private repository's issues and pull requests stay where they are, in the archive. GitHub doesn't transfer an issue from a private repository to a public one (per docs). The owning role moves each open issue to the companion, or files a new public issue with the private details removed.
+The private repository's open issues go through the relevance pass, and the survivors move to the companion or are filed again in public with the private details removed ([appendix I](I-issues-and-projects.md#importing-the-survivors)). The repository is archived only when none are open.
 
 ## What becomes public that isn't today
 

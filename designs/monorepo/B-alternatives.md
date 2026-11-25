@@ -42,7 +42,7 @@ A virtual filesystem pays off when the checkout itself is too large to write to 
 
 Bazel also reads every input of a build, so a lazy filesystem ends up fetching the same files a cone would have checked out. Agents add a second problem: a search across the whole tree makes a lazy filesystem fetch everything.
 
-The answer changes if a cone for a typical run passes about a million files, or if cone computation takes longer than the checkout it saves. Plan step 11 records cone sizes, so the trend is visible.
+The answer changes if a cone for a typical run passes about a million files, or if cone computation takes longer than the checkout it saves. Plan step 13 records cone sizes, so the trend is visible.
 
 ### Partial copy clones
 
@@ -64,13 +64,17 @@ Folding the rules into the root module makes every label a plain `//factory/buil
 
 A private or public Bazel registry gives standalone consumers versions instead of commit pins. It adds a release step for each rules change, and the rules changed 306 times in 28 days. It becomes worth it when outside users appear, and nothing in this design blocks it.
 
+### A Go workspace file and a lock for each project
+
+A `go.work` over one `go.mod` for each project keeps today's import paths, and a lock for each project lets one project upgrade alone. Both bring back the same update landing many times, which is the cost this move removes. The clean break rewrites import paths anyway, and [appendix H](H-dependencies-and-renovate.md#a-second-version) covers the project that truly needs its own version.
+
 ### Target determinator
 
 `target-determinator` compares configured targets, so it catches a change in a build flag that a plain query misses. It checks out and configures both revisions on each run. `bazel-diff` writes one hash file per commit, which CI saves for each `main` commit and reuses, and it can also hash configured targets (per docs). The plan job's output is a target list either way, so the tool can change later.
 
 ### Path filters instead of a build graph
 
-GitHub's `paths` filters need no tool and run per workflow. They can't see that a change in `lib/` affects a service that depends on it, so each filter list drifts from the real graph. Path filters stay only for jobs outside Bazel, such as a deploy workflow.
+GitHub's `paths` filters need no tool and run per workflow. They can't see that a change in `lib/` affects a service that depends on it, so each filter list drifts from the real graph. GitHub also reads at most 300 changed files for a filter (per docs), so a large change can skip a job. No workflow in this design uses one.
 
 ## Repository shape
 

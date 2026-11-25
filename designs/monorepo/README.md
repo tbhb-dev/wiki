@@ -6,19 +6,19 @@ tags: [monorepo, bazel, git, ci, agents, design]
 status: draft
 owner: Monorepo maintainer
 updated: "2026-11-25"
-decisions_open: 9
+decisions_open: 12
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
-<!-- cspell:words monorepo rdeps buildfiles somepath bzlmod cutover -->
+<!-- cspell:words monorepo bzlmod cutover tbhbdev -->
 
 # One public monorepo for the factory
 
 | Status | Owner | Updated | Needs from the operator |
 | --- | --- | --- | --- |
-| Draft | Monorepo maintainer | 2026-11-25 | 9 open decisions in [decisions.md](decisions.md), about 20 minutes |
+| Draft | Monorepo maintainer | 2026-11-25 | 12 open decisions in [decisions.md](decisions.md), about 25 minutes |
 
 ## Summary
 
@@ -26,22 +26,23 @@ The factory lives in about 20 repositories that pin each other. In the 28 days t
 
 This design puts the factory in one public Bazel repository, with a thin private companion for private values. Agents work in sparse Git worktrees cut from one mirror per host. One workflow tests only the targets a change affects, and GitHub's merge queue lands it.
 
-Nothing is built until the operator reads this and says go. The operator then answers nine questions, signs off each publication of private-origin code, and reads one repository instead of 20.
+Nothing is built until the operator reads this and says go. The operator then answers 12 questions, signs off each publication of private-origin code, and reads one repository instead of 20.
 
 ## Proposal
 
 When this is built, these parts exist:
 
-- **The monorepo.** One new public repository, working name `tbhb-dev/monorepo`, holds the factory under `factory/`, shared code under `lib/`, prose under `docs/`, and room for products under `products/` (new). The monorepo maintainer role owns the root. [Appendix C](C-layout-and-ownership.md) has the tree.
-- **The private companion.** One new private repository mirrors the public paths and holds only private values: the ops inventory and host variables, the operator-account folder, private memories, and private prose (new). It depends on the monorepo, and the monorepo never names it. [Appendix D](D-public-private.md) has the split.
-- **One Bazel workspace.** One root module, one lock file per language, and build files that gazelle writes for Go and Python (new). The rules stay separate Bazel modules inside the tree, so standalone repositories keep loading them by the same labels.
+- **The monorepo.** One new public repository, working name `tbhb-dev/tbhbdev`, holds the factory under `factory/`, shared code under `lib/`, prose under `docs/`, and room for products under `products/` (new). The monorepo maintainer role owns the root. [Appendix C](C-layout-and-ownership.md) has the tree.
+- **The private companion.** One new private repository, `tbhbdev-private`, mirrors the public paths and holds only private values: the ops inventory and host variables, the operator-account folder, private memories, and private prose (new). It depends on the monorepo, and the monorepo's files never name it. [Appendix D](D-public-private.md) has the split.
+- **One Bazel workspace, with one dependency root per language.** One root module, one manifest and one lock file for each language, and build files that gazelle writes for Go and Python (new). One Renovate run keeps the roots current. [Appendix H](H-dependencies-and-renovate.md) has both.
 - **Layering that the build enforces.** Bazel visibility and one query test keep products off factory internals, the factory off products, and `lib/` off both (new).
-- **`OWNERS` files.** Each folder names its owning role and its review tier. The review tool reads them from the base branch and routes reviews by changed path (new, extends the rule that review policy comes from the base branch).
+- **`OWNERS` files.** Each project root names its owning role and its review tier. The review tool reads them from the base branch, routes reviews by changed path, and sets a required `owners` check (new, extends the rule that review policy comes from the base branch).
 - **Agent workspaces.** `tbhbdev alpha agent exec` keeps one partial bare mirror per host and gives each run a sparse worktree limited to its target paths and their Bazel dependencies (new). Today it copies a full clone per run (existing). [Appendix E](E-agent-runs.md) answers the operator's direct question about large-repository runs.
 - **One CI workflow.** It computes affected targets with `bazel-diff`, tests them against the remote cache on GitHub's standard hosted runners, and reports one `conclusion` check (new). GitHub's merge queue runs the same workflow before each merge (existing on three repositories today).
-- **An import tool.** `tbhbdev alpha monorepo import` brings each repository in under its target path, with history for public repositories and one squashed commit for private ones (new). A check proves the imported tree equals the source tree.
+- **An import tool.** `tbhbdev alpha monorepo import` brings each repository in as one copy commit that puts its files where the layout wants them and names the source commit (new). No history comes along, and the archived original keeps it.
+- **Issues in two repositories.** A public roadmap Project, a private Project, and one generated `area/<path>` label on every issue (new). [Appendix I](I-issues-and-projects.md) has the labels and the pass over existing issues.
 
-This design overlaps the [in-house merge queue design](../merge-queue/README.md). After the move, every factory change lands through GitHub's queue or the companion's up-to-date check, so that queue has no repository left to serve (see D7).
+This design overlaps the [in-house merge queue design](../merge-queue/README.md). After the move, every factory change lands through GitHub's queue or the companion's up-to-date check, so that queue has no repository left to serve.
 
 ## How it works
 
@@ -51,7 +52,7 @@ Folders go by role, then by project, and never by language. `factory/` holds the
 
 Three rules hold, and Bazel fails the build when one breaks:
 
-1. A product depends on `lib/` and on published modules, and on nothing under `factory/`. The build rules count as published modules, because every consumer loads them as `@tbhb_rules` labels.
+1. A product depends only on `lib/` and on published modules. The build rules count as published modules, because every consumer loads them as `@tbhb_rules` labels.
 2. Nothing under `factory/` or `lib/` depends on a product.
 3. `lib/` depends only on `lib/` and third-party code.
 
@@ -59,9 +60,9 @@ Each project's targets default to visibility inside that project. A gazelle dire
 
 ### Ownership and review
 
-The nearest `OWNERS` file up the tree names the role that owns a changed file and the tier of review it needs. A root policy file lists paths that are always tier 2, such as `.github/`, rulesets, `OWNERS` files, and harness configuration, and no folder can lower them. A change takes the highest tier among its paths.
+The nearest `OWNERS` file up the tree names the role that owns a changed file and the tier of review it needs. The same file gives an issue its area label. A root policy file lists paths that are always tier 2, such as `.github/`, rulesets, `OWNERS` files, and harness configuration, and no folder can lower them. A change takes the highest tier among its paths.
 
-GitHub Apps can't hold different permissions per folder, so each agent App reaches every path of the monorepo (per docs). Path limits move from repository boundaries to required checks and the main ruleset. That loosens a boundary, and D2 asks the operator about it.
+GitHub Apps can't hold different permissions per folder, so each agent App reaches every path of the monorepo (per docs). Path limits move from repository boundaries to the main ruleset and its two required checks, `conclusion` and `owners`. That loosens a boundary, which [decisions.md](decisions.md) lists as open.
 
 ### Public and private
 
@@ -81,8 +82,6 @@ Pushing a branch to a public repository publishes it. Host hooks scan every comm
 
 Worktrees share one object store, one Bazel disk cache, and one repository cache per host. A fixed pool of worktree paths keeps the count of Bazel output bases bounded. One agent host holds 598 output bases and 297 leftover run clones for one repository today (proven, [appendix A](A-evidence.md)).
 
-The monorepo starts at about 5,100 files and 23 MB. A full checkout is cheap today, so the sparse view is for scope and for growth. The gain that matters now is cleanup.
-
 ### CI and the merge queue
 
 A pull request runs one workflow. A plan job hashes the build graph at the base and the head and lists the affected targets. Test jobs run those targets, a coverage job checks 100% branch coverage across each affected project's test targets combined, and repository checks run beside them.
@@ -93,19 +92,23 @@ A change to the build rules affects every target. Sharding across runners handle
 
 ### Import and cutover
 
-Rules and the Renovate presets come first, then the command-line tool, then prose, then services. The four private-origin repositories come last. Each import freezes the old repository, lands one pull request, moves issues, and archives the old repository with a pointer. [Appendix G](G-import-and-cutover.md) has the order, the per-repository steps, and the before and after numbers.
+The scaffolding of both repositories comes first, then renovate-config, which brings Renovate, then rules, then the command-line tool, prose, and services. The four private-origin repositories come last. Neither new repository ever calls or pins an old one, and a repository that hasn't moved keeps the pins it holds.
+
+Each import sorts the old repository's issues, freezes it, and lands one pull request with one copy commit. The old repository is archived once it has no open issue and no open pull request. [Appendix G](G-import-and-cutover.md) has the order, the per-repository steps, the before and after numbers, and the organization rename that would end the migration.
 
 ## Risks and unknowns
 
 | Risk or unknown | Effect if it goes wrong | What handles it | Evidence |
 | --- | --- | --- | --- |
-| Private content reaches the public repository | A host name, private name, or secret is public for good | Squash imports, a scan on a host that holds the private-name list, the operator's sign-off per import (D4), and host hooks before every push | new |
-| One queue carries about 61 landings a day | A serial queue at today's 1,400 seconds per pass holds under 62 passes a day, so the queue backs up | Affected-target CI shortens passes, the queue groups up to five entries, and plan step 9 measures before the next import | proven count, unverified fix |
+| Private content reaches the public repository | A host name, private name, or secret is public for good | Copy imports with no history, a scan on a host that holds the private-name list, the operator's sign-off per import, and host hooks before every push | new |
+| One queue carries about 61 landings a day | A serial queue at today's 1,400 seconds per pass holds under 62 passes a day, so the queue backs up | Affected-target CI shortens passes, the queue tests five candidates at once, and plan step 11 measures before the next import | proven count, unverified fix |
 | The rules change often, and each change affects every target | 306 rules changes in 28 days each trigger a full run | Remote cache, sharding by project, and a nested workspace so rules-only tests stay small | proven count, unverified cost |
 | Nested rules modules don't test cleanly from the root | The rules' own tests need a second Bazel invocation | Plan step 2 spikes it, and the fallback runs Bazel inside the nested workspace | unverified |
 | Sparse worktrees confuse gazelle or Bazel | A run writes wrong build files or can't build | Plan step 2 spikes it, and a `--full` flag checks out everything | unverified |
-| A shared object store lets one run damage another's refs | A run loses work or reads a forged ref | Reviews check out by commit hash from GitHub, the launcher alone prunes, and D3 offers copy clones instead | new |
-| Imported history fails the signature rule | The import pull request can't merge | All but two commits carry signatures, D5 covers the two, and the spike tests a real import | proven count, unverified on GitHub |
+| A shared object store lets one run damage another's refs | A run loses work it has not pushed or reads a forged ref | Reviews check out by commit hash from GitHub, the launcher alone prunes, and copy clones remain as a launcher mode | new |
+| Agent traffic passes GitHub's recommended push and merge rates | GitHub throttles pushes or merges | Grouped merges, one push for each review round, and a retry with backoff ([appendix A](A-evidence.md#githubs-repository-limits)) | per docs, unverified rate |
+| An import carries a reference to an old repository | The new repository depends on an archive | The `import` job fails on any executable reference | new |
+| The organization rename breaks a reference that doesn't redirect | Standalone CI, API calls, or cloud tokens fail | A rehearsal on a throwaway organization, a placeholder on the old login, and the checks in appendix G | per docs, unverified |
 | A red `main` blocks every role | All landings stop until the fix lands | The merge queue tests each candidate on the projected `main`, and the full run on `main` opens an incident when it fails | existing mechanism |
 | Fork pull requests get no cache token | Outside contributions run slowly | They run uncached on hosted runners and never reach self-hosted ones | per docs |
 | CI minutes before the move are unmeasured | The design can't prove a saving | Plan step 1 records 28 days of runs before anything moves | unverified |
@@ -115,26 +118,31 @@ Rules and the Renovate presets come first, then the command-line tool, then pros
 | Step | What lands | Done when | Owner |
 | --- | --- | --- | --- |
 | 1 | The baseline: workflow runs, billed minutes, wall time, and pin-bump counts per repository for 28 days | The numbers sit in this design's appendix A with the commands that produced them | Monorepo maintainer |
-| 2 | A spike in the spikes repository: import rules and tools into a scratch repository, test nested modules, `bazel-diff`, sparse worktrees with gazelle, and signatures on imported commits | The spike's README states pass or fail for each of the six unverified items in appendix A | Monorepo maintainer |
-| 3 | Prerequisites in the old repositories: gazelle and per-package targets in tools, and each test target inside Bazel's `medium` timeout | `bazelisk run //:gazelle -- -mode=diff` prints nothing in each repository, and no test target sets `timeout = "long"` | Each repository's owning role |
-| 4 | The empty monorepo and companion: root module, lint gates, `OWNERS` tooling, the layering test, the CI workflow, and the main ruleset without the queue rule | `bazelisk test //...` passes on `main`, and the ruleset read matches the checked-in file | Monorepo maintainer, with the admin role for repository creation |
-| 5 | The import tool and its tree-equality check | An import of a scratch repository passes the check, and a changed file makes it fail | Tools maintainer |
-| 6 | Rules and Renovate presets imported, and their reusable workflows moved to the root | A standalone repository builds with its rules pin on a monorepo commit | Rules maintainer |
-| 7 | Tools imported, then the launcher's mirror, worktree, cone, and cleanup changes | Two runs on one host share one mirror, and a finished run leaves no worktree after the reaper runs | Tools maintainer |
-| 8 | The merge queue rule on `main`, and affected-target CI as the required path | A queued pull request merges through a `merge_group` run that tests fewer targets than `//...` | Monorepo maintainer |
-| 9 | Public repositories imported in the order in appendix G, with queue wait and CI time measured after each | Each old repository is archived with a pointer, and appendix A holds the measurements | Each repository's owning role |
-| 10 | Private-origin repositories split, scanned, signed off, and imported by squash | The scan report for each import is in the companion, and the operator's sign-off is in the import pull request | Ops maintainer and agent-config maintainer |
-| 11 | The after numbers, 28 days after the last import | Appendix A holds both columns of the before and after table | Monorepo maintainer |
+| 2 | A spike in the spikes repository: copy rules and tools into a scratch repository, and test the seven unverified items in appendix A | The spike's README states pass or fail for each of the seven | Monorepo maintainer |
+| 3 | Prerequisites in the old repositories: gazelle and per-package targets in tools, and each test target inside Bazel's `medium` timeout. Go port pull requests for the front, dispatch, and plugin plumbing go to the operator before merge | `bazelisk run //:gazelle -- -mode=diff` prints nothing in each repository, and no test target sets `timeout = "long"` | Each repository's owning role |
+| 4 | The scaffolding of the monorepo and the companion: dependency roots, the inline CI workflow, an `OWNERS` file for every planned path, generated labels, both Projects, the layering test, and the rulesets without the queue rule | `bazelisk test //...` passes on `main`, the ruleset read matches the checked-in file, and both repositories list the same `area/` labels | Monorepo maintainer, with the admin role for repository creation |
+| 5 | The 742 kept tracker issues imported, each with one area label | The sync check reports no issue with zero or two area labels | Imports role |
+| 6 | The import tool, its `import` check, and the archive gate | An import of a scratch repository passes the check, and a changed file or an old-repository pin makes it fail | Tools maintainer |
+| 7 | renovate-config imported, with the root Renovate workflow running | Renovate opens a grouped update in the monorepo, and a search for old-repository callers and pins returns nothing | Rules maintainer |
+| 8 | Rules imported, with the lint gates | `bazelisk test //...` passes on `main` with the rules loaded from the tree | Rules maintainer |
+| 9 | Tools imported, then the launcher's mirror, worktree, cone, and cleanup changes | Two runs on one host share one mirror, and a finished run leaves no worktree after the reaper runs | Tools maintainer |
+| 10 | The merge queue rule on `main`, and affected-target CI as the required path | A queued pull request merges through a `merge_group` run that tests fewer targets than `//...` | Monorepo maintainer |
+| 11 | Public repositories imported in the order in appendix G, with issues sorted and moved, and queue wait and CI time measured after each | Each old repository has no open issue or pull request and is archived, and appendix A holds the measurements | Each repository's owning role |
+| 12 | Private-origin repositories split, scanned, signed off, and imported as copy commits | The scan report for each import is in the companion, and the operator's sign-off is in the import pull request | Ops maintainer and agent-config maintainer |
+| 13 | The after numbers, 28 days after the last import | Appendix A holds both columns of the before and after table | Monorepo maintainer |
+| 14 | The organization rename, if the operator chooses it, as the last migration step | Every check in appendix G's rename section passes, and a search of both repositories for the old login returns nothing | Admin role |
 
-Steps 1 to 3 change nothing that's hard to undo, and they pay off even if the move stops there.
+Scaffolding and import steps wait on no operator gate, apart from the sign-off for each private-origin import. Steps 1 to 3 change nothing that's hard to undo, and they pay off even if the move stops there.
 
 ## Appendices
 
-- [Decisions](decisions.md): 9 open, then the decided record.
+- [Decisions](decisions.md): 12 open, then the decided record and a one-table summary of the open items.
 - [A. Evidence](A-evidence.md): what the repository reads, counts, and docs show, labeled proven, existing, new, or unverified.
 - [B. Alternatives considered](B-alternatives.md): Scalar, virtual filesystems, copy clones, a single root module, and the other options not taken.
 - [C. Layout and ownership](C-layout-and-ownership.md): the tree, where each repository goes, the dependency rules, `OWNERS`, tiers per path, and how Apps and rulesets map.
 - [D. Public and private](D-public-private.md): what the companion holds, how public code reads private values, and the scan rules.
 - [E. Agent runs](E-agent-runs.md): mirrors, worktrees, cones, widening, disk use, cleanup, caches, and the reviewer's view.
 - [F. CI](F-ci.md): the workflow's jobs, affected targets, coverage, runners, remote execution, and the merge queue.
-- [G. Import and cutover](G-import-and-cutover.md): the order, the per-repository steps, what the move removes, and the prerequisites.
+- [G. Import and cutover](G-import-and-cutover.md): the prerequisites, the order, the per-repository steps, what the move removes, and the organization rename.
+- [H. Dependencies and Renovate](H-dependencies-and-renovate.md): one root per language, the one-version rule, extracting a product, and the single Renovate run.
+- [I. Issues and Projects](I-issues-and-projects.md): the two Projects, area labels, the relevance pass, and the archive gate.

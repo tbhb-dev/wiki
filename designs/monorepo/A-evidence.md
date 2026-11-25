@@ -10,7 +10,7 @@ parent: README.md
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
-<!-- cspell:words monorepo gpgsig bzlmod xdist gomodscan promisor kexts evals avirt afenc hardlinks inodes determinator -->
+<!-- cspell:words monorepo bzlmod xdist gomodscan promisor kexts evals avirt afenc hardlinks inodes determinator -->
 
 # One public monorepo for the factory evidence
 
@@ -69,7 +69,7 @@ In 14 of the in-scope repositories, 200 landed dependency updates named a third-
 
 | Claim | Label | Source |
 | --- | --- | --- |
-| The in-scope repositories hold about 5,100 tracked files and 23 MB, with about 30 MB of Git data | proven | `git ls-files` and `git count-objects` per clone |
+| The 19 cloned in-scope repositories hold about 5,100 tracked files and 23 MB, with about 30 MB of Git data. The brief gives about 94 MB packed for 23 repositories | proven, and the brief says | `git ls-files` and `git count-objects` per clone |
 | Nearly every repository carries the same 16 or so root configuration files, such as `.bazelrc`, `MODULE.bazel`, `.gitleaks.toml`, `.vale.ini`, and `renovate.json5` | proven | root listings of 16 repositories |
 | 16 in-scope repositories hold 61 workflow files, and ops, agent-config, and agent-memories hold 11 more | proven | `git ls-tree` on `.github/workflows` |
 | Consumers pin the rules by full commit hash and sat on seven different rules commits | proven | each repository's `MODULE.bazel` and workflow pins |
@@ -78,7 +78,6 @@ In 14 of the in-scope repositories, 200 landed dependency updates named a third-
 | Tools has one build file, one `pytest_test` target over the whole tree with `timeout = "long"`, 206 Python files, about 105,000 lines, and no Go | proven | tools at `origin/main`, commit da15405 |
 | A tools queue pass takes about 1,400 seconds | existing | the [merge queue design's evidence](../merge-queue/A-evidence.md), which cites its brief |
 | afakt and awrel generate Go build files with gazelle 0.54.0 and `rules_go` 0.65.0, and CI checks them with `//:gazelle -mode=diff`. No repository uses gazelle's Python plugin | proven | their `MODULE.bazel`, `BUILD.bazel`, and the `repo-checks` workflow |
-| Every commit in the in-scope repositories carries a signature header, except one commit in dotfiles and one in runner-smoke | proven | `gpgsig` headers counted with `git cat-file --batch` |
 
 ## Rules, review, and CI today
 
@@ -94,7 +93,6 @@ In 14 of the in-scope repositories, 200 landed dependency updates named a third-
 | The remote cache has token roles for reading, for `main`, for pull requests in their own namespace, for trusted build hosts, and for end-to-end tests | existing | the remote cache repository's docs |
 | The wiki's tier 0 workflow calls a reusable workflow in the rules repository, with path lists for auto-approval and for denial | existing | this repository's `.github/workflows/tier0-approval.yml` |
 | No design for the Go port exists in this repository or in any clone on the host | proven | search of designs, branches, and clones |
-| No per-repository table of App permissions exists in the clones | unverified | search of the clones; the live installations weren't read |
 | CI minutes and run counts per repository | unverified | no record found; plan step 1 measures them |
 
 ## Agent runs today
@@ -113,23 +111,44 @@ In 14 of the in-scope repositories, 200 landed dependency updates named a third-
 | Claim | Label | Source |
 | --- | --- | --- |
 | The merge queue rule is available on public repositories under the Team plan and refused on private ones | existing | the merge queue design's evidence |
-| Push rulesets, including file path restrictions, apply to private and internal repositories only | per docs | GitHub's ruleset docs |
-| Standard hosted runners are free on public repositories, larger runners always bill, and the Team plan includes 3,000 minutes a month for private repositories | per docs | GitHub's billing docs |
-| An issue transfers only between repositories of one owner, and never from a private repository to a public one | per docs | GitHub's issue docs |
-| A reusable workflow must sit in `.github/workflows` at a repository's root | per docs | GitHub's workflow docs |
-| `git sparse-checkout` in cone mode always includes files at the root and keeps its settings per worktree | per docs | Git's `sparse-checkout` docs |
-| `git backfill` fetches missing blobs in batches and is marked experimental. The host has Git 2.54 | per docs, proven | Git's `backfill` docs and `git --version` |
-| Bazel derives a workspace's output base from its path, and the repository cache is shared across workspaces | per docs | Bazel's output directory and external dependency docs |
-| VFS for Git is in maintenance mode, never shipped for macOS, and its maintainers point to Scalar. Scalar ships with Git | per docs | the VFS for Git repository and Git's `scalar` docs |
+| Push rulesets, including file path restrictions, apply to private and internal repositories only | per docs | GitHub Docs, "About rulesets", push rulesets |
+| Standard hosted runners are free on public repositories, larger runners always bill, and the Team plan includes 3,000 minutes a month for private repositories | per docs | GitHub Docs, "About billing for GitHub Actions" |
+| An issue transfers only between repositories of one owner, and never from a private repository to a public one | per docs | GitHub Docs, "Transferring an issue to another repository" |
+| A reusable workflow must sit in `.github/workflows` at a repository's root | per docs | GitHub Docs, "Reuse workflows" |
+| `git sparse-checkout` in cone mode always includes files at the root and keeps its settings per worktree | per docs | `git-sparse-checkout(1)`, "Internals: cone pattern set" |
+| `git backfill` fetches missing blobs in batches and is marked experimental. The host has Git 2.54 | per docs, proven | `git-backfill(1)` and `git --version` |
+| Bazel derives a workspace's output base from its path, and the repository cache is shared across workspaces | per docs | Bazel docs, "Output directory layout" and "External dependencies overview" |
+| VFS for Git is in maintenance mode, never shipped for macOS, and its maintainers point to Scalar. Scalar ships with Git | per docs | the VFS for Git repository's README, and `scalar(1)` |
 | `bazel-diff` hashes targets per revision and compares two hash files. `target-determinator` compares configured targets across two revisions | per docs | each project's README |
+| A renamed organization keeps Git and web redirects for its repositories until the old login is reused, and its profile links, API calls by the old login, and team mentions don't redirect | per docs | GitHub Docs, "Renaming an organization" |
+| A workflow that uses an action from a renamed repository fails, with no redirect | per docs | GitHub Docs, "Renaming a repository" |
+| A workflow `paths` filter reads at most 300 changed files, and a workflow doesn't run when its match lies past them | per docs | GitHub Docs, "Workflow syntax for GitHub Actions", `on.pull_request.paths` |
+| The merge queue's build concurrency and its merge limits are separate settings | per docs | GitHub Docs, "Managing a merge queue" |
+
+## GitHub's repository limits
+
+The brief gives these from GitHub Docs, "Repository limits", read on 2026-11-25. This pass didn't re-read the page, and the page's limit on read operations wasn't checked at all (unverified).
+
+| Limit | Kind | The monorepo |
+| --- | --- | --- |
+| 10 GB on disk | recommended | About 94 MB packed (the brief says), under 1% of it |
+| 3,000 entries in a directory | recommended | The widest directory read is 148 entries, in tools (proven, four clones) |
+| Depth of 50 | recommended | The deepest path read is 10 levels, and the layout adds at most 3 |
+| 5,000 branches | recommended | One branch for each open pull request. Merged heads are deleted, and the launcher prunes the rest ([appendix E](E-agent-runs.md#cleanup)) |
+| 6 pushes a minute | recommended | About 61 landings a day. If each takes four pushes, that's one push every six minutes on average, and the push count itself is unverified |
+| About 1 merge a minute | recommended | The queue merges in groups, at most one group for each finished pass ([appendix F](F-ci.md#the-merge-queue)) |
+| 1,000 open pull requests on a base branch | recommended | Renovate is capped at 10 ([appendix H](H-dependencies-and-renovate.md#renovate)). The open count today wasn't read (unverified) |
+| 2 GB in one push, and 100 MB in one file | enforced | No import nears either. The repository's size check already fails a file over 20 MB |
+| 300 files in a pull request's diff | enforced | Import pull requests pass it. Review and deploys don't depend on it ([appendix G](G-import-and-cutover.md#importing-one-repository)) |
 
 ## What plan step 2 must prove
 
-These six items are unverified, and the design depends on each:
+These seven items are unverified, and the design depends on each:
 
 1. The rules' own tests pass from the monorepo root as `@tbhb_rules` targets, or need a second Bazel invocation inside the nested workspace.
 2. `--override_module` on the command line replaces a `local_path_override` in the root `MODULE.bazel`, so the companion can replace the stub.
 3. `bazel-diff` gives correct affected targets under bzlmod with nested local modules, and its hashes survive a round trip through the remote cache.
 4. Gazelle and Bazel behave in a cone-mode sparse worktree: no wrong build file edits, and a clear error for a missing package.
-5. GitHub's signature rule accepts a pull request that carries imported, already-signed history.
+5. GitHub's merge queue accepts a required check that an App sets on a queue candidate.
 6. A worktree from a partial bare mirror fetches its missing blobs in one batch, and a reused worktree path gets a warm Bazel output base.
+7. A Bazel pin and a workflow call still resolve against an archived repository.
