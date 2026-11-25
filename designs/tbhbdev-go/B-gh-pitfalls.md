@@ -50,7 +50,7 @@ Each entry ends with the rule it gives this design and the place the design appl
 
 `98f1f5ec0d57` (2021-03-03) wrote an absolute path into git config because Homebrew's git ran without `/usr/local/bin`. `2dba58bfa80b` (2021-08-30) and `d731cb9c73d7` (2021-09-06) walked `PATH` because `os.Executable()` returned a Cellar path that upgrades delete. `7387346196a6` (2022-06-20) swapped `os.Stat` for `os.Lstat`, `05bf29d88ec4` (2023-03-07, #7025) added a `GH_PATH` override for cygwin, and `5e14987d65a7` (2023-11-14, #8238) fixed the same function again. `d853ce5bc980` (2021-09-24) and `3cce16e72d76` (2021-12-21) made the lookup lazy.
 
-**Rule:** only the front resolves its path, once, with `os.Executable` and `EvalSymlinks`, and passes it and the bundle root to every plugin. The bundle lives in a versioned directory that an upgrade never deletes while a link points at it. The path logic is a pure function with table tests. **Applied in:** [E, the contract](E-plugin-contract.md#the-plugin-contract), and the installer in [E](E-plugin-contract.md#install-and-the-bundle-directory).
+**Rule:** only the front resolves its path, once, with `os.Executable` and `EvalSymlinks`, and passes it and the bundle root to every plugin. The bundle lives in a versioned directory that an upgrade never deletes while a link points at it or a run holds it open. The path logic is a pure function with table tests. **Applied in:** [E, the contract](E-plugin-contract.md#the-plugin-contract), and the installer in [E](E-plugin-contract.md#install-and-the-bundle-directory).
 
 ### 1.6 Five years without a dispatch contract
 
@@ -88,19 +88,19 @@ Each entry ends with the rule it gives this design and the place the design appl
 
 `82d19b73d63d` (2021-01-20) stopped telling source builds to upgrade to a release they were already past, since `v1.4.0-34-g<sha>` sorted below `v1.4.0`.
 
-**Rule:** version comparison is a pure function with table tests, and only logging uses it, never a refusal. **Applied in:** [E, the transition](E-plugin-contract.md#versions-and-the-no-refusal-transition).
+**Rule:** build comparison is a pure function with table tests, and only logging uses it, never a refusal. Self-update compares commit times from the stamp, never describe strings. **Applied in:** [I, the transition](I-protocol.md#the-transition), and [J, the decision](J-self-update.md#the-decision).
 
 ### 2.4 An update checker that fought package managers
 
 `feb4acc2c00c` (2021-02-08), `27aea42d8a43` (2021-02-23), `2097899a4dff` (2023-02-06), and `22504bfa96de` (2025-05-26) moved from Homebrew hints to a 24-hour delay to a compile-time opt-in.
 
-**Rule:** tbhbdev has no update check. `tbhbdev install check` compares hosts on request. **Applied in:** [E, dispatch](E-plugin-contract.md#dispatch), and [G](G-names-and-migration.md).
+**Rule:** no package manager installs tbhbdev, so its own update path fights nothing. The check at start is one cache read and a pure decision, the network work runs in a separate helper, and `TBHBDEV_NO_SELF_UPDATE=1` turns it off. `tbhbdev install check` still compares hosts on request. **Applied in:** [J, self-update](J-self-update.md), and [G](G-names-and-migration.md).
 
 ### 2.5 Waiting on a release check after the command
 
 `47d77bd51b58` (2024-11-02) checked extension releases after each run, `b8ef951de1cf` (2024-11-13) cut the wait from 3 s to 1 s, and `bc8c46b0b1c1` (2025-01-13) made it non-blocking.
 
-**Rule:** the front does no network work, and after exec it isn't there to do any. **Applied in:** D9 and [E, dispatch](E-plugin-contract.md#dispatch).
+**Rule:** the front does no network work, and after exec it isn't there to do any. Self-update's network work runs before the command, in its own helper, under fixed deadlines. **Applied in:** D9, [E, dispatch](E-plugin-contract.md#dispatch), and [J](J-self-update.md#failures).
 
 ### 2.6 Shared code for checks that diverged
 
@@ -202,13 +202,13 @@ Each entry ends with the rule it gives this design and the place the design appl
 
 `beb6234f96a6` (2023-06-14, #7493) made extension listing lazy, and `731e9b50e46a` (2026-10-07, #14620) stopped spawning git for each extension at start.
 
-**Rule:** the front reads one manifest and spawns nothing before its exec, which a test checks. **Applied in:** [F, the front budget](F-build-and-checks.md#the-front-budget).
+**Rule:** the front reads one manifest and one self-update cache file and spawns nothing before its exec, which a test checks. **Applied in:** [F, the front budget](F-build-and-checks.md#the-front-budget).
 
 ### 5.3 Exit waiting on background work
 
 `626c639df5e9` (2023-02-07, #6978) stopped exit from waiting on the update goroutine. `79f749a02b18` (2020-04-07) and `c63247f0eac8` (2021-03-04) kept checks out of completion and the git credential helper.
 
-**Rule:** the dispatch path starts no background work, which the hooks need most, since they run on every tool call. **Applied in:** [E, dispatch](E-plugin-contract.md#dispatch).
+**Rule:** the dispatch path starts no background work, which the hooks need most, since they run on every tool call. Self-update runs in the foreground before the command, never in a goroutine that exit waits on. **Applied in:** [E, dispatch](E-plugin-contract.md#dispatch).
 
 ### 5.4 Lookups in a slow order
 
@@ -290,7 +290,7 @@ Each entry ends with the rule it gives this design and the place the design appl
 
 The log has no commit about forwarding signals to extensions. Only `22f9824ec8da` (2021-09-09) touches Ctrl-C, for prompts (*inferred*: gh relies on the terminal signaling the whole group).
 
-**Rule:** exec delivers signals straight to the plugin. Where a Go server must run Python as a child, it forwards SIGINT and SIGTERM and exits with the child's status. **Applied in:** [E, the transition](E-plugin-contract.md#versions-and-the-no-refusal-transition).
+**Rule:** exec delivers signals straight to the plugin. Where a Go server must run Python as a child, it forwards SIGINT and SIGTERM and exits with the child's status. **Applied in:** [I, the transition](I-protocol.md#the-transition).
 
 ## 8. Arguments, help, and completion
 

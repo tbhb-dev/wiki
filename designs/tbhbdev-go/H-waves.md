@@ -22,7 +22,7 @@ Line counts come from the design outline, read at tools `75cbfd83` on 2026-11-25
 
 | Wave | What ports | Python lines | Why here |
 | --- | --- | --- | --- |
-| 0 | The front, the contract library, the checks, the bundle, and the installer, all new | none | Everything else stands on it |
+| 0 | The front, the contract library, the checks, the bundle, the installer, and self-update, all new | none | Everything else stands on it |
 | 1 | `alpha agent`, the launcher | 9,769, of which `decisions/` is 2,912 | `decisions/` is already pure and needs only translation |
 | 1 | The libraries the launcher imports: `version` (83), `userconfig` (203), `telemetry` (147), the `secrets` library (701), `gitleaks_check` (84), and constants from `identity`, `repo`, and `host` | about 1,250 | The launcher can't run without them |
 | 1 | The launcher's uses of other `alpha` modules: `brief` (`driver.py`), `gh_app` (`credentials.py`), `install` (`worktree.py`), `pull_request` (`open_pr.py`, `review_post.py`), and `review` (`review_post.py`) | unverified, part of each module | Ported as library packages with no command yet, so Go never calls `alpha` (D5) |
@@ -45,7 +45,7 @@ The size gate allows 400 added code lines per pull request, tests included. With
 
 ### Serial first
 
-About four pull requests, one after another: the front with `internal/dispatch` and `internal/plugin`, then the stamp and the bundle test, then the checks with their planted fixtures, then `internal/agent/model` from `model.py` (280 lines). The phase 1 Python release and the rules ast-grep macro run beside them.
+About four pull requests, one after another: the front with `internal/dispatch` and `internal/plugin`, then the stamp and the bundle test, then the checks with their planted fixtures, then `internal/agent/model` from `model.py` (280 lines) with `internal/agent/protocol` on the phase 1 schema. The phase 1 Python release, which adds the schema and the `protocol-version` job, and the rules ast-grep macro run beside them.
 
 ### Then in parallel
 

@@ -46,7 +46,31 @@ Resolve `tbhbdev alpha agent exec` to `tbhbdev-alpha-agent`, then `tbhbdev-alpha
 
 ## Exact version matching with a lockstep cutover
 
-Keep `same_version`, stamp one version into every binary, have the front refuse a plugin whose stamp differs, and move the whole fleet at once, as the outline proposed. A half-upgraded fleet would then refuse every run, which D6 rules out. The release test that checks every stamp catches a mismatch before a bundle ships, so the front has no reason to refuse at run time.
+Keep `same_version`, stamp one version into every binary, have the front refuse a plugin whose stamp differs, and move the whole fleet at once, as the outline proposed. A half-upgraded fleet would then refuse every run, which D6 and D14 rule out. The release test that checks every stamp catches a mismatch before a bundle ships, so the front has no reason to refuse at run time.
+
+## Freezing the wire protocol for the port
+
+Keep envelope `v` 1 and request `v` 2 fixed until every host runs Go, as an earlier draft of this design decided in D12. With 47 commits to `run_host.py` and `decisions/argv.py` in one month, a freeze would either hold back real changes or tempt unversioned ones. D16 gives those changes a versioned path instead.
+
+## Versions in code instead of a schema file
+
+Keep the version constants in `model.py` and in the Go port, with the corpus as the only contract. Nothing would then tie a change in the request's shape to a version decision, and the two languages could drift. One schema file gives the CI check one thing to compare.
+
+## Readers that refuse unknown fields
+
+Keep today's rule that a reader refuses any field it doesn't know. Then every added field is breaking, and every change needs a bump. Lenient readers with strict writers let an additive change reach older hosts, and the strict writer still catches an undeclared field.
+
+## No self-update, with sync only
+
+Rely on event-driven sync to install every release. A machine that's asleep, offline, or new when sync fires stays behind until the next merge, and a gap of two breaking versions becomes possible. Self-update closes that gap at the machine's next start (D15).
+
+## Overwrite the binary in place
+
+Download the new front and write it over the old file, as many single-binary updaters do. A concurrent run could then exec a half-written file, and a run with Python modules from the old bundle could load new ones mid-run. Renaming whole directories and links never changes a file a run uses.
+
+## Self-update in a background goroutine
+
+Check for updates while the command runs and swap afterward. gh learned that exit then waits on the check ([appendix B](B-gh-pitfalls.md#53-exit-waiting-on-background-work)), and after exec the front isn't there to finish it. The check runs first, in the foreground, under fixed deadlines.
 
 ## A Python console script on PATH for the fallthrough
 

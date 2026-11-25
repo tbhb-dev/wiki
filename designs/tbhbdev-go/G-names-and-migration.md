@@ -78,7 +78,7 @@ It writes nothing to standard output or standard error, because hooks speak thro
 | --- | --- | --- | --- |
 | Harness hooks | The user-level harness settings that `tbhbdev alpha install` writes | the guards, `state-guard`, `session-context`, `identity` | The installer reads `names.toml` and writes final names for every command its bundle carries |
 | Git hooks | Each repository's hooks, installed by `tbhbdev alpha install` | `identity`, `pre-push-guard` | The same installer step |
-| The forced command | Each host's authorized keys | `alpha agent ssh-serve` | The ops maintainer, host by host, in phase 3 ([appendix E](E-plugin-contract.md#versions-and-the-no-refusal-transition)) |
+| The forced command | Each host's authorized keys | `alpha agent ssh-serve` | The ops maintainer, host by host, in phase 3 ([appendix I](I-protocol.md#the-transition)) |
 | Brief templates | `tbhbdev alpha brief new` in tools | `alpha pr check`, `alpha merge`, `alpha agent exec` | The tools maintainer, in the change after the forwarder ships |
 | Briefs and prompts that roles write | agent-config | any | The agent-config maintainer, one pull request per wave |
 | Repository docs | `AGENTS.md`, runbooks, and designs in each repository, such as this wiki's `AGENTS.md` naming `tbhbdev alpha install` | any | Each repository's maintainer, one pull request per wave |

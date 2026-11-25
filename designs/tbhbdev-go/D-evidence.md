@@ -35,6 +35,10 @@ Labels:
 | One commit builds one release bundle | brief | the same |
 | Go has no `alpha`, commands get final names, and `alpha` works only through the fallthrough until each command ports | brief | the same |
 | No version mismatch ever blocks a launch, and a host that can't run a driver's launch counts as a refusal | brief | the same |
+| Driver and host check a protocol version and never build hashes, and a build mismatch is a logged warning | brief | the operator's requirements of 2026-11-25, relayed after the first draft |
+| tbhbdev updates itself at start when behind main, with a cached main commit, an atomic swap, no refusal on failure, and an opt-out variable | brief | the same |
+| The run request and run metadata are one versioned schema that both sides validate against, with a CI check on version decisions | brief | the same |
+| The tools maintainer is building event-driven sync on merges to main | brief, unverified | the same. Its design wasn't read |
 | Go-only pull requests don't run the Python suite in pull requests or the merge queue | brief | the same |
 | A separate CI speed role owns CI wall time across repositories | brief | the same |
 | No decision record covered a Go port at the time of the outline's read, and the agent capacity record chose Go for new agent tooling | outline | grep of the decision folder |
@@ -46,7 +50,7 @@ Labels:
 | 37,745 source lines in `src/tbhbdev`, 95,572 test lines in 150 files, and 29,364 lines in `alpha` | outline | `wc -l` at `75cbfd83` |
 | Per-module line counts in [appendix H](H-waves.md) | outline | `wc -l` at `75cbfd83` |
 | `decisions/` is pure by its own docstring | outline | `decisions/__init__.py` at `75cbfd83` |
-| `same_version` refuses a host whose `version.line()` differs | existing, outline | `src/tbhbdev/alpha/agent/decisions/driver.py` at `938f65f` line 69, and the outline's line 83 at `75cbfd83` |
+| `same_version` refuses a host whose `version.line()` differs | existing | `src/tbhbdev/alpha/agent/decisions/driver.py` line 83 at `bf420ff`, called from `driver.py` line 374 |
 | The forced command is `<agent home>/.local/bin/tbhbdev alpha agent ssh-serve` | outline | the agent README, line 41 |
 | The envelope is `{"v": 1, "request": {"v": 2}}` | outline | the agent README, line 58, and `ssh_serve.py` line 89 |
 | The launcher's exit codes are 0, 2, 3, 4, 124, and 143 | outline | the agent README |
@@ -57,6 +61,7 @@ Labels:
 | Other packages add tools and config files through the `tbhbdev.plugins` entry point group | existing | `src/tbhbdev/plugins.py` at `938f65f` |
 | graph and the private ITSM repository use that group | outline | their `pyproject.toml` files |
 | `pyproject.toml` has one console script, `tbhbdev` | existing | `pyproject.toml` at `938f65f` |
+| `jsonschema` is a tools runtime dependency | existing | `pyproject.toml` at `bf420ff` |
 | `pytest_test` takes `:repo_files` with a `long` timeout, near 300 seconds on CI | existing | `BUILD.bazel` at `938f65f` |
 | The Python linters take `:repo_files` | existing | `BUILD.bazel` at `938f65f` |
 | CI runs `bazelisk test --config=ci //...` | existing | `.github/workflows/ci.yml` at `938f65f` |
@@ -66,6 +71,20 @@ Labels:
 | `host` is frozen until ops replaces it | unverified | a memory note the outline cites |
 | Which other repositories import the library-only modules | unverified | the tools README calls them libraries |
 | Who writes host authorized-keys entries | unverified | |
+
+## The agent protocol today
+
+Read at tools `bf420ff`, main on 2026-11-25.
+
+| Claim | Label | Source |
+| --- | --- | --- |
+| The envelope must have exactly `v`, `request`, and `push_token`, and `v` must equal 1 | existing | `src/tbhbdev/alpha/agent/ssh_serve.py` lines 85 to 89 |
+| The request's `v` must equal `REQUEST_VERSION`, which is 2, and any unknown field is refused | existing | `decisions/request.py` lines 282 to 295, and `model.py` line 16 |
+| No schema file, protocol version, or negotiation exists in `alpha/agent`, and the run directory files carry no version | existing | `git grep` for `schema`, `protocol`, and `version` under `src/tbhbdev/alpha/agent`, and `decisions/runfiles_names.py` |
+| Preflight prints the host's `tbhbdev --version` and exits early when it differs from the driver's | existing | `decisions/remote.py` lines 163 to 175 |
+| `run_host.py` and `decisions/argv.py` took 47 commits from 2026-11-01 to 2026-11-25 | existing, brief | `git log --since=2026-11-01 main -- <both files>` |
+
+The brief says tools main has no protocol or schema version in `alpha/agent`. The two integer checks above do exist, so this design reads the brief as no schema file and no negotiated version, which the read confirms.
 
 ## Neighbors and rules
 
@@ -85,4 +104,4 @@ Labels:
 
 ## What this design adds
 
-Everything in [appendix E](E-plugin-contract.md), [appendix F](F-build-and-checks.md), and [appendix G](G-names-and-migration.md) that names no existing file is new: the front, the contract, the manifest, the bundle and installer, the forwarder, `names.toml`, the envelope corpus, the test macros, and the ast-grep rules.
+Everything in appendices [E](E-plugin-contract.md), [F](F-build-and-checks.md), [G](G-names-and-migration.md), [I](I-protocol.md), and [J](J-self-update.md) that names no existing file is new. That covers the front, the contract, the manifest, the bundle and installer, the forwarder, `names.toml`, the envelope corpus, the test macros, and the ast-grep rules. It also covers the protocol schema, its decisions file and CI job, the release pointer, and self-update.

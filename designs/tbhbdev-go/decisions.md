@@ -10,7 +10,7 @@ parent: README.md
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
-<!-- cspell:words gazelle depguard ITSM syscall unported -->
+<!-- cspell:words gazelle depguard ITSM syscall unported libexec -->
 
 # tbhbdev Go port decisions
 
@@ -21,16 +21,16 @@ Back to [the design](README.md).
 ### D1. Do releases ship as a GitHub Release bundle, checked by a GitHub artifact attestation and a SHA-256 manifest, with no signing key held by tbhb-dev?
 
 - **Recommendation:** yes.
-- **Why:** this replaces `uv tool install git+https://github.com/tbhb-dev/tools` with a prebuilt bundle, which changes what a host trusts at install time. An attestation ties each archive to the tools release workflow and commit, and needs no key to keep or rotate. Neither afakt nor awrel signs or attests today (unverified beyond the outline's grep).
-- **If yes:** plan step 4 adds `actions/attest-build-provenance` to the release job, and the installer runs `gh attestation verify` and checks the manifest hashes before it swaps the link.
-- **If no:** the operator names a held key. The admin VM role creates it in 1Password, the release job signs with it, and every installer carries the public key, which adds a rotation runbook.
+- **Why:** this replaces `uv tool install git+https://github.com/tbhb-dev/tools` with a prebuilt bundle, which changes what a host trusts at install time. Self-update (D15) installs a new bundle on its own at start, so the check must need nothing an unattended run lacks. An attestation ties each archive to the tools release workflow and commit, and needs no key to keep or rotate. Neither afakt nor awrel signs or attests today (unverified beyond the outline's grep).
+- **If yes:** plan step 4 adds `actions/attest-build-provenance` to the release job, which publishes every main commit's bundle and the `main.json` pointer. The installer, sync, and self-update all run `gh attestation verify` and check the archive and manifest hashes before they swap the link. A failed check warns and keeps the current build, as D15 requires.
+- **If no:** the operator names a held key. The admin VM role creates it in 1Password, the release job signs with it, and every bundle carries the public key that its self-update checks the next bundle with, which adds a rotation runbook.
 - **Reversible:** yes. A later release can add a held signature beside the attestation, since the installer checks whatever the manifest declares.
 
 ### D2. Does `tbhbdev host` retire without a port, and does `tbhbdev analytics` leave the bundle as its own Python tool, so the Python fallthrough can end?
 
 - **Recommendation:** yes.
-- **Why:** `host` is 2,395 lines that a memory note calls frozen until ops replaces it (unverified as current). `analytics` is 727 lines of PostgreSQL migrations with no tie to the launcher. Porting either costs more than it returns, and keeping either in the bundle keeps a Python interpreter in every install for good.
-- **If yes:** `host` stays in the fallthrough until ops ships its replacement, then goes. `analytics` moves to its own package with its own console script before plan step 8. The library-only modules stay in Python until their callers in other repositories move.
+- **Why:** `host` is 2,395 lines that a memory note calls frozen until ops replaces it (unverified as current). `analytics` is 727 lines of PostgreSQL migrations with no tie to the launcher. Porting either costs more than it returns, and keeping either in the bundle keeps a Python interpreter in every install for good. Neither speaks the agent protocol, so neither touches D14 or D16.
+- **If yes:** `host` stays in the fallthrough until ops ships its replacement, then goes. `analytics` moves to its own package with its own console script before plan step 9. The library-only modules stay in Python until their callers in other repositories move.
 - **If no:** `host` or `analytics` joins wave 3 as Go, about 2,400 or 700 more Python lines to port, or the bundle keeps the Python wheel with no end date.
 - **Reversible:** yes until the Python code is deleted, then only by restoring it from history.
 
@@ -38,11 +38,32 @@ Back to [the design](README.md).
 
 - **Recommendation:** yes.
 - **Why:** graph and the private ITSM repository add tools today through Python entry points in the `tbhbdev.plugins` group, and they need a way in once the fallthrough ends. Agent hooks run `tbhbdev` on every tool call, so what it may run is a trust boundary. gh dropped its `PATH` search six days after it shipped ([appendix B](B-gh-pitfalls.md#11-path-discovery-dropped-after-six-days)).
-- **If yes:** the front reads `$XDG_CONFIG_HOME/tbhbdev/plugins.toml` only when no bundle plugin matches. Each entry is a name and an absolute path, and a name that a built-in or bundle plugin uses is reported, never run.
+- **If yes:** the front reads `$XDG_CONFIG_HOME/tbhbdev/plugins.toml` only when no bundle plugin matches. Each entry is a name and an absolute path, and a name that a built-in or bundle plugin uses is reported, never run. Self-update replaces only the bundle, so listed plugins keep their own installs, and one whose contract version differs runs with a logged warning (D14).
 - **If no:** only the bundle's plugins run. graph and the ITSM repository ship their own commands under their own names once the fallthrough ends.
 - **Reversible:** yes. Removing the file read narrows the boundary again, and the entries just stop working.
 
 ## Decided
+
+### D16. The driver-host format is one versioned schema with a CI check
+
+- **Decided:** 2026-11-25, by the operator.
+- **Rule:** the run request and the run metadata are one schema file, `schemas/agent-protocol.json` in tools, with a version, and the driver and the host both validate against it. An additive change keeps the version. A breaking change bumps it, and the host keeps serving the previous version until the next bump, which waits until every listed machine serves the version it replaces. A CI job fails when the schema changes without a matching entry in `schemas/agent-protocol.decisions.toml`, as [appendix I](I-protocol.md#the-schema-version-check) specifies. The protocol version in D14 is this schema's version.
+- **Undo:** a new operator decision.
+- **Record:** the operator's decision of 2026-11-25, relayed with D14 and D15.
+
+### D15. tbhbdev updates itself at start when it's behind main
+
+- **Decided:** 2026-11-25, by the operator.
+- **Rule:** at start, a pure decision compares the build's commit with a cached main commit, kept at `$XDG_CACHE_HOME/tbhbdev/main.json` with a 10-minute time to live. When the build is behind, an I/O helper downloads the bundle beside the install, checks its SHA-256 hash and provenance, renames a whole versioned directory and then a link into place, and execs the new front. No failure refuses a run: a missing network, a bad hash, or a read-only install warns and runs the current build. `TBHBDEV_NO_SELF_UPDATE=1` turns it off. Event-driven sync stays the main path and writes the same cache. [Appendix J](J-self-update.md) has the details.
+- **Undo:** a new operator decision. Setting `TBHBDEV_NO_SELF_UPDATE=1` holds one machine.
+- **Record:** the operator's decision of 2026-11-25, relayed with D14 and D16.
+
+### D14. Drivers and hosts check a protocol version, never a build
+
+- **Decided:** 2026-11-25, by the operator, refining D6.
+- **Rule:** a driver and a host agree on a protocol version, the version of the D16 schema, and never compare build hashes. A build mismatch is a logged warning and never a refusal, and no version mismatch blocks a launch. This replaces the exact build match in `same_version`, and the transition in [appendix I](I-protocol.md#the-transition) refuses nothing with a Python driver and a Go host, with a Go driver and a Python host, or with mixed bundle versions.
+- **Undo:** a new operator decision.
+- **Record:** the operator's decision of 2026-11-25, relayed with D15 and D16.
 
 ### D13. Test time caps for Go
 
@@ -51,11 +72,11 @@ Back to [the design](README.md).
 - **Undo:** change the macros. Each target picks up the new limits on its next run.
 - **Record:** this design's pull request.
 
-### D12. The agent wire protocol stays frozen during the port
+### D12. The agent wire protocol stays frozen during the port (superseded)
 
-- **Decided:** 2026-11-25, by the tools maintainer role.
-- **Rule:** drivers send envelope `v` 1 with request `v` 2 until every host runs a bundle whose forced command points at the Go server. Later changes reach every host before any driver sends them.
-- **Undo:** two-way. A protocol change waits for the fleet, it doesn't break it.
+- **Decided:** 2026-11-25, by the tools maintainer role. Superseded the same day by D14 and D16.
+- **Rule:** none now. The protocol changes under the schema's version rules in D16, and drivers and hosts choose a common version per launch under D14, instead of freezing until every host runs Go.
+- **Undo:** not needed. D16's rules allow a freeze as a special case, since a release may make no breaking change.
 - **Record:** this design's pull request.
 
 ### D11. Pure and I/O packages are told apart by directory

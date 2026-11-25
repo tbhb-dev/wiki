@@ -10,7 +10,7 @@ parent: README.md
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
-<!-- cspell:words gazelle depguard golangci gobco gomutants govulncheck deadcode genquery buildinfo termio procexec statedir ghapi sshcall gochecknoglobals httptest gostd sgconfig deptry strconv lookpath -->
+<!-- cspell:words selfupdate flock gazelle depguard golangci gobco gomutants govulncheck deadcode genquery buildinfo termio procexec statedir ghapi sshcall gochecknoglobals httptest gostd sgconfig deptry strconv lookpath -->
 
 # tbhbdev Go port build and checks
 
@@ -28,9 +28,11 @@ tools/
   sgconfig.yml        ast-grep rule directories
   cmd/tbhbdev/                  the front, one-line main
   cmd/tbhbdev-<name>/           one plugin each, one-line main
+  cmd/tbhbdev-self-update/      the self-update helper, one-line main
   internal/<domain>/<topic>/    pure packages
   internal/<domain>/io/<name>/  I/O adapters, and io/app for wiring
-  bundle/                       the release archive and manifest targets
+  bundle/                       the release archive, manifest, and main.json pointer targets
+  schemas/agent-protocol.json   the protocol schema, with its decisions file and frozen versions
   src/tbhbdev/                  Python, as today
   tests/                        Python tests, with pytest_test moved here
   tests/agent-corpus/           request envelopes both languages test against
@@ -50,7 +52,7 @@ The port splits the inputs (D7):
 | ruff, vulture, complexipy, bandit, and deptry tests | `//tests` or `//src/tbhbdev` | The Python tree only |
 | Each `go_test` | its own package | That package's sources and its Go dependencies |
 | Whole-module Go checks | root | `go.mod`, `go.sum`, the lint configs, and the Go packages |
-| Corpus tests | `//tests/agent-corpus` | The corpus, plus the Python server or the Go server under test |
+| Corpus tests | `//tests/agent-corpus` | The corpus, the protocol schema, plus the Python server or the Go server under test |
 | Repository hygiene: gitleaks, REUSE, editorconfig, and formatting | root | The whole tree, as today |
 
 Two `genquery` targets list the source files under `//tests:pytest_test` and under every Go test, and a shell test fails if the first holds a `.go` file or the second holds a file under `src/tbhbdev`. No target named `all`, `everything`, or similar collects both languages.
@@ -70,6 +72,9 @@ With the inputs apart, a Go-only change leaves `pytest_test` with unchanged inpu
 | The front budget | Imports and size of `cmd/tbhbdev` | new |
 | Every binary stamped | Each bundle binary prints the bundle version for `--version` | new release test |
 | Contract | One test per contract variable, and no plugin exit code in 125 to 127 | new |
+| Protocol version | The `protocol-version` CI job compares the schema at the merge base with the head and requires a matching decision entry ([appendix I](I-protocol.md#the-schema-version-check)) | new, a tools CI job outside Bazel, since it needs the merge base |
+| Protocol corpus | Writers emit only schema-valid documents, both servers read each served version, and the Python and Go schema copies match byte for byte | new |
+| Self-update | `unit_go_test` tables for `selfupdate.Decide`, and an `io_go_test` that runs two swaps at once, prunes beside a held bundle, and feeds each failure in [appendix J](J-self-update.md#failures) | new |
 | Coverage and mutation | `gobco_test` at 100% branch coverage on pure packages, `gomutants_test` on changed functions | existing macros, as awrel runs them |
 | Module hygiene | `go_mod_tidy_test`, `go_deadcode_test`, `govulncheck_test` | existing macros, as awrel runs them |
 
@@ -80,7 +85,7 @@ Each new rule ships with a planted fixture that must fail it, run through `expec
 | Component | Paths | May import |
 | --- | --- | --- |
 | front | `cmd/tbhbdev` | `internal/dispatch/io/front` |
-| front wiring | `internal/dispatch/io/front` | `internal/dispatch`, `internal/buildinfo`, `internal/plugin` |
+| front wiring | `internal/dispatch/io/front` | `internal/dispatch`, `internal/buildinfo`, `internal/plugin`, `internal/selfupdate` |
 | plugin mains | `cmd/tbhbdev-*` | `internal/plugin/io/run`, the plugin's own `io/app` |
 | io | `internal/**/io/**` | io and pure packages |
 | pure | the rest of `internal/**` | pure packages only |
@@ -98,6 +103,7 @@ The rules live in tbhb-dev/rules for other Go repositories to use, behind an `as
 | `pure-no-io` | pure sources | `os.$F(...)`, `exec.$F(...)`, `net.$F(...)`, `http.$F(...)`, `time.Now()`, `time.Sleep(...)`, `time.After(...)`, `filepath.Glob/Walk/WalkDir/Abs/EvalSymlinks(...)` |
 | `unit-test-no-io` | `_test.go` in pure packages | All of the above, plus `t.TempDir()`, `t.Setenv(...)`, `httptest.$F(...)`, and `os.Getenv(...)` |
 | `front-no-lookpath` | `internal/dispatch/**` | `exec.LookPath(...)` and `os.Getenv("PATH")` |
+| `front-no-net` | `internal/dispatch/**` and `cmd/tbhbdev` | `net.$F(...)`, `http.$F(...)`, and any import of `internal/selfupdate/io/**` |
 | `one-http-client` | everywhere except `internal/ghapi/io/**` | `http.Client{...}` and `&http.Client{...}` |
 | `no-alpha` | all Go sources except `internal/dispatch` | the string literal `"alpha"`, so no Go code names an `alpha` command (D5) |
 
@@ -112,6 +118,6 @@ A `genquery` test fails on any `go_test` in the module that isn't one of those k
 
 ### The front budget
 
-- `go_arch_lint_test` keeps the front's imports to the three packages in the components table and the standard library.
+- `go_arch_lint_test` keeps the front's imports to the four packages in the components table and the standard library.
 - A size test fails if the stripped front binary grows past a budget set from the first build (new, value to be measured).
-- A test runs the front under a process counter and fails if it starts any process before its exec.
+- A test runs the front under a process counter and fails if it starts any process before its exec. The front's only reads are the manifest and the self-update cache, plus the shared lock on its bundle.

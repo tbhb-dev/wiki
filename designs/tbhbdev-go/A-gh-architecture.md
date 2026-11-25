@@ -92,7 +92,7 @@ The extension manager is the good counter-example. `manager.go:45` injects `look
 
 The update checker (`internal/update/update.go`) runs only in builds with the `updateable` tag, which the Homebrew formula sets. It checks at most once a day and never when output isn't a terminal.
 
-**For tbhbdev:** one stamp package for every binary, as awrel's `buildmeta` already does with Bazel `x_defs`, and a release test that each binary reports the bundle version. No update check on the dispatch path.
+**For tbhbdev:** one stamp package for every binary, as awrel's `buildmeta` already does with Bazel `x_defs`, and a release test that each binary reports the bundle version. The update check at start is one cache read and a pure decision, with any network work in a separate helper ([appendix J](J-self-update.md)).
 
 ## What this design copies and what it avoids
 
