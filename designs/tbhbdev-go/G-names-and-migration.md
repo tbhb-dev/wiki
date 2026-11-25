@@ -48,11 +48,16 @@ One file in the monorepo, `factory/tbhbdev/names.toml`, holds this map with the 
 | `alpha loop` | `loop` | `tbhbdev-loop` | 3 |
 | `alpha issue close`, `create`, `link-sub`, `unlink-sub`, `block`, `unblock` | `issue close`, `create`, `link-sub`, `unlink-sub`, `block`, `unblock` | `tbhbdev-issue` | 4 |
 | `issue import`, a top-level Python name | `issue import` | `tbhbdev-issue` | 4 |
+| `alpha issue close`, as a guarded transition | `issue close`, which moves an issue from In progress to Done only when every acceptance criterion has recorded evidence, records that evidence, and otherwise refuses | `tbhbdev-issue` | none yet |
 | `alpha brief new`, `check` | `brief new`, `check` | `tbhbdev-brief` | 4 |
 | `alpha install` | `install` | `tbhbdev-install` | 4 |
 | `alpha version-check` | `install check` | `tbhbdev-install` | 4 |
 
-Issue status is set only by the issue commands, through a state machine in code that refuses a disallowed transition, and only one agent run works on an issue at a time (decided by the operator).
+Issue status is set only by the issue commands, through a state machine in code that refuses a disallowed transition, and only one agent run works on an issue at a time (decided by tbhb).
+
+The body check in `pr check` adds one rule:
+
+- **No closing keywords.** It fails on `close`, `closes`, `closed`, `fix`, `fixes`, `fixed`, `resolve`, `resolves`, or `resolved` followed by an issue reference. A pull request writes `Refs: #N` when it contributes to an issue and `Completes: #N` when it finishes one, and the reviewer checks a `Completes:` against the issue's acceptance criteria (decided by tbhb).
 
 The top-level names `admin`, `secret`, `adr`, `agy`, and `issue` keep their names and port in wave 4 ([appendix H](H-waves.md)). `cue` does not port, since Go runs no `cue` binary (D20), and `analytics` and `host` follow D2.
 
@@ -88,9 +93,9 @@ It writes nothing to standard output or standard error, because hooks speak thro
 | Git hooks | Each repository's hooks, installed by `tbhbdev alpha install` | `identity`, `pre-push-guard` | The same installer step |
 | The forced command | Each host's authorized keys | `alpha agent ssh-serve` | The ops maintainer, host by host, in phase 3 ([appendix I](I-protocol.md#the-transition)) |
 | Brief templates | `tbhbdev alpha brief new` in tools | `alpha pr check`, `alpha merge`, `alpha agent exec` | The tools maintainer, in the change after the forwarder ships |
-| Briefs and prompts that roles write | agent-config | any | The agent-config maintainer, one pull request per wave |
+| Briefs and prompts that sessions write | agent-config | any | The agent-config maintainer, one pull request per wave |
 | Repository docs | `AGENTS.md`, runbooks, and designs in each repository, such as this wiki's `AGENTS.md` naming `tbhbdev alpha install` | any | Each repository's maintainer, one pull request per wave |
-| Scripts | Operator scripts in `~/.local/libexec/tbhb` and the ops sync scripts | `version-check`, `gh-app`, `agent` | The ops maintainer |
+| Scripts | tbhb's scripts in `~/.local/libexec/tbhb` and the ops sync scripts | `version-check`, `gh-app`, `agent` | The ops maintainer |
 
 For each command, in order:
 

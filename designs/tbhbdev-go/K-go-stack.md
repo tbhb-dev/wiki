@@ -16,7 +16,7 @@ parent: README.md
 
 Back to [the design](README.md).
 
-Everything here is new unless it names an existing file. The operator chose the libraries on 2026-11-25 (D18, D20, and D24), and [appendix D](D-evidence.md#the-go-stack) cites the existing behavior. Every Go path here sits under `factory/tbhbdev` in tbhb-dev/tbhbdev (D27).
+Everything here is new unless it names an existing file. tbhb chose the libraries on 2026-11-25 (D18, D20, and D24), and [appendix D](D-evidence.md#the-go-stack) cites the existing behavior. Every Go path here sits under `factory/tbhbdev` in tbhb-dev/tbhbdev (D27).
 
 ## The libraries
 
@@ -131,7 +131,7 @@ An `io_go_test` runs a plugin binary with `CUE_DEBUG` and `CUE_EXPERIMENT` set t
 
 ## GitHub with go-github
 
-The operator chose the client stack on 2026-11-25, on a research report into Go GitHub clients (D24).
+tbhb chose the client stack on 2026-11-25, on a research report into Go GitHub clients (D24).
 
 - **One package imports it.** Only packages under `internal/ghapi` import go-github. The rest of the code sees narrow one-method interfaces and plain result types from `internal/ghapi`, so a go-github major bump edits one directory.
 - **One client.** `internal/ghapi/io/client` builds the client with an injected transport, token, User-Agent, and timeout, using only the constructor options that exist in both v93 and go-github's main branch: `WithTransport`, `WithAuthToken`, `WithUserAgent`, and `WithTimeout`. Tests inject a transport that matches fakes by request content.

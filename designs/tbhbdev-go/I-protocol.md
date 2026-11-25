@@ -151,8 +151,8 @@ A Python release in tools replaces `same_version` and tools#400's `version_heal`
 
 Builds already installed still refuse any host whose build differs, and no release can change code that is already installed. An install order cannot fix that, because a sync-once retry from an old driver still ends in the exact match. So phase 1 ends with a rollout barrier, run once by the ops maintainer:
 
-1. **Pause.** Launches stop. The coordination loop and every role that drives launches hold new `agent exec` calls, and runs already started finish.
-2. **Sync.** The ops maintainer syncs every listed machine to the phase 1 release, or any later build, in one operator-run event.
+1. **Pause.** Launches stop. The coordination loop and every session that drives launches hold new `agent exec` calls, and runs already started finish.
+2. **Sync.** The ops maintainer syncs every listed machine to the phase 1 release, or any later build, in one event that tbhb starts.
 3. **Fence.** A machine the sync could not reach leaves the fleet list. The ops maintainer removes it from the hosts that drivers launch on, stops the sessions that drive launches from it, and removes its driver key from every host's authorized keys, so it is neither a driver nor a host.
 4. **Check and resume.** `tbhbdev alpha version-check` shows every listed machine on phase 1 or later and none older. The barrier record lists each machine and its build, and each fenced machine. Launches then resume.
 

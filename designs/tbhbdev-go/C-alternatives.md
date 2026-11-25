@@ -18,7 +18,7 @@ Back to [the design](README.md).
 
 ## Finish the Python pure-core refactor
 
-Keep tbhbdev in Python and finish moving decisions out of input/output (I/O) modules. The operator stopped that work in favor of the port (D4). The refactor's finished pieces still help, because a pure Python function with plain-data tests ports almost line for line ([appendix H](H-waves.md)).
+Keep tbhbdev in Python and finish moving decisions out of input/output (I/O) modules. tbhb stopped that work in favor of the port (D4). The refactor's finished pieces still help, because a pure Python function with plain-data tests ports almost line for line ([appendix H](H-waves.md)).
 
 ## One Go binary with every command
 
@@ -74,11 +74,11 @@ Check for updates while the command runs and swap afterward. gh learned that exi
 
 ## The fallthrough found on PATH
 
-Have the front run a `tbhbdev-py` it finds on `PATH`, as the outline proposed. A `tbhbdev-py` found that way could come from a different tools commit than the bundle pins, or from an old uv install beside it. The operator chose the same entry point in the front's own folder instead, run by absolute path (D25).
+Have the front run a `tbhbdev-py` it finds on `PATH`, as the outline proposed. A `tbhbdev-py` found that way could come from a different tools commit than the bundle pins, or from an old uv install beside it. tbhb chose the same entry point in the front's own folder instead, run by absolute path (D25).
 
 ## The bundled interpreter as `python3 -m tbhbdev`
 
-Have the front run `py/bin/python3 -m tbhbdev` by absolute path, as an earlier draft of this design did. It avoids a script's first line, but the operator chose the `tbhbdev-py` entry point in the front's own folder (D25). That keeps every route the front takes a file in `bin/`, and the relocatable environment keeps the script's first line valid after the rename.
+Have the front run `py/bin/python3 -m tbhbdev` by absolute path, as an earlier draft of this design did. It avoids a script's first line, but tbhb chose the `tbhbdev-py` entry point in the front's own folder (D25). That keeps every route the front takes a file in `bin/`, and the relocatable environment keeps the script's first line valid after the rename.
 
 ## A Go bridge to Python `alpha` commands
 
@@ -86,7 +86,7 @@ Have Go code run `tbhbdev alpha` commands as subprocesses until they port, as th
 
 ## The launcher first
 
-Port the launcher in wave 1, as the first draft did, because its `decisions/` package is already pure. The launcher works today, while the review tooling is the part still unbuilt, so the operator put review first (D17). Building the unbuilt review pieces in Go also keeps them out of Python code that the port would replace.
+Port the launcher in wave 1, as the first draft did, because its `decisions/` package is already pure. The launcher works today, while the review tooling is the part still unbuilt, so tbhb put review first (D17). Building the unbuilt review pieces in Go also keeps them out of Python code that the port would replace.
 
 ## Cobra in the front
 
@@ -106,7 +106,7 @@ Let the Go plugins answer to `alpha` names as aliases. That keeps two names aliv
 
 ## The Go code in tools
 
-Build the Go module in tools beside the Python, as an earlier draft of this design decided in D8, so one tools commit holds both. The operator chose the monorepo tbhb-dev/tbhbdev instead (D22). One monorepo commit still builds one bundle, because it pins the tools commit of its wheel, and byte checks against that commit keep the shared schemas from drifting.
+Build the Go module in tools beside the Python, as an earlier draft of this design decided in D8, so one tools commit holds both. tbhb chose the monorepo tbhb-dev/tbhbdev instead (D22). One monorepo commit still builds one bundle, because it pins the tools commit of its wheel, and byte checks against that commit keep the shared schemas from drifting.
 
 ## A Go workspace with many modules
 

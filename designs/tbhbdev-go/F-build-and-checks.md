@@ -18,7 +18,7 @@ Back to [the design](README.md).
 
 ## Layout
 
-The Go port lives in the monorepo tbhb-dev/tbhbdev (D22). The monorepo session owns its root and its general scaffolding. The CLI's tree sits under `factory/tbhbdev`, the folder the operator chose (D27). `factory/` is flat, with no role folders.
+The Go port lives in the monorepo tbhb-dev/tbhbdev (D22). The monorepo session owns its root and its general scaffolding. The CLI's tree sits under `factory/tbhbdev`, the folder tbhb chose (D27). `factory/` is flat, with no grouping folders.
 
 ```text
 tbhb-dev/tbhbdev/
@@ -52,7 +52,7 @@ With the Go code in its own repository, a Go change never starts the tools suite
 
 | Target | Repository and package | Inputs |
 | --- | --- | --- |
-| `pytest_test` and the Python linters | tools, as today | The Python tree. Splitting `:repo_files` is the CI speed role's call, and no longer part of this port |
+| `pytest_test` and the Python linters | tools, as today | The Python tree. Splitting `:repo_files` is separate CI speed work for tbhb-agent, and no longer part of this port |
 | Each `go_test` | tbhbdev, its own package under `factory/tbhbdev` | That package's sources and its Go dependencies |
 | Whole-module Go checks | tbhbdev root | `go.mod`, `go.sum`, the lint configs, and the Go packages |
 | Schema copy checks | tbhbdev, `//factory/tbhbdev/internal/schemas` and `//factory/tbhbdev/internal/agent/protocol` | The embedded copies and the same files from the pinned tools commit |
@@ -66,7 +66,7 @@ The pinned tools commit is a Bazel repository in `MODULE.bazel`, so the copy che
 | Check | Rule | Source |
 | --- | --- | --- |
 | Pull request size | 400 added code lines and 1,500 raw lines, Go tests included, Markdown exempt | existing: rules `lint/private/pr_size.sh.tpl`, run by the rules `repo-checks.yml` |
-| Operator gate paths | A job labels a pull request `operator-gate` when it changes one of the three gated paths in D19, and only then | new, a monorepo CI job outside Bazel, since it reads the pull request's changed paths |
+| tbhb gate paths | A job labels a pull request `tbhb-gate` when it changes one of the three gated paths in D19, and only then | new, a monorepo CI job outside Bazel, since it reads the pull request's changed paths |
 | Import direction | `go_arch_lint_test` with the components below | existing macro in rules `go/defs.bzl`, new config |
 | Standard-library bans | depguard through the golangci-lint aspect | existing factory in rules `go/defs.bzl`, new lists |
 | No package globals | `gochecknoglobals`, with one exception in `internal/buildinfo` | existing linter, as in awrel's `buildmeta` |
@@ -122,7 +122,7 @@ gazelle's `map_kind` directive makes every generated `go_test` one of two kinds 
 - **`unit_go_test`**, in pure packages: `size = "small"` and `args = ["-test.timeout=10s"]`, so a unit test target fails past 10 seconds. These tests take plain values and use no fakes.
 - **`io_go_test`**, under `io/`: `size = "medium"`, so Bazel stops it at 300 seconds. These tests run real tools in a temporary root with a scrubbed environment from one helper, and match fakes by request content.
 
-A `genquery` test fails on any `go_test` in the module that is not one of those kinds, or that sets its own `timeout`. With the targets in parallel, the Go suite's wall time stays under 5 minutes, and the CI speed role tracks it across repositories.
+A `genquery` test fails on any `go_test` in the module that is not one of those kinds, or that sets its own `timeout`. With the targets in parallel, the Go suite's wall time stays under 5 minutes, and tbhb-agent tracks it across repositories as separate CI speed work.
 
 ### The front budget
 
