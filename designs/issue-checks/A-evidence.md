@@ -27,8 +27,12 @@ Each claim carries one label. **Proven** means a test run or merged pull request
 | GitHub REST rate limits cap content-creating requests at 80 per minute and 500 per hour | existing | [GitHub Docs, Rate limits for the REST API](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api) |
 | Any user or token with `issues: write` or triage permission on a repository can add or remove any label through the REST or GraphQL API, because GitHub offers no per-label write ACL | existing | [GitHub Docs, Manage labels](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/managing-labels) |
 | An environment branch policy restricted to `main` denies non-default branch runs before assigning a runner or exposing secrets | proven | [Renovate auto-approval environment probe](../renovate-auto-approval/A-evidence.md#the-environment-probe) |
+| GitHub Actions supports `repository_dispatch`, `workflow_dispatch`, and `schedule` as workflow triggers | existing | [GitHub Docs, Events that trigger workflows](https://docs.github.com/en/actions/writing-workflows/choosing-when-your-workflow-runs/events-that-trigger-workflows) |
 | GitHub Projects v2 exposes no synchronous pre-move hook that rejects an invalid board drag before the field value changes | unverified | Checked in plan step 5 |
-| Round-trip latency (estimated at 2 to 5 seconds from a direct gateway worker or 10 to 30 seconds via Stage 1 `repository_dispatch`) for `tbhb-dev/event-gateway` to receive a `projects_v2_item` webhook and revert a field value via GraphQL | unverified | Measured in plan step 5 |
+| The board guard moves an invalid card back an estimated 10 to 30 seconds after the drag, counting the `projects_v2_item` webhook, the gateway's `repository_dispatch`, and the GraphQL write | unverified | Measured in plan step 5 |
+| The gap between the board guard's live read and its `updateProjectV2ItemFieldValue` write is under a second | unverified | Measured in plan step 5 |
+| The GitHub API reports the last editor of an issue comment, so a reader can require that the checks app both wrote and last edited the findings comment | unverified | Checked in plan step 4 |
+| A batch Chore that records an issue's link leaves a `cross-referenced` event on that issue's timeline, including across repositories | unverified | Checked in plan step 4 |
 
 ## Schemas and templates in pm
 
@@ -41,6 +45,8 @@ Read from `tbhb-dev/pm` at commit `3d56b04` on `main` and commit `8603321` (`tbh
 | List items in Acceptance criteria, Verification, and Defect Reproduction use one-based prefixed identifiers (`AC1:`, `V1:`, `S1:`) checked by `#_PrefixedList` in `schemas/issue-sections.cue` | existing | `schemas/issue-sections.cue` and `docs/issue-templates.md` in `tbhb-dev/pm` at `8603321` |
 | Each variant loads alongside `core.cue`, `taxonomy.cue`, and `issue.cue` from `tbhb-dev/tools` because every variant defines `#Variant` in package `content` | existing | `docs/issue-templates.md` in `tbhb-dev/pm` and [pm content model](../pm/A-content-model.md#the-files) |
 | Seven deliberate mutations of a feature issue each fail `cue vet` on the normalized block model with the expected finding | proven | [pm content model](../pm/A-content-model.md#the-block-model) |
+| The Defect variant rejects the placeholder reproduction paragraph `Find a reproduction and add it here.` | unverified | Reported in review of this design, checked in plan step 2 |
+| The Definition of Ready allows that placeholder only on an issue with Status `Needs info` or a staged item with a `needs-info` outcome | existing | [Definition of Ready](../issue-refinement/B-definition-of-ready.md#no-procedure) |
 | `Out of scope` is required in every work issue type and records a deliberate decision, where a single `None.` item is valid when nothing is excluded | new | [tbhb-dev/wiki#194](https://github.com/tbhb-dev/wiki/pull/194) at commit `60b35f3`, amending [Definition of Ready](../issue-refinement/B-definition-of-ready.md#readiness-checks) |
 
 ## Content kernel and command-line tool in tools
@@ -54,12 +60,16 @@ Read from `tbhb-dev/tools` at commit `c23b698` (`tbhb-dev/tools#394`):
 | `tbhbdev.content` runs the gitleaks secret scan and private-detail checks before writing to GitHub, and exposes `create_issue`, `link_sub_issue`, `link_dependency`, and `add_to_project` | existing | `src/tbhbdev/content.py` in `tbhb-dev/tools` at `c23b698` |
 | `tbhbdev alpha issue create` in `src/tbhbdev/alpha/close.py` requires an active agent session trailer, calls `validate_issue()` synchronously, and refuses any body with findings before calling `content.create_issue` | existing | `src/tbhbdev/alpha/close.py` in `tbhb-dev/tools` at `c23b698` |
 | `tbhbdev alpha agent exec` launches supervised headless agent runs by host, repository, model, effort, profile, and role | existing | `src/tbhbdev/alpha/agent/driver.py` in `tbhb-dev/tools` at `c23b698` |
-| Adding `--draft` to `tbhbdev alpha issue create` and `edit` (plan step 3) and blocking builder runs in `tbhbdev alpha agent exec` after the backfill when `check:passing` is absent or does not match the live issue body (plan step 5) | new | Proposed in this design, plan steps 3 and 5 |
+| Adding `--draft` to `tbhbdev alpha issue create` and `edit`, applying labels as the last filing write, and computing the input digest over the title, the body, and every other validated input | new | Proposed in this design, plan step 3 |
+| Refusing builder runs in `tbhbdev alpha agent exec` when `check:passing` is absent, a draft-status label is present, or the check record's `inputs_sha256` differs from the live issue | new | Proposed in this design, plan step 6, after the backfill in step 4 |
 
 ## Import and event gateway designs
 
 | Claim | Label | Source |
 | --- | --- | --- |
+| The tracker import vets each staged item against its destination schema and the Vale pass before the kernel creates it, by operator decision of 2026-11-23 | existing | [pm decision D11](../pm/decisions.md#d11-which-issue-types-does-the-tracker-import-create) and [tracker import](../pm/E-import.md#staging-and-refinement) |
+| On the batch Chore, the kernel records each created issue's link and vetted body hash beside its staging result | existing | [Tracker import review and creation](../pm/E-import.md#review-and-creation) |
+| Only the sync job writes the organization issue field for Status, and a staging result counts as a current record after a passing batch review and a match on the issue link and body hash | existing | [Status transitions](../issue-refinement/D-status-transitions.md#transition-order) |
 | The staged tracker import holds 784 drafts, and 247 of them carry front-matter `status: Unverified` or `status: Needs info` across Chores, Defects, Features, Problems, Tasks, Epics, Research, and Spikes | existing | Operator direction of 2026-11-25 and [tracker import](../pm/E-import.md) |
 | Tracker import and refinement runs share a write budget of at most 200 writes per hour and 20 per minute | existing | [Tracker import throttling](../pm/E-import.md#throttling) |
 | `tbhb-dev/event-gateway` receives the organization GitHub webhook, verifies the Hash-based Message Authentication Code (HMAC) signature with `SHA-256`, stores events in NATS JetStream, and routes matching events to targets | existing | [Event gateway design](../event-gateway/README.md) |
