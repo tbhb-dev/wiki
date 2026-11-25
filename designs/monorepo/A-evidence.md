@@ -1,0 +1,135 @@
+---
+type: Design Appendix
+title: One public monorepo for the factory evidence
+description: What the repository reads, counts, docs, and the brief show for the monorepo design, each labeled proven, existing, new, or unverified.
+tags: [monorepo, evidence, design]
+status: draft
+parent: README.md
+---
+
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<!-- Copyright Tony Burns -->
+
+<!-- cspell:words monorepo gpgsig bzlmod xdist gomodscan promisor kexts evals avirt afenc hardlinks inodes determinator -->
+
+# One public monorepo for the factory evidence
+
+Back to [the design](README.md).
+
+Labels: **proven** means a read or count run on 2026-11-25 against each repository's `origin/main` in the clones on one agent host, **existing** means a file or record at the named place, **per docs** means the vendor's documentation as read on 2026-11-25, **new** means this design proposes it, and **unverified** means nobody checked it. "The brief says" marks facts from the task brief that this pass didn't re-read.
+
+The clones were fetched at different times, and the rules clone's `origin/main` dates from 2026-11-23. This pass had no access to the GitHub API, so it read no live ruleset, App installation, workflow run, or billing figure.
+
+## Change counts
+
+Each row counts first-parent commits on `origin/main` from 2026-10-28 to 2026-11-25 (proven). "Dependency" counts subjects that start with `chore(deps)` or `fix(deps)`. "First-party pin" counts dependency subjects that name the rules, the Renovate presets, the tools, or the grouped `pins` update.
+
+| Repository | Landed | Dependency | First-party pin |
+| --- | --- | --- | --- |
+| ops | 363 | 51 | 19 |
+| rules | 306 | 119 | 15 |
+| tools | 304 | 28 | 19 |
+| agent-config | 124 | 11 | 7 |
+| wiki | 112 | 36 | 26 |
+| agent-memories | 76 | 17 | 13 |
+| renovate-config | 73 | 27 | 23 |
+| design | 58 | 34 | 23 |
+| agent-capacity | 55 | 15 | 7 |
+| spikes | 50 | 31 | 23 |
+| research | 43 | 26 | 21 |
+| dotfiles | 36 | 6 | 4 |
+| evals | 28 | 16 | 13 |
+| sm | 27 | 1 | 1 |
+| telemetry | 15 | 1 | 0 |
+| dashboard | 13 | 1 | 1 |
+| runner-smoke | 11 | 5 | 1 |
+| event-gateway | 8 | 0 | 0 |
+| pm | 8 | 1 | 0 |
+| **In scope, 19 repositories** | **1,710** | **426** | **216** |
+
+That's about 428 landings a week and 61 a day. Dependency updates are 25% of them, about 107 a week. The first-party pin column is an upper bound of about 54 a week, because the grouped `pins` update also carries third-party digests.
+
+The work repository and the graph repository weren't in the host's clones, so they have no row (unverified). The repositories were about three weeks old on 2026-11-25, so the window covers nearly their whole lives.
+
+| Other repository | Landed | Dependency | First-party pin |
+| --- | --- | --- | --- |
+| awrel | 112 | 42 | 36 |
+| bazel-r2-cache | 76 | 33 | 28 |
+| github-metrics | 67 | 6 | 3 |
+| ascm | 62 | 33 | 30 |
+| afakt | 60 | 30 | 22 |
+| avirt | 57 | 35 | 28 |
+| go.tbhb.dev | 55 | 27 | 21 |
+| gomodscan | 54 | 39 | 26 |
+| afenc | 52 | 29 | 24 |
+
+In 14 of the in-scope repositories, 200 landed dependency updates named a third-party package, and they had 144 distinct subjects (proven). The same update landed in more than one repository 56 times.
+
+## Size and duplication
+
+| Claim | Label | Source |
+| --- | --- | --- |
+| The in-scope repositories hold about 5,100 tracked files and 23 MB, with about 30 MB of Git data | proven | `git ls-files` and `git count-objects` per clone |
+| Nearly every repository carries the same 16 or so root configuration files, such as `.bazelrc`, `MODULE.bazel`, `.gitleaks.toml`, `.vale.ini`, and `renovate.json5` | proven | root listings of 16 repositories |
+| 16 in-scope repositories hold 61 workflow files, and ops, agent-config, and agent-memories hold 11 more | proven | `git ls-tree` on `.github/workflows` |
+| Consumers pin the rules by full commit hash and sat on seven different rules commits | proven | each repository's `MODULE.bazel` and workflow pins |
+| 24 repositories call the rules' reusable `repo-checks` workflow | proven | search of the clones |
+| The Renovate caller runs hourly on weekdays and every two hours on weekends, about 144 runs a week for each repository | existing | the Renovate presets' reusable workflow |
+| Tools has one build file, one `pytest_test` target over the whole tree with `timeout = "long"`, 206 Python files, about 105,000 lines, and no Go | proven | tools at `origin/main`, commit da15405 |
+| A tools queue pass takes about 1,400 seconds | existing | the [merge queue design's evidence](../merge-queue/A-evidence.md), which cites its brief |
+| afakt and awrel generate Go build files with gazelle 0.54.0 and `rules_go` 0.65.0, and CI checks them with `//:gazelle -mode=diff`. No repository uses gazelle's Python plugin | proven | their `MODULE.bazel`, `BUILD.bazel`, and the `repo-checks` workflow |
+| Every commit in the in-scope repositories carries a signature header, except one commit in dotfiles and one in runner-smoke | proven | `gpgsig` headers counted with `git cat-file --batch` |
+
+## Rules, review, and CI today
+
+| Claim | Label | Source |
+| --- | --- | --- |
+| The size check fails a pull request that adds more than 400 code lines or 1,500 raw lines. No label raises it, and a repository's first pull request and Renovate are exempt | existing | the rules repository's actions README |
+| The review tiers are in the wiki's first decision record. The rules repository's `AGENTS.md` has no tier table, though the brief points there | existing | `adrs/0001`, and a read of the rules clone |
+| No test time cap is written down. The nearest is Bazel's `medium` timeout of 300 seconds | proven | search of the rules clone and the wiki |
+| The `pytest_test` macro enforces 100% branch coverage inside one target, and consumers can't change it | existing | the rules' Python module |
+| The rules' main ruleset requires signatures, a pull request with one approval, merge commits only, and a `conclusion` check pinned to GitHub Actions. It has no bypass actors | existing | the checked-in ruleset file |
+| Tools' CI runs on `merge_group`, reads a main-only `cache` environment, uses the shared remote cache, and runs `bazelisk test --config=ci //...` on a standard hosted runner | proven | tools' `ci.yml` at `origin/main` |
+| Reusable workflows send private repositories to a self-hosted runner label, and public ones to hosted runners, because the private runner groups don't take public repositories | existing | the rules' reusable workflows |
+| The remote cache has token roles for reading, for `main`, for pull requests in their own namespace, for trusted build hosts, and for end-to-end tests | existing | the remote cache repository's docs |
+| The wiki's tier 0 workflow calls a reusable workflow in the rules repository, with path lists for auto-approval and for denial | existing | this repository's `.github/workflows/tier0-approval.yml` |
+| No design for the Go port exists in this repository or in any clone on the host | proven | search of designs, branches, and clones |
+| No per-repository table of App permissions exists in the clones | unverified | search of the clones; the live installations weren't read |
+| CI minutes and run counts per repository | unverified | no record found; plan step 1 measures them |
+
+## Agent runs today
+
+| Claim | Label | Source |
+| --- | --- | --- |
+| `tbhbdev alpha agent exec` keeps one bare mirror per host and repository, and copies a full clone from it for each run with `git clone --no-local --no-hardlinks`. It doesn't use `git worktree` | proven | tools' `alpha/agent/worktree.py` at `origin/main` |
+| The copy is deliberate: the code says a copying transport avoids shared object inodes and readable alternates | existing | the same file |
+| Cleanup is a manual command, and nothing prunes the mirror | proven | the same package |
+| One agent host holds 297 run directories under the tools clone and 598 Bazel output bases, on a disk that is 76% full | proven | directory counts and `df` on that host |
+| The launcher sets no output base and no disk cache, so each run clone gets its own output base | proven | the launcher and tools' `.bazelrc` |
+| The brief describes the current state as a worktree per run from a host clone | the brief says | task brief; the code differs, as the first row shows |
+
+## Vendor facts
+
+| Claim | Label | Source |
+| --- | --- | --- |
+| The merge queue rule is available on public repositories under the Team plan and refused on private ones | existing | the merge queue design's evidence |
+| Push rulesets, including file path restrictions, apply to private and internal repositories only | per docs | GitHub's ruleset docs |
+| Standard hosted runners are free on public repositories, larger runners always bill, and the Team plan includes 3,000 minutes a month for private repositories | per docs | GitHub's billing docs |
+| An issue transfers only between repositories of one owner, and never from a private repository to a public one | per docs | GitHub's issue docs |
+| A reusable workflow must sit in `.github/workflows` at a repository's root | per docs | GitHub's workflow docs |
+| `git sparse-checkout` in cone mode always includes files at the root and keeps its settings per worktree | per docs | Git's `sparse-checkout` docs |
+| `git backfill` fetches missing blobs in batches and is marked experimental. The host has Git 2.54 | per docs, proven | Git's `backfill` docs and `git --version` |
+| Bazel derives a workspace's output base from its path, and the repository cache is shared across workspaces | per docs | Bazel's output directory and external dependency docs |
+| VFS for Git is in maintenance mode, never shipped for macOS, and its maintainers point to Scalar. Scalar ships with Git | per docs | the VFS for Git repository and Git's `scalar` docs |
+| `bazel-diff` hashes targets per revision and compares two hash files. `target-determinator` compares configured targets across two revisions | per docs | each project's README |
+
+## What plan step 2 must prove
+
+These six items are unverified, and the design depends on each:
+
+1. The rules' own tests pass from the monorepo root as `@tbhb_rules` targets, or need a second Bazel invocation inside the nested workspace.
+2. `--override_module` on the command line replaces a `local_path_override` in the root `MODULE.bazel`, so the companion can replace the stub.
+3. `bazel-diff` gives correct affected targets under bzlmod with nested local modules, and its hashes survive a round trip through the remote cache.
+4. Gazelle and Bazel behave in a cone-mode sparse worktree: no wrong build file edits, and a clear error for a missing package.
+5. GitHub's signature rule accepts a pull request that carries imported, already-signed history.
+6. A worktree from a partial bare mirror fetches its missing blobs in one batch, and a reused worktree path gets a warm Bazel output base.
