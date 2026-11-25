@@ -38,7 +38,7 @@ One gate applies to the port and to nothing else here. A Go port pull request fo
 
 | Wave | What lands | Why here |
 | --- | --- | --- |
-| 0 | The scaffolding of both repositories | The shared roots, the inline CI workflow, the rulesets, a folder and `README.md` for every planned project, the tier 2 path map, the area labels, and the two Projects exist before any code |
+| 0 | The scaffolding of both repositories | The shared roots, the inline CI workflow, the rulesets, a folder, a `README.md`, and an `OWNERS` file for every planned project, the tier 2 path map, the area labels, and the two Projects exist before any code |
 | 1 | renovate-config | Renovate arrives with it: the presets, the root `renovate.json5`, and the root Renovate workflow. Every later import's dependencies are then kept current from its first day |
 | 2 | rules | Everything else loads them, and the lint gates arrive with them. After this wave an imported project reads the rules from the tree |
 | 3 | tools | The import tool, the launcher, and the review tool live here, and the later waves use them from the monorepo |

@@ -30,7 +30,7 @@ Back to [the design](README.md).
 
 - **Recommendation:** yes.
 - **Why:** a GitHub App's permissions apply to a whole repository (per docs). Today an App installed on only some repositories can't touch the others, and one repository removes that limit. Push rules that restrict file paths don't exist for public repositories (per docs).
-- **If yes:** path limits rest on the main ruleset: the `conclusion` check, and an independent approval at the tier the changed paths set ([appendix C](C-layout-and-ownership.md#approval-is-separation-of-duties)). An agent can still push a branch that touches any path, and it can't merge one without both.
+- **If yes:** path limits rest on the main ruleset: the `conclusion` check, and an independent approval at the tier the changed paths set ([appendix C](C-layout-and-ownership.md#separation-of-duties)). An agent can still push a branch that touches any path, and it can't merge one without both.
 - **If no:** sensitive folders, such as agent configuration and ops, stay in their own repositories, and the pins between them stay.
 - **Reversible:** yes, by extracting a folder to its own repository.
 
@@ -47,7 +47,7 @@ Back to [the design](README.md).
 - **Recommendation:** yes, once each for ops, agent-config, agent-memories, and sm.
 - **Why:** publication is a one-way door. Each import is one copy commit with no history, so the operator reads a file list and a scan report instead of a history.
 - **If yes:** the import tool writes the report on a host that holds the private-name list, and the push waits for the sign-off in the companion. The report lists every public file, every finding, and every file held back.
-- **If no:** the two tier 2 review runs on the import pull request read the report in the operator's place, and the operator learns of a leak after the fact.
+- **If no:** the two tier 2 review runs that `tbhb-agent` starts on the import pull request read the report in the operator's place, and the operator learns of a leak after the fact.
 - **Reversible:** no. A pushed commit counts as published even when it's deleted later.
 
 ### D6. May the public repository hold the private-name list as an Actions secret?
@@ -108,6 +108,13 @@ Back to [the design](README.md).
 
 ## Decided
 
+### D33. Project records live in each project's own docs folder, and a record pull request takes a lighter CI lane
+
+- **Decided:** 2026-11-25, by the operator.
+- **Rule:** needs, requirements, and knowledge articles live in each project's own `docs/` folder, such as `factory/tbhbdev/docs/needs`, `factory/tbhbdev/docs/requirements`, and `factory/tbhbdev/docs/kb`, and not in the top-level `docs/`. A pull request whose diff touches only those paths is a record pull request, and a path check decides that. It runs only the Bazel record-check targets of the projects it touches, not the full build and test. Any other file in the diff, or a change to a check's definition, sends it through the full lane. `conclusion` stays the one required check, and the rulesets don't change ([appendix F](F-ci.md#the-record-lane)).
+- **Undo:** remove the path check from the workflow, and every pull request takes the full lane again.
+- **Record:** the third fix brief for this design's pull request, 2026-11-25.
+
 ### D32. Issues follow five rules that the issue commands enforce
 
 - **Decided:** 2026-11-25, by the operator.
@@ -122,17 +129,17 @@ Back to [the design](README.md).
 - **Undo:** amend the decision record by a tier 2 pull request.
 - **Record:** `adrs/0001-the-changed-paths-and-content-set-the-review-tier.md`, and the second fix brief for this design's pull request, 2026-11-25.
 
-### D30. Approval is separation of duties, and no file names an owner
+### D30. tbhb-dev runs on separation of duties, and an identity or an App carries out each duty
 
-- **Decided:** 2026-11-25, by the operator.
-- **Rule:** no mechanism lists a person, an account, a team, or a run as the owner or approver of a path, and any agent may change any path. The author never approves their own change. The reviewer is independent of the author, with a fresh context and, for an agent-built change, another provider. A verdict covers only the exact head it judged, review weight follows the tier of the changed paths, and a merge needs the checks plus the required independent approval. The monorepo has no `OWNERS` files, no `CODEOWNERS` file, no roles table, no identity-matching check, and no categories of project.
-- **Undo:** add owner files and a required check for them by a tier 2 pull request.
-- **Record:** the second fix brief for this design's pull request, 2026-11-25.
+- **Decided:** 2026-11-25, by the operator. The identities and the `OWNERS` files are the operator's later ruling of the same day, which replaced the second fix round's wording that dropped every owner file.
+- **Rule:** build, review, approve, and merge stay apart in every change. There are two identities, `tbhb` and `tbhb-agent`, plus the GitHub Apps, and the design states which of them carries out each duty ([appendix C](C-layout-and-ownership.md#separation-of-duties)). The author never approves their own change. The reviewer is independent of the author, with a fresh context and, for an agent-built change, another provider. A verdict covers only the exact head it judged, review weight follows the tier of the changed paths, and a merge needs the checks plus the required independent approval. Each project's `OWNERS` file names its owners as identities and describes the project: what it is and what it depends on. An `OWNERS` file grants no approval, any agent run may change any path, and the monorepo has no `CODEOWNERS` file and no categories of project.
+- **Undo:** change the duty table or the `OWNERS` test by a tier 2 pull request.
+- **Record:** the second and third fix briefs for this design's pull request, 2026-11-25.
 
 ### D23. The command-line tool lives at `factory/tbhbdev`
 
 - **Decided:** 2026-11-25, by the operator.
-- **Rule:** tools imports to `factory/tbhbdev`, and its area label is `area/factory/tbhbdev`. No `cli/` level exists.
+- **Rule:** tools imports to `factory/tbhbdev`, and its area label is `area/factory/tbhbdev`. No folder sits between `factory/` and the tool.
 - **Undo:** one folder move, which renames the area label and every Bazel label below it. It costs nothing before the tools import.
 - **Record:** the second fix brief for this design's pull request, 2026-11-25.
 
@@ -145,7 +152,7 @@ Back to [the design](README.md).
 
 ### D28. Issues live in two repositories, with two Projects and one area label each
 
-- **Decided:** 2026-11-25, by the operator. The label rule is the operator's later ruling of the same day, which replaced labels generated from owner files.
+- **Decided:** 2026-11-25, by the operator. The label rule is the operator's later ruling of the same day, which replaced labels generated from owner files. Labels still come from the tree and never from an `OWNERS` file.
 - **Rule:** issues live in the monorepo and in the companion, and both have Issues and Projects on. A public roadmap Project holds only the monorepo's issues, and a private Project exists beside it. Each issue carries exactly one area label: `area/<top>/<name>` for a direct child of `factory/`, `products/`, `lib/`, or `docs/`, or one of `area/repo`, `area/third_party`, and `area/none`. Each repository computes its labels from its own tree on every push to `main`, and the companion adds the public set, so no private project's name becomes a public label. The issue commands and a sync check enforce the one-label rule. Existing issues get a relevance pass before they move ([appendix I](I-issues-and-projects.md)).
 - **Undo:** change the label generator or the Projects. Imported issues stay where they landed.
 - **Record:** the operator's brief of 2026-11-25, addendum 5, and the second fix brief for this design's pull request.
@@ -173,7 +180,7 @@ Back to [the design](README.md).
 
 ### D21. No Scalar command and no virtual filesystem
 
-- **Decided:** 2026-11-25, by the design's author role.
+- **Decided:** 2026-11-25, by the design's author.
 - **Rule:** the launcher uses partial clone, cone-mode sparse checkout, and `git maintenance` from core Git directly. It doesn't use the `scalar` command, VFS for Git, or a FUSE filesystem. [Appendix B](B-alternatives.md#scalar) gives the reasons and what would change them.
 - **Undo:** adopt one later. Nothing in the layout depends on this.
 - **Record:** this design's pull request.
@@ -187,45 +194,45 @@ Back to [the design](README.md).
 
 ### D19. The design system goes under `lib/`, not `docs/`
 
-- **Decided:** 2026-11-25, by the design's author role.
+- **Decided:** 2026-11-25, by the design's author.
 - **Rule:** the design repository is a workspace of published packages, so it lands at `lib/design`, where products may depend on it. The starting sketch put it under `docs/`.
 - **Undo:** move the folder in one pull request.
 - **Record:** this design's pull request.
 
 ### D18. One dependency root per language, and one version of each dependency
 
-- **Decided:** 2026-11-25, by the design's author role, on the brief's proposal.
+- **Decided:** 2026-11-25, by the design's author, on the brief's proposal.
 - **Rule:** the repository has one `MODULE.bazel`, one uv workspace, one `go.mod`, one Cargo workspace, one pnpm workspace, and one root `Package.swift`, each with one lock file that Bazel reads. There's no `go.work`, because no written case needs one. A second version of a dependency needs a dated entry in the exceptions file ([appendix H](H-dependencies-and-renovate.md)).
 - **Undo:** split a root by pull request. Each split brings back one more lock file to update.
 - **Record:** this design's pull request.
 
 ### D17. Standard hosted runners only, and no paid build service
 
-- **Decided:** 2026-11-25, by the design's author role, inside the operator's rule that no paid service starts without approval.
+- **Decided:** 2026-11-25, by the design's author, inside the operator's rule that no paid service starts without approval.
 - **Rule:** the public repository's CI runs on GitHub's standard hosted runners, Linux for most jobs and macOS for Swift builds. It uses no larger runner, no paid remote execution, and no self-hosted runner on `pull_request` events. The companion keeps the private runner label.
 - **Undo:** change the runner labels, after the operator approves any cost.
 - **Record:** this design's pull request.
 
 ### D16. `bazel-diff` computes affected targets
 
-- **Decided:** 2026-11-25, by the design's author role.
+- **Decided:** 2026-11-25, by the design's author.
 - **Rule:** CI hashes the build graph per commit with `bazel-diff` and compares the base's hashes with the head's. The hashes for a `main` commit are saved once and reused. The other candidate, `target-determinator`, configures both revisions on every run ([appendix B](B-alternatives.md#target-determinator)).
 - **Undo:** swap the plan job's tool. The test jobs take a target list from either.
 - **Record:** this design's pull request.
 
 ### D15. The rules stay nested Bazel modules
 
-- **Decided:** 2026-11-25, by the design's author role.
+- **Decided:** 2026-11-25, by the design's author.
 - **Rule:** the 13 rules modules keep their own `MODULE.bazel` files under `factory/rules`, and the root loads them through `local_path_override`. Labels such as `@tbhb_rules//lint:defs.bzl` don't change. A standalone repository can load them through `git_override` with a `strip_prefix` at its own cutover. A test fails when a nested module declares a version that differs from the root's.
 - **Undo:** fold them into the root module, which rewrites every load statement and cuts off standalone consumers.
 - **Record:** this design's pull request.
 
 ### D14. Five top-level folders, a flat `factory/`, and three dependency rules
 
-- **Decided:** 2026-11-25, by the operator. The flat `factory/` is the operator's later ruling of the same day, which replaced the role folders of the first sketch.
-- **Rule:** top-level folders are `factory/`, `products/`, `lib/`, `docs/`, and `third_party/`. `factory/` is one boundary with no levels inside it: each project is one folder directly under it, with its own `README.md`, and one source repository becomes one folder. Products depend on `lib/` and published modules only, the factory never depends on a product, and Bazel visibility enforces both. The companion mirrors the public paths.
+- **Decided:** 2026-11-25, by the operator. The flat `factory/` is the operator's later ruling of the same day, which replaced the first sketch's extra level of folders.
+- **Rule:** top-level folders are `factory/`, `products/`, `lib/`, `docs/`, and `third_party/`. `factory/` is one boundary with no grouping folders: each project is one folder directly under it, and one source repository becomes one folder. Each project's `README.md` and `OWNERS` file describe the project, and neither sorts it into a category. The top-level `docs/` holds the wiki, research, and spikes, and each project's own records live in the project (D33). Products depend on `lib/` and published modules only, the factory never depends on a product, and Bazel visibility enforces both. The companion mirrors the public paths.
 - **Undo:** move folders by pull request. The rules live in build files and one test.
-- **Record:** the operator's brief of 2026-11-25, and the second fix brief for this design's pull request.
+- **Record:** the operator's brief of 2026-11-25, and the second and third fix briefs for this design's pull request.
 
 ### D13. Gazelle writes build files, coverage stays at 100% branch, and CI runs affected targets
 

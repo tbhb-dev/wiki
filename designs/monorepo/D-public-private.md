@@ -1,7 +1,7 @@
 ---
 type: Design Appendix
 title: One public monorepo for the factory public and private split
-description: What the private companion holds, how public code reads private values at build and deploy time, and the scan rules that keep private content out of the public repository.
+description: What the private companion holds, who carries out each duty in each repository, how public code reads private values at build and deploy time, and the scan rules that keep private content out of the public repository.
 tags: [monorepo, privacy, gitleaks, bazel, design]
 status: draft
 parent: README.md
@@ -34,6 +34,22 @@ The companion holds values and prose. It holds no build rules, no service code, 
 Secrets stay out of both repositories. They remain in 1Password and reach a process at run time, as they do today (existing).
 
 A memory is public only when its front matter says `visibility: public` and it passes the scan. The default is private, so a forgotten field keeps a memory out.
+
+A project's needs, requirements, and knowledge articles follow the same split. The public ones sit in the project's own `docs/` folder in the monorepo, such as `factory/tbhbdev/docs/kb`, and one that needs a private detail sits at the same path in the companion (D33).
+
+## Who carries out each duty in each repository
+
+The duties and the identities are the same on both sides ([appendix C](C-layout-and-ownership.md#separation-of-duties)). The split changes only what each repository's merge path looks like.
+
+| Duty | Public monorepo | Private companion |
+| --- | --- | --- |
+| Build | `tbhb-agent`, `tbhb`, or the Renovate App | The same three. The Renovate App's run there moves the companion's one pin |
+| Review | `tbhb-agent`, in a fresh run, with the verdict published through the reviews App | The same, on a copy clone |
+| Approve | The reviews App at tiers 1 and 2, and the tier 0 workflow at tier 0 | The same, with the tiers read from the monorepo commit the companion pins |
+| Merge | `tbhb-agent` or `tbhb`, through GitHub's merge queue | `tbhb-agent` or `tbhb`, on a branch that contains `main`'s tip |
+| Publish private-origin code | `tbhb` signs off each import's scan report, if D4 is yes | Holds the report and the sign-off |
+
+Each project's `OWNERS` file exists on both sides at the same path. The companion's copy describes only what the companion holds for the project, and it names the same two identities.
 
 ## How public code reads private values
 

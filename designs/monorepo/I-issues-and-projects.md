@@ -29,7 +29,7 @@ Issues live in the monorepo and in the companion, and both have Issues and Proje
 
 ## Area labels
 
-Each issue carries exactly one area label (D28). The label names a project, and the generator computes the projects from the tree. No list file exists, and no label comes from an owner file.
+Each issue carries exactly one area label (D28). The label names a project, and the generator computes the projects from the tree. No list file exists, and no label comes from an `OWNERS` file.
 
 | Label | One for each |
 | --- | --- |
@@ -43,11 +43,13 @@ Each issue carries exactly one area label (D28). The label names a project, and 
 
 An issue about the event gateway's retry logic is `area/factory/event-gateway`. An issue about the command-line tool is `area/factory/tbhbdev`.
 
+A project's label covers the project's own records. An issue about a need, a requirement, or a knowledge article under `factory/tbhbdev/docs` is `area/factory/tbhbdev`, not `area/docs/wiki` (D33). The `area/docs/<name>` labels cover only the wiki, research, and spikes, and a project's `docs/` folder never gets a label of its own.
+
 - **Computed on every push to `main`.** A workflow lists the direct children of the four folders and creates each missing label. It needs no checked-in file, so a new project folder gets its label with the commit that adds it.
 - **One set for each repository, from its own tree.** The monorepo's labels come from the public tree only. The companion's set is the public set, read from the monorepo commit it pins, plus one label for each project folder that exists only in the companion. No private project's name becomes a public label.
 - **Bounded.** GitHub caps a label's name at 50 characters (per docs, unverified here), so a test fails for a project folder whose label would be longer.
 - **Kept while in use.** When a project folder goes away, its label stays until no open issue carries it. The sync check fails for each of those issues until it's relabeled.
-- **Separate from review.** An area label doesn't set a review tier and names no approver. The tier 2 path map does the first, and nothing does the second ([appendix C](C-layout-and-ownership.md#the-tier-2-path-map)).
+- **Separate from review and from CI.** An area label doesn't set a review tier, names no approver, and doesn't pick the record lane. The tier 2 path map does the first, the reviews App and the tier 0 workflow approve by tier, and a path check on the diff does the third ([appendix C](C-layout-and-ownership.md#separation-of-duties)).
 
 Two things enforce the one-label rule. The issue commands require an area on `create` and swap it in one step on `edit`, and they refuse a label the tree doesn't produce. A sync check then runs on each issue event and once a day in both repositories. It fails for any open issue with no area label, with several, or with one whose folder is gone. That check is a new rule for the [issue checks design](../issue-checks/README.md), which already reads `area/` labels.
 
@@ -100,7 +102,7 @@ A source repository doesn't always map to one label, so the pass also picks each
 | An open issue in a private repository, kept private | The companion | `gh issue transfer`, then the area label |
 | An open issue in a private repository, kept public | The monorepo | A new issue with the private details removed. GitHub doesn't transfer an issue from a private repository to a public one (per docs) |
 
-The 742 kept tracker issues import in plan step 5. That's after this design merges and after the scaffolding has created the labels, and it doesn't wait for any code import. The scaffolding creates the folder and `README.md` of every planned project, so every area label exists before its code arrives.
+The 742 kept tracker issues import in plan step 5. That's after this design merges and after the scaffolding has created the labels, and it doesn't wait for any code import. The scaffolding creates the folder, the `README.md`, and the `OWNERS` file of every planned project, so every area label exists before its code arrives.
 
 The import paces its writes under GitHub's limits on content creation, and it records the new issue's number against each tracker file. A second run skips a file that already has a number.
 

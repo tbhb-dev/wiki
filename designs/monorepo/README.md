@@ -32,13 +32,13 @@ Nothing is built until the operator reads this and says go. The operator then an
 
 When this is built, these parts exist:
 
-- **The monorepo.** One new public repository, working name `tbhb-dev/tbhbdev`, holds the factory under `factory/`, shared code under `lib/`, prose under `docs/`, and room for products under `products/` (new). Each factory project is one folder directly under `factory/`. [Appendix C](C-layout-and-ownership.md) has the tree.
+- **The monorepo.** One new public repository, working name `tbhb-dev/tbhbdev`, holds the factory under `factory/`, shared code under `lib/`, prose under `docs/`, and room for products under `products/` (new). Each factory project is one folder directly under `factory/`, with an `OWNERS` file that names its owners and describes it, and its own `docs/` folder for its needs, requirements, and knowledge articles. [Appendix C](C-layout-and-ownership.md) has the tree.
 - **The private companion.** One new private repository, `tbhbdev-private`, mirrors the public paths and holds only private values: the ops inventory and host variables, the operator-account folder, private memories, and private prose (new). It depends on the monorepo, and the monorepo's files never name it. [Appendix D](D-public-private.md) has the split.
 - **One Bazel workspace, with one dependency root per language.** One root module, one manifest and one lock file for each language, and build files that gazelle writes for Go and Python (new). One Renovate run keeps the roots current. [Appendix H](H-dependencies-and-renovate.md) has both.
 - **Layering that the build enforces.** Bazel visibility and one query test keep products off factory internals, the factory off products, and `lib/` off both (new).
-- **Approval by separation of duties.** No file names an owner or an approver. The author never approves their own change, an independent reviewer judges the exact head, and the changed paths set the review tier (existing tiers, new path map).
+- **Separation of duties.** Build, review, approve, and merge stay apart, and the design names the identity or the App that carries out each: `tbhb`, `tbhb-agent`, the reviews App, and the tier 0 workflow. The author never approves their own change, an independent reviewer judges the exact head, and the changed paths set the review tier (existing tiers, new path map).
 - **Agent workspaces.** `tbhbdev alpha agent exec` keeps one partial bare mirror per host and gives each run a sparse worktree limited to its target paths and their Bazel dependencies (new). Today it copies a full clone per run (existing). [Appendix E](E-agent-runs.md) answers the operator's direct question about large-repository runs.
-- **One CI workflow.** It computes affected targets with `bazel-diff`, tests them against the remote cache on GitHub's standard hosted runners, and reports one `conclusion` check (new). GitHub's merge queue runs the same workflow before each merge (existing on three repositories today).
+- **One CI workflow.** It computes affected targets with `bazel-diff`, tests them against the remote cache on GitHub's standard hosted runners, and reports one `conclusion` check (new). A pull request that changes only a project's records runs only that project's record check. GitHub's merge queue runs the same workflow before each merge (existing on three repositories today).
 - **An import tool.** `tbhbdev alpha monorepo import` brings each repository in as one copy commit that puts its files where the layout wants them and names the source commit (new). No history comes along, and the archived original keeps it.
 - **Issues in two repositories.** A public roadmap Project, a private Project, and one area label on every issue, computed from the tree (new). [Appendix I](I-issues-and-projects.md) has the labels and the pass over existing issues.
 
@@ -60,7 +60,16 @@ Each project's targets default to visibility inside that project. A gazelle dire
 
 ### Approval and review
 
-Approval is a set of duties in a change, never a list of names. The author never approves their own change. The reviewer is a fresh run, independent of the author, and uses another provider when an agent built the change. A verdict covers only the exact head it judged.
+tbhb-dev keeps four duties apart in every change, and an identity or an App carries out each one. There are two identities: `tbhb`, the operator's account, and `tbhb-agent`, the account agent runs work under.
+
+| Duty | Who carries it out |
+| --- | --- |
+| Build | `tbhb-agent` in an agent run, `tbhb`, or the Renovate App |
+| Review | `tbhb-agent`, in a fresh run that isn't the build run |
+| Approve | The reviews App at tiers 1 and 2, and the tier 0 workflow at tier 0 |
+| Merge | `tbhb-agent` or `tbhb`, through GitHub's merge queue |
+
+The author never approves their own change. The reviewer is a fresh run, independent of the author, and uses another provider when an agent built the change. A verdict covers only the exact head it judged. Each project's `OWNERS` file names its owners and describes the project, and it grants no approval.
 
 The review tiers are the three that the wiki's first decision record sets, unchanged. The diff sets the tier, a reviewer may raise it, and the heaviest tier among the changed paths applies. The root `AGENTS.md` carries a tier 2 path map in the form the rules repository uses today, and the map is separate from area labels.
 
@@ -87,6 +96,8 @@ Worktrees share one object store, one Bazel disk cache, and one repository cache
 ### CI and the merge queue
 
 A pull request runs one workflow. A plan job hashes the build graph at the base and the head and lists the affected targets. Test jobs run those targets, a coverage job checks 100% branch coverage across each affected project's test targets combined, and repository checks run beside them.
+
+A path check comes before the plan. When a diff touches only needs, requirements, or knowledge articles in a project's own `docs/` folder, the workflow runs that project's record check and skips the build and test. Any other file sends the change through the full lane, and `conclusion` stays the one required check.
 
 The merge queue runs the same workflow on each candidate. A push to `main` runs every target, which also fills the remote cache and saves the graph hashes for later plans. Standard hosted runners cost nothing on a public repository (per docs), so the design uses nothing else.
 
@@ -119,34 +130,34 @@ Each import sorts the old repository's issues, freezes it, and lands one pull re
 
 | Step | What lands | Done when | Owner |
 | --- | --- | --- | --- |
-| 1 | The baseline: workflow runs, billed minutes, wall time, and pin-bump counts per repository for 28 days | The numbers sit in this design's appendix A with the commands that produced them | Commissioning role |
-| 2 | A spike in the spikes repository: copy rules and tools into a scratch repository, and test the six unverified items in appendix A | The spike's README states pass or fail for each of the six | Commissioning role |
-| 3 | Prerequisites in the old repositories: gazelle and per-package targets in tools, and each test target inside Bazel's `medium` timeout. Go port pull requests for the front, dispatch, and plugin plumbing go to the operator before merge | `bazelisk run //:gazelle -- -mode=diff` prints nothing in each repository, and no test target sets `timeout = "long"` | Commissioning role |
-| 4 | The scaffolding of the monorepo and the companion: dependency roots, the inline CI workflow, a folder and `README.md` for every planned project, the tier 2 path map, the area labels, both Projects, the layering test, and the rulesets without the queue rule | `bazelisk test //...` passes on `main`, the ruleset read matches the checked-in file, and each repository's `area/` labels match its tree | Commissioning role, under the organization admin grant for repository creation |
-| 5 | The 742 kept tracker issues imported, each with one area label | The sync check passes: no issue has zero or several area labels | Commissioning role |
-| 6 | The import tool, its `import` check, and the archive gate | An import of a scratch repository passes the check, and a changed file or an old-repository pin makes it fail | Commissioning role |
-| 7 | renovate-config imported, with the root Renovate workflow running | Renovate opens a grouped update in the monorepo, and a search for old-repository callers and pins returns nothing | Commissioning role |
-| 8 | Rules imported, with the lint gates | `bazelisk test //...` passes on `main` with the rules loaded from the tree, and the root `AGENTS.md` holds the rewritten tier 2 rows | Commissioning role |
-| 9 | Tools imported, then the launcher's mirror, worktree, cone, and cleanup changes | Two runs on one host share one mirror, and a finished run leaves no worktree after the reaper runs | Commissioning role |
-| 10 | The merge queue rule on `main`, and affected-target CI as the required path | A queued pull request merges through a `merge_group` run that tests fewer targets than `//...` | Commissioning role |
-| 11 | Public repositories imported in the order in appendix G, with issues sorted and moved, and queue wait and CI time measured after each | Each old repository has no open issue or pull request and is archived, and appendix A holds the measurements | Commissioning role |
-| 12 | Private-origin repositories split, scanned, signed off, and imported as copy commits | The scan report for each import is in the companion, and the operator's sign-off is in the import pull request | Commissioning role, with the operator's sign-off |
-| 13 | The after numbers, 28 days after the last import | Appendix A holds both columns of the before and after table | Commissioning role |
-| 14 | The organization rename, if the operator chooses it, as the last migration step | Every check in appendix G's rename section passes, and a search of both repositories for the old login returns nothing | Commissioning role, under the organization admin grant |
+| 1 | The baseline: workflow runs, billed minutes, wall time, and pin-bump counts per repository for 28 days | The numbers sit in this design's appendix A with the commands that produced them | `tbhb-agent` |
+| 2 | A spike in the spikes repository: copy rules and tools into a scratch repository, and test the six unverified items in appendix A | The spike's README states pass or fail for each of the six | `tbhb-agent` |
+| 3 | Prerequisites in the old repositories: gazelle and per-package targets in tools, and each test target inside Bazel's `medium` timeout. Go port pull requests for the front, dispatch, and plugin plumbing go to the operator before merge | `bazelisk run //:gazelle -- -mode=diff` prints nothing in each repository, and no test target sets `timeout = "long"` | `tbhb-agent` |
+| 4 | The scaffolding of the monorepo and the companion: dependency roots, the inline CI workflow, a folder, a `README.md`, and an `OWNERS` file for every planned project, the tier 2 path map, the area labels, both Projects, the layering test, and the rulesets without the queue rule | `bazelisk test //...` passes on `main`, the ruleset read matches the checked-in file, each repository's `area/` labels match its tree, and the `OWNERS` test passes | `tbhb-agent`, under the organization admin grant for repository creation |
+| 5 | The 742 kept tracker issues imported, each with one area label | The sync check passes: no issue has zero or several area labels | `tbhb-agent` |
+| 6 | The import tool, its `import` check, and the archive gate | An import of a scratch repository passes the check, and a changed file or an old-repository pin makes it fail | `tbhb-agent` |
+| 7 | renovate-config imported, with the root Renovate workflow running | Renovate opens a grouped update in the monorepo, and a search for old-repository callers and pins returns nothing | `tbhb-agent` |
+| 8 | Rules imported, with the lint gates | `bazelisk test //...` passes on `main` with the rules loaded from the tree, and the root `AGENTS.md` holds the rewritten tier 2 rows | `tbhb-agent` |
+| 9 | Tools imported, then the launcher's mirror, worktree, cone, and cleanup changes | Two runs on one host share one mirror, and a finished run leaves no worktree after the reaper runs | `tbhb-agent` |
+| 10 | The merge queue rule on `main`, and affected-target CI as the required path | A queued pull request merges through a `merge_group` run that tests fewer targets than `//...` | `tbhb-agent` |
+| 11 | Public repositories imported in the order in appendix G, with issues sorted and moved, and queue wait and CI time measured after each | Each old repository has no open issue or pull request and is archived, and appendix A holds the measurements | `tbhb-agent` |
+| 12 | Private-origin repositories split, scanned, signed off, and imported as copy commits | The scan report for each import is in the companion, and the operator's sign-off is in the import pull request | `tbhb-agent`, with a sign-off from `tbhb` |
+| 13 | The after numbers, 28 days after the last import | Appendix A holds both columns of the before and after table | `tbhb-agent` |
+| 14 | The organization rename, if the operator chooses it, as the last migration step | Every check in appendix G's rename section passes, and a search of both repositories for the old login returns nothing | `tbhb-agent`, under the organization admin grant |
 
 Scaffolding and import steps wait on no operator gate, apart from the sign-off for each private-origin import. Steps 1 to 3 change nothing that's hard to undo, and they pay off even if the move stops there.
 
-The commissioning role is the role that starts a build, as the review tier record uses the term. Any agent run can hold it for a step, and its state is the step's pull requests and the tracker row made from this plan.
+The owner column names the identity that carries a step out, as the operator ruled for this design. `tbhb-agent` commissions each step's build in an agent run, and the step's state is its pull requests and the tracker row made from this plan.
 
 ## Appendices
 
 - [Decisions](decisions.md): 11 open, then the decided record and a one-table summary of the open items.
 - [A. Evidence](A-evidence.md): what the repository reads, counts, and docs show, labeled proven, existing, new, or unverified.
 - [B. Alternatives considered](B-alternatives.md): Scalar, virtual filesystems, copy clones, a single root module, and the other options not taken.
-- [C. Layout and ownership](C-layout-and-ownership.md): the tree, where each repository goes, the dependency rules, the approval rules, the tier 2 path map, and how Apps and rulesets map.
-- [D. Public and private](D-public-private.md): what the companion holds, how public code reads private values, and the scan rules.
+- [C. Layout and ownership](C-layout-and-ownership.md): the tree, where each repository goes, the `OWNERS` files, the dependency rules, who carries out each duty, the review tiers, and how Apps and rulesets map.
+- [D. Public and private](D-public-private.md): what the companion holds, who carries out each duty in each repository, how public code reads private values, and the scan rules.
 - [E. Agent runs](E-agent-runs.md): mirrors, worktrees, cones, widening, disk use, cleanup, caches, and the reviewer's view.
-- [F. CI](F-ci.md): the workflow's jobs, affected targets, coverage, runners, remote execution, and the merge queue.
+- [F. CI](F-ci.md): the workflow's jobs, the record lane, affected targets, coverage, runners, remote execution, and the merge queue.
 - [G. Import and cutover](G-import-and-cutover.md): the prerequisites, the order, the per-repository steps, what the move removes, and the organization rename.
 - [H. Dependencies and Renovate](H-dependencies-and-renovate.md): one root per language, the one-version rule, extracting a product, and the single Renovate run.
 - [I. Issues and Projects](I-issues-and-projects.md): the two Projects, area labels, the issue rules, the relevance pass, and the archive gate.

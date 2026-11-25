@@ -1,7 +1,7 @@
 ---
 type: Design Appendix
 title: One public monorepo for the factory CI
-description: The monorepo's one CI workflow on GitHub Actions, with affected targets, the remote cache, coverage, runner sizing, remote execution, and the merge queue.
+description: The monorepo's one CI workflow on GitHub Actions, with the record lane, affected targets, the remote cache, coverage, runner sizing, remote execution, and the merge queue.
 tags: [monorepo, ci, bazel, github-actions, merge-queue, design]
 status: draft
 parent: README.md
@@ -22,7 +22,8 @@ Back to [the design](README.md).
 
 | Job | What it does | Needs |
 | --- | --- | --- |
-| `plan` | Computes the affected targets and splits them into shards | none |
+| `plan` | Runs the record lane's path check, then computes the affected targets and splits them into shards | none |
+| `records` | On a record pull request, runs the record-check target of each project the diff touches | `plan` |
 | `test` | One matrix entry per shard: `bazelisk test --config=ci --target_pattern_file=<shard>` | `plan` |
 | `coverage` | For each affected project, runs coverage over all of the project's test targets and checks the combined figure | `plan` |
 | `repo` | Gazelle diff, `bazel mod tidy`, gitleaks over the pull request's commits, commit identity, pull request size, the pull request body check, workflow lint, and the layering test | none |
@@ -31,20 +32,39 @@ Back to [the design](README.md).
 | `rules` | Runs the nested rules workspace's own tests when a file under `factory/rules` changed, if plan step 2 shows the root can't run them | `plan` |
 | `conclusion` | Fails unless every job above passed or was skipped on purpose | all |
 
-The main ruleset requires one check, `conclusion`, pinned to GitHub Actions as in every repository's ruleset today (existing). It also requires an independent approval of the exact head: one approving review that isn't the author's or the last pusher's, dismissed by any new commit. The review tool's App posts that approval only after the fresh review runs the change's tier requires ([appendix C](C-layout-and-ownership.md#mapping-apps-rulesets-and-branch-rules), new). A green `conclusion` alone therefore can't merge a change.
+The main ruleset requires one check, `conclusion`, pinned to GitHub Actions as in every repository's ruleset today (existing). It also requires an independent approval of the exact head: one approving review that isn't the author's or the last pusher's, dismissed by any new commit. The reviews App posts that approval only after the fresh review runs that `tbhb-agent` starts for the change's tier, and the tier 0 workflow posts it at tier 0 ([appendix C](C-layout-and-ownership.md#separation-of-duties), new). A green `conclusion` alone therefore can't merge a change.
 
-No workflow uses a `paths` filter. GitHub reads at most 300 changed files for one (per docs), so an import or a lock update could skip a job that should run. The `plan` job decides from the build graph instead.
+No workflow uses a `paths` filter. GitHub reads at most 300 changed files for one (per docs), so an import or a lock update could skip a job that should run. The `plan` job decides from Git's own list of changed paths and from the build graph instead.
+
+## The record lane
+
+A project's needs, requirements, and knowledge articles live in its own `docs/` folder ([appendix C](C-layout-and-ownership.md#what-the-top-level-docs-folder-holds)). A pull request that changes only those records takes a lighter lane (new, D33).
+
+- **A path check decides.** The `plan` job lists the changed paths with Git. The pull request is a record pull request when every changed path is a Markdown file under `<top>/<project>/docs/needs/`, `<top>/<project>/docs/requirements/`, or `<top>/<project>/docs/kb/`, where `<top>` is `factory`, `products`, `lib`, or `docs`.
+- **Any other file sends it through the full lane.** One changed path outside those folders, or one file in them that isn't Markdown, and the pull request runs everything in the table above.
+- **A check's definition is never a record.** Each project declares its record check in its top-level `BUILD.bazel`, such as `//factory/tbhbdev:record_check`, and the rule behind it lives under `factory/rules`. Neither sits in a record folder, and neither does `ci.yml`, which holds the path check. A change to any of them therefore takes the full lane, and the tier 2 path map covers the rule and the workflow.
+- **The lane runs one target for each project touched.** The `records` job runs `bazelisk test` on the record-check target of each project in the diff. The target checks that project's records: their front matter against the schema, their links, and their prose.
+- **It skips the full build and test.** `test`, `coverage`, and `rules` are skipped on purpose, and so are the parts of `repo` that build: the gazelle diff, `bazel mod tidy`, and the layering test.
+- **The scans stay.** gitleaks, the `names` scan, commit identity, pull request size, and the body check still run, because they guard what a public pull request publishes and none of them builds anything. Keeping them is this design's reading of D33, and the operator can drop them.
+
+`conclusion` reports the record lane like any other run, so it stays the one required check and the rulesets don't change. A record pull request still needs the independent approval its tier sets.
+
+The queue runs the same path check on each candidate, so a record pull request stays light there too. A push to `main` still runs `//...`, which includes every record-check target. In the full lane a record-check target is an ordinary test target, and it runs whenever a change affects it.
+
+What a record check tests in detail belongs to the designs that define needs, requirements, and knowledge articles. This design sets only where the records live and which lane they take.
 
 ## Affected targets
 
 `bazel-diff` writes one file of target hashes for a commit. A hash covers a target's own attributes, its source files, and the hashes of everything it depends on. Two files compared give the targets whose hashes differ.
+
+The record lane's path check runs first. A record pull request stops there: the `plan` job hashes nothing and hands the `records` job the list of projects. Every other pull request goes on to these steps.
 
 1. A push to `main` generates the hash file for that commit and saves it, keyed by the commit hash.
 2. The `plan` job on a pull request loads the file for the base commit. If it's missing, the job checks out the base and generates it.
 3. The job generates the file for the head and compares the two.
 4. It keeps the test targets from the result, groups them by project, and writes the shard files.
 
-A change to a root file that every target reads, such as `MODULE.bazel`, a lock file, or `.bazelrc`, changes every hash, and the job then plans a full run. So does a change to the rules, because every build file loads them.
+A change to a root file that every target reads, such as `MODULE.bazel`, a lock file, or `.bazelrc`, changes every hash, and the job then plans a full run. So does a change to the rules, because every build file loads them. A change that mixes records with any other file is planned like any other change: the records' check targets are affected, so they run beside the rest.
 
 A push to `main` runs `//...` with no plan. That run is the safety net for a mistake in the plan, and it fills the remote cache that the next pull requests read. If it fails after the queue passed the same commit, the failure opens an incident, because it means the plan missed a target.
 
