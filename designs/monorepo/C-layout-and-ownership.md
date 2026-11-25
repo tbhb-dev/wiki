@@ -101,10 +101,10 @@ Every repository arrives as one copy commit with no history (D10). One source re
 | dotfiles | `factory/dotfiles` | root configuration |
 | design | `lib/design` | root configuration |
 | wiki, research, spikes | `docs/<name>` | root configuration |
-| github-metrics, graph, bazel-r2-cache | `factory/<name>` | root configuration, if D1 is yes |
+| github-metrics, bazel-r2-cache | `factory/<name>` | root configuration, if D1 is yes |
 | go.tbhb.dev | `factory/go-vanity` | root configuration, if D1 is yes |
 
-"Root configuration" means each repository's own module file, lock files, lint settings, Renovate file, and workflows, which the shared roots and the root workflows replace. awrel, gomodscan, the Ansible collections, and the four open source tools stay standalone under D1's recommendation. The private counterparts of wiki, research, spikes, evals, and tools go to the companion at the mirrored paths.
+"Root configuration" means each repository's own module file, lock files, lint settings, Renovate file, and workflows, which the shared roots and the root workflows replace. awrel, gomodscan, and the Ansible collections stay standalone under D1's recommendation. The four open source tools and the graph repository are out of scope and don't move (D11). The private counterparts of wiki, research, spikes, evals, and tools go to the companion at the mirrored paths.
 
 ## Dependency rules in Bazel
 
@@ -159,7 +159,7 @@ tbhb-dev keeps four duties apart in every change: build, review, approve, and me
 
 `tbhb-agent` builds and reviews, so the account alone can't keep those two duties apart. The run does: a review run shares no context with the build run, and for an agent-built change it uses another provider. The reviews App refuses an approval that traces back to the opener's own run (existing decision).
 
-Until the reviews App can post approvals, the existing `tbhb-approve` command posts them for the exact head (existing decision). Which identity that command posts as wasn't read in this pass (unverified).
+Until the reviews App can post approvals, the existing `tbhb-approve` command posts them for the exact head (existing decision). It posts as the reviews App, `tbhb-dev-agent-reviews`, and not as `tbhb` (existing, [appendix A](A-evidence.md#rules-review-and-ci-today)).
 
 Five rules hold across the duties:
 

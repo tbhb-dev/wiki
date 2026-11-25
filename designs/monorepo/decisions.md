@@ -18,11 +18,11 @@ Back to [the design](README.md).
 
 ## Open
 
-### D1. Do github-metrics, graph, bazel-r2-cache, and go.tbhb.dev join, while awrel, gomodscan, and the Ansible collections stay standalone?
+### D1. Do github-metrics, bazel-r2-cache, and go.tbhb.dev join, while awrel, gomodscan, and the Ansible collections stay standalone?
 
 - **Recommendation:** yes.
-- **Why:** the first four serve only the factory, so they gain from one build and lose nothing. awrel, gomodscan, and the Ansible collections are tools that other people install by a public path and a version, like the four standalone open source tools. Nobody read graph in this pass, so its place rests on the brief's description.
-- **If yes:** the four join in plan step 11 at the paths in [appendix C](C-layout-and-ownership.md#where-each-repository-goes). awrel keeps its own repository, releases, and pins.
+- **Why:** the first three serve only the factory, so they gain from one build and lose nothing. awrel, gomodscan, and the Ansible collections are tools that other people install by a public path and a version, like the four standalone open source tools.
+- **If yes:** the three join in plan step 11 at the paths in [appendix C](C-layout-and-ownership.md#where-each-repository-goes). awrel keeps its own repository, releases, and pins.
 - **If no:** name the repositories to flip. Bringing awrel in puts its packages under the monorepo's one Go module, so its install path and its version tags change for every outside user.
 - **Reversible:** yes. A repository can join later by the same import, and a folder can leave by the extraction in [appendix H](H-dependencies-and-renovate.md#extracting-a-product).
 
@@ -250,10 +250,10 @@ Back to [the design](README.md).
 
 ### D11. The factory repositories are in scope, and the four open source tools aren't
 
-- **Decided:** 2026-11-25, by the operator.
-- **Rule:** tools, agent-config, agent-memories, ops, wiki, research, spikes, event-gateway, rules, dotfiles, evals, dashboard, design, agent-capacity, runner-smoke, pm, sm, renovate-config, telemetry, and work move. afakt, avirt, afenc, and ascm stay standalone and are consumed, if at all, as Bazel modules at pinned versions. The layout leaves room for products and names none.
+- **Decided:** 2026-11-25, by the operator. That the graph repository stays out is the operator's later ruling of the same day, which took it out of D1.
+- **Rule:** tools, agent-config, agent-memories, ops, wiki, research, spikes, event-gateway, rules, dotfiles, evals, dashboard, design, agent-capacity, runner-smoke, pm, sm, renovate-config, telemetry, and work move. afakt, avirt, afenc, and ascm stay standalone and are consumed, if at all, as Bazel modules at pinned versions. The graph repository is out of scope and doesn't move. The layout leaves room for products and names none.
 - **Undo:** import or extract a repository later.
-- **Record:** the operator's brief of 2026-11-25.
+- **Record:** the operator's brief of 2026-11-25, and the fifth fix brief for this design's pull request.
 
 ### D10. One fresh public monorepo, one thin private companion, and no imported history
 
@@ -266,7 +266,7 @@ Back to [the design](README.md).
 
 | Item | Question | Recommendation |
 | --- | --- | --- |
-| D1 | Four factory-only repositories join, and awrel, gomodscan, and the Ansible collections stay out | yes |
+| D1 | Three factory-only repositories join, and awrel, gomodscan, and the Ansible collections stay out | yes |
 | D2 | Each agent App reaches every path | yes |
 | D3 | Runs on a host share one Git object store | yes |
 | D4 | The operator signs off each private-origin import | yes |

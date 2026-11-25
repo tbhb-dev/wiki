@@ -49,7 +49,7 @@ Each row counts first-parent commits on `origin/main` from 2026-10-28 to 2026-11
 
 That's about 428 landings a week and 61 a day. Dependency updates are 25% of them, about 107 a week. The first-party pin column is an upper bound of about 54 a week, because the grouped `pins` update also carries third-party digests.
 
-The work repository and the graph repository weren't in the host's clones, so they have no row (unverified). The repositories were about three weeks old on 2026-11-25, so the window covers nearly their whole lives.
+The work repository wasn't in the host's clones, so it has no row (unverified). The repositories were about three weeks old on 2026-11-25, so the window covers nearly their whole lives.
 
 | Other repository | Landed | Dependency | First-party pin |
 | --- | --- | --- | --- |
@@ -94,6 +94,7 @@ In 14 of the in-scope repositories, 200 landed dependency updates named a third-
 | Reusable workflows send private repositories to a self-hosted runner label, and public ones to hosted runners, because the private runner groups don't take public repositories | existing | the rules' reusable workflows |
 | The remote cache has token roles for reading, for `main`, for pull requests in their own namespace, for trusted build hosts, and for end-to-end tests | existing | the remote cache repository's docs |
 | The wiki's tier 0 workflow calls a reusable workflow in the rules repository, with path lists for auto-approval and for denial | existing | this repository's `.github/workflows/tier0-approval.yml` |
+| The interim approval command posts its approvals as the reviews App, `tbhb-dev-agent-reviews`, and not as `tbhb` | existing, the brief says | the command's own docstring and its `APP_LOGIN` value, as the fifth fix brief gives them. This pass didn't read the script |
 | No design for the Go port exists in this repository or in any clone on the host | proven | search of designs, branches, and clones |
 | CI minutes and run counts per repository | unverified | no record found; plan step 1 measures them |
 
