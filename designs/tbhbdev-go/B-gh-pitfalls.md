@@ -10,7 +10,7 @@ parent: README.md
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
-<!-- cspell:words ghcs ldflag ldflags Lstat cygwin tcell runewidth tzutil keyring safeexec mintty moq Homebrew Codespaces GHES ghdebug updateable textconv golangci gochecknoglobals termio gochecknoinits koanf -->
+<!-- cspell:words ghcs ldflag ldflags Lstat cygwin tcell runewidth tzutil keyring safeexec mintty moq Homebrew Codespaces GHES ghdebug updateable textconv golangci gochecknoglobals termio gochecknoinits koanf cmdutil -->
 
 # tbhbdev Go port gh pitfalls
 
@@ -94,7 +94,7 @@ Each entry ends with the rule it gives this design and the place the design appl
 
 `feb4acc2c00c` (2021-02-08), `27aea42d8a43` (2021-02-23), `2097899a4dff` (2023-02-06), and `22504bfa96de` (2025-05-26) moved from Homebrew hints to a 24-hour delay to a compile-time opt-in.
 
-**Rule:** no package manager installs tbhbdev, so its own update path fights nothing. The check at start is one cache read and a pure decision, the network work runs in a separate helper, and `TBHBDEV_NO_SELF_UPDATE=1` turns it off. `tbhbdev install check` still compares hosts on request. **Applied in:** [J, self-update](J-self-update.md), and [G](G-names-and-migration.md).
+**Rule:** no package manager installs tbhbdev, so its own update path fights nothing. The check at start is one cache read and a pure decision, the network work runs in a separate helper, and `TBHBDEV_NO_SELF_UPDATE=1` turns it off. The fleet check, `tbhbdev alpha version-check` until wave 4 ports it as `tbhbdev install check`, still compares hosts on request. **Applied in:** [J, self-update](J-self-update.md), and [G](G-names-and-migration.md).
 
 ### 2.5 Waiting on a release check after the command
 
@@ -122,9 +122,9 @@ Each entry ends with the rule it gives this design and the place the design appl
 
 ## 3. The shared dependency object
 
-### 3.1 From 2 fields to 16
+### 3.1 From 2 fields to 17
 
-`bef62faaead7` (2020-05-20) created the Factory with two fields. It grew to 6 by `8ff4cc40e642`, 9 by `354bac82b3a5`, 11 by `6618baaf63cb`, 12 by `541ce0e5b492`, 13 by `5761a1e66965`, and 16 by `663eda0c3285` (2026-11-24). Nobody has split it.
+`bef62faaead7` (2020-05-20) created the Factory with two fields. It grew to 6 by `8ff4cc40e642`, 9 by `354bac82b3a5`, 11 by `6618baaf63cb`, 12 by `541ce0e5b492`, 13 by `5761a1e66965`, and 17 by `663eda0c3285` (2026-11-24), the 17 fields that [appendix A](A-gh-architecture.md#the-shared-dependency-object) counts in `pkg/cmdutil/factory.go`. Nobody has split it.
 
 **Rule:** no shared dependency object. Each plugin's `io/app` builds what that plugin uses, and each cobra command's constructor takes only its own dependencies. **Applied in:** [E, library surface](E-plugin-contract.md#the-library-surface), and [K, explicit dependencies](K-go-stack.md#explicit-dependencies-and-no-shared-object).
 
@@ -258,7 +258,7 @@ Each entry ends with the rule it gives this design and the place the design appl
 
 `7fea69a1fd08` (2026-10-12) restored a config interface that external modules could no longer implement.
 
-**Rule:** the plugin contract is environment variables and a manifest, not Go types, so outside plugins never import tools packages. **Applied in:** [E, the contract](E-plugin-contract.md#the-plugin-contract).
+**Rule:** the plugin contract is environment variables and a manifest, not Go types, so outside plugins never import monorepo packages. **Applied in:** [E, the contract](E-plugin-contract.md#the-plugin-contract).
 
 ### 6.7 A command resolving credentials itself
 

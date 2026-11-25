@@ -1,7 +1,7 @@
 ---
 type: Design Appendix
 title: tbhbdev Go port stack
-description: The Go libraries the tbhbdev port uses for commands, flags, config, and schemas, how it wires them without a shared dependency object or package state, and the rules that keep each library in its place.
+description: The Go libraries the tbhbdev port uses for commands, flags, config, schemas, and GitHub, how it wires them without a shared dependency object or package state, and the rules that keep each library in its place.
 tags: [tbhbdev, go, cobra, koanf, cue, design]
 status: draft
 parent: README.md
@@ -10,13 +10,13 @@ parent: README.md
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
-<!-- cspell:words cobra pflag koanf posflag viper cuelang cuecontext jsonschema gomodguard depguard gochecknoinits gochecknoglobals termio procexec selfupdate buildinfo knadh userconfig unmarshals stdlib gostd syscall golangci -->
+<!-- cspell:words cobra pflag koanf posflag viper cuelang cuecontext jsonschema gomodguard depguard gochecknoinits gochecknoglobals termio procexec selfupdate buildinfo knadh userconfig unmarshals stdlib gostd syscall golangci apptoken bradleyfalzon ghapi ghinstallation githubv shurcoo -->
 
 # tbhbdev Go port stack
 
 Back to [the design](README.md).
 
-Everything here is new unless it names an existing file. The operator chose the libraries on 2026-11-25 (D18 and D20), and [appendix D](D-evidence.md#the-go-stack) cites the existing behavior.
+Everything here is new unless it names an existing file. The operator chose the libraries on 2026-11-25 (D18, D20, and D24), and [appendix D](D-evidence.md#the-go-stack) cites the existing behavior. Every Go path here sits under `<cli-root>` in tbhb-dev/tbhbdev ([the design](README.md#the-open-cli-folder)).
 
 ## The libraries
 
@@ -26,6 +26,8 @@ Everything here is new unless it names an existing file. The operator chose the 
 | Flags | `github.com/spf13/pflag`, through cobra | The same packages |
 | Config | `github.com/knadh/koanf/v2`, with its file provider, TOML parser, and `posflag` provider | `internal/config/io/load` only |
 | Schemas | `cuelang.org/go`: its `cue`, `cue/cuecontext`, `cue/errors`, and `encoding/jsonschema` packages | The pure schema packages `internal/schemas` and `internal/agent/protocol` |
+| GitHub REST | `github.com/google/go-github/v93`, one pinned major | `internal/ghapi/**` only |
+| GitHub GraphQL and app tokens | No library: a helper on the go-github client, and a standard-library JWT | `internal/ghapi/io/graphql` and `internal/ghapi/io/apptoken` |
 
 None of them appears in the front, `internal/dispatch`, or `internal/selfupdate`. awrel already builds its command with cobra 1.10.2, under go-arch-lint vendor rules like the ones below (existing).
 
@@ -47,7 +49,7 @@ gh's pain with cobra came from its wiring: one shared Factory passed to 216 comm
 - **One place for errors.** `run.Main` sets `SilenceUsage` and `SilenceErrors`, turns flag errors into a usage error, and maps every returned error to an exit code through `plugin.ExitCode`.
 
 ```go
-// internal/review/io/app/post.go, a sketch
+// <cli-root>/internal/review/io/app/post.go, a sketch
 type postDeps struct {
 	config func() (config.Config, error) // loads at most once, on first call
 	poster reviewPoster                  // one method over the GitHub adapter
@@ -107,24 +109,48 @@ Go has a native package for Configure Unify Execute (CUE), `cuelang.org/go`, so 
 | Review draft and review policy schemas | `jsonschema` | `internal/schemas`, through `encoding/jsonschema` |
 | Run request and run metadata: `schemas/agent-protocol.json` | `jsonschema`, from plan step 2 | `internal/agent/protocol`, through `encoding/jsonschema` |
 
-### Moving the schema source
+### The schema source across two repositories
 
-The Python side's `src/tbhbdev/schemas/*.cue` files are the source that moves over. At tools `bf420ff` they're symbolic links to `core.cue`, `issue.cue`, and `review.cue` under the root `schemas/` directory, where `taxonomy.cue` also sits (existing).
+The Python side's `src/tbhbdev/schemas/*.cue` files are symbolic links to `core.cue`, `issue.cue`, and `review.cue` under the tools root `schemas/` directory, where `taxonomy.cue` also sits (existing, at tools `bf420ff`).
 
-Go's `embed` skips symbolic links (unverified, from its documentation), so the files themselves move into `internal/schemas/cue/` and the Python links point there. Both languages then read one source. The schema slice moves the files and the links in one pull request, which the Go tests and the Python suite both run on.
+The Go code lives in another repository (D22), so no link can join the two. tools keeps the files as the source while its Python reads them. The schema slice copies them into `internal/schemas/cue/` as plain files, since Go's `embed` skips symbolic links (unverified, from its documentation). A monorepo test reads the same files from the pinned tools commit and fails on any byte difference, so a schema change lands in tools first and reaches Go through the pin bump. When the Python content libraries go, the monorepo copies become the source.
+
+### The CUE boundary
+
+`cuecontext.New` reads `CUE_DEBUG` and `CUE_EXPERIMENT` from the process environment (per this design's review, checked again by the schema slice against the pinned version). That is an environment read inside a pure package's call, which no import ban can see. The port pins the boundary in three parts:
+
+- **Cleared in the shell.** `run.Main`, the I/O entry of every plugin, removes every variable whose name starts with `CUE_` from the process environment before it builds the cobra root, so no CUE call ever sees one. Children that a plugin starts get the cleaned environment, which is safe because no Go code runs `cue`.
+- **One constructor.** The pure schema packages create their CUE context only through one unexported function, and an ast-grep rule, `cue-one-context`, bans `cuecontext.New` anywhere else.
+- **Pinned and checked.** `cuelang.org/go` is pinned in `go.mod`. A test, `cue_env_reads_test`, lists every call to `os.Getenv`, `os.LookupEnv`, `os.Environ`, and `syscall.Getenv` in the CUE packages the module links, through `go list -deps` and a syntax scan, and fails if the set differs from the reviewed list, now the reads of `CUE_DEBUG` and `CUE_EXPERIMENT`. It also fails if any of those reads runs from an `init()` function, since clearing in `run.Main` comes after package start. A CUE upgrade that adds a read fails until a reviewer updates the list.
+
+An `io_go_test` runs a plugin binary with `CUE_DEBUG` and `CUE_EXPERIMENT` set to values that would change or break evaluation, and checks that every schema fixture validates exactly as it does with the variables unset.
+
+## GitHub with go-github
+
+The operator chose the client stack on 2026-11-25, on a research report into Go GitHub clients (D24).
+
+- **One package imports it.** Only packages under `internal/ghapi` import go-github. The rest of the code sees narrow one-method interfaces and plain result types from `internal/ghapi`, so a go-github major bump edits one directory.
+- **One client.** `internal/ghapi/io/client` builds the client with an injected transport, token, User-Agent, and timeout, using only the constructor options that exist in both v93 and go-github's main branch: `WithTransport`, `WithAuthToken`, `WithUserAgent`, and `WithTimeout`. Tests inject a transport that matches fakes by request content.
+- **GraphQL on the same client.** `internal/ghapi/io/graphql` posts a query through the same client for what REST lacks: marking a pull request ready for review, the merge queue state query and enqueue, and Projects v2 by node ID. It isn't a general GraphQL client, and the module doesn't use `githubv4`.
+- **App installation tokens.** `internal/ghapi/io/apptoken` signs the app JWT with the standard library and calls go-github's installation endpoints, not `ghinstallation`, which pins go-github v88. It keeps today's behavior from `gh_app`: it looks up the repository's installation and then the organization's, caches tokens until near expiry, waits out a cooldown after a failure, and never puts a secret in an error.
+- **Majors on tbhb-dev's schedule.** Six of the eight majors from v86 to v93 broke calls this code uses, all renames or by-value changes the compiler finds. A bump is its own pull request, never part of a feature slice.
 
 ## The rules that hold it
 
 | Rule | Tool | Forbids |
 | --- | --- | --- |
-| `stack-vendors` | go-arch-lint `vendors` and `canUse`, with `depOnAnyVendor: false` as awrel sets it | cobra and pflag outside `io/app` and `internal/plugin/io/run`, koanf outside `internal/config/io/load`, and `cuelang.org/go` outside the two schema packages |
-| `front-stdlib-only` | depguard, strict list mode | Any import but `$gostd` and the front's four packages in `cmd/tbhbdev`, `internal/dispatch/**`, `internal/selfupdate`, `internal/plugin`, and `internal/buildinfo` |
+| `stack-vendors` | go-arch-lint `vendors` and `canUse`, with `depOnAnyVendor: false` as awrel sets it | cobra and pflag outside `<cli-root>/**/io/app` and `<cli-root>/internal/plugin/io/run`, koanf outside `<cli-root>/internal/config/io/load`, `cuelang.org/go` outside the two schema packages, and go-github outside `<cli-root>/internal/ghapi/**` |
+| `ghapi-only-go-github` | depguard | `github.com/google/go-github/**` in any file outside `<cli-root>/internal/ghapi/**`, a second line beside `stack-vendors` with its own planted fixture |
+| `front-stdlib-only` | depguard, strict list mode | Any import but `$gostd` and the front's four packages in `<cli-root>/cmd/tbhbdev`, `<cli-root>/internal/dispatch/**`, `<cli-root>/internal/selfupdate`, `<cli-root>/internal/plugin`, and `<cli-root>/internal/buildinfo` |
 | `pure-no-exec` | depguard | `os/exec` and `syscall` in pure files and their tests, which the pure allowlist in [appendix F](F-build-and-checks.md#components) already leaves out, named here so a planted fixture proves it |
-| `exec-one-package` | depguard | `os/exec` in every file outside `internal/procexec/io/command`, so every child process starts in one package |
+| `exec-one-package` | depguard | `os/exec` in every file outside `<cli-root>/internal/procexec/io/command`, so every child process starts in one package |
 | `no-cue-load` | depguard | `cuelang.org/go/cue/load` and `cuelang.org/go/mod/...` everywhere, since they read files and can fetch modules |
 | `no-viper` | gomodguard_v2 | The `github.com/spf13/viper` module, as awrel bans modules there |
-| `no-cue-binary` | ast-grep, tools-local | `"cue"` as the program of `exec.Command`, `exec.CommandContext`, `exec.LookPath`, `syscall.Exec`, or the `procexec` constructor |
-| `no-cobra-globals` | ast-grep, tools-local | `cobra.OnInitialize(...)`, `cobra.OnFinalize(...)`, and any assignment to `cobra.$X` |
+| `no-other-github-clients` | gomodguard_v2 | The `github.com/shurcooL/githubv4` and `github.com/bradleyfalzon/ghinstallation` modules, and any go-github major but the pinned one (D24) |
+| `no-cue-binary` | ast-grep, monorepo-local | A string literal equal to `cue` or ending in `/cue`, as the program of `exec.Command`, `exec.CommandContext`, `exec.LookPath`, `syscall.Exec`, or the `procexec` constructor |
+| `cue-not-run` | a run-time check in `procexec`, with a unit test | Any program whose `filepath.Base` is `cue`, after the path resolves, so a computed or absolute path such as `/usr/local/bin/cue` is refused too |
+| `cue-one-context` | ast-grep, monorepo-local | `cuecontext.New(...)` outside the one constructor in the schema packages |
+| `no-cobra-globals` | ast-grep, monorepo-local | `cobra.OnInitialize(...)`, `cobra.OnFinalize(...)`, and any assignment to `cobra.$X` |
 | `gochecknoinits` | golangci-lint | Any `init()` function |
 
-depguard reads imports, not arguments, so it can't see which program a call runs. The two depguard exec rules put every child process behind one constructor, and `no-cue-binary` catches `cue` by name at that door. Each rule ships with a planted fixture that must fail it, as [appendix F](F-build-and-checks.md#checks) requires.
+depguard reads imports, not arguments, so it can't see which program a call runs. The two depguard exec rules put every child process behind one constructor. `no-cue-binary` catches a literal `cue` program by name or path at that door, and `cue-not-run` refuses one that the code computes, by its base name at run time. Each rule ships with a planted fixture that must fail it, as [appendix F](F-build-and-checks.md#checks) requires.

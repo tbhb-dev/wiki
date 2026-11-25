@@ -10,7 +10,7 @@ parent: README.md
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
-<!-- cspell:words agy userconfig gitleaks runfiles asyncio depguard cobra koanf -->
+<!-- cspell:words agy userconfig gitleaks runfiles asyncio depguard cobra koanf ghapi -->
 
 # tbhbdev Go port waves
 
@@ -18,17 +18,17 @@ Back to [the design](README.md).
 
 Line counts come from the design outline, read at tools `75cbfd83` on 2026-11-25, except the wave 1 review modules, read at tools `bf420ff` the same day. They're `wc -l` of whole files, comments and blank lines included. The Python source is 37,745 lines under `src/tbhbdev`, and the tests are 95,572 lines in 150 files, of which `alpha` alone is 29,364 lines.
 
-No wave starts until the operator has read the merged design (D17).
+No wave starts until the operator has read the merged design (D17). Every Go wave lands in tbhb-dev/tbhbdev under `<cli-root>` (D22), and every Python change in a wave, such as the wave 1 `agent` name, lands in tools.
 
 ## Waves
 
 | Wave | What ports | Python lines | Why here |
 | --- | --- | --- | --- |
-| 0 | The front, the plugin runner on cobra, the koanf loader, the schema package, the contract library, the checks, the bundle, the installer, and self-update, all new | none | Everything else stands on it |
+| 0 | The front, the plugin runner on cobra, the koanf loader, the schema package, the GitHub client package, the contract library, the checks, the bundle, the installer, and self-update, all new | none | Everything else stands on it |
 | 1 | `alpha review`: `review` (309), `review_doc` (427), `review_policy` (242), and `review_prompt` (121), with `review_data/` and `review_prompt_data/` | 1,099 | The review tooling is the unfinished part of tbhbdev (D17) |
-| 1 | The review run's post: `agent/review_post.py` (177), and `post_review` in `run_host.py` once tools#399 merges | 177, plus part of `run_host` | A review run posts its own verdict |
-| 1 | What the review code imports: the content check in `content_vet` (186) with the parts of `content` and `content_model` it calls, the app and review tokens in `gh_app` (815), the parts of `pull_request` that `review_post.py` calls, and the GitHub client | unverified, part of each module | Ported as Go library packages beside the Python libraries, both tested on the same fixtures |
-| 2 | `alpha agent`, the launcher | 9,769, of which `decisions/` is 2,912 | The launcher works today, and `decisions/` is already pure, so it needs only translation |
+| 1 | The review run's post: `agent/review_post.py` (177), which tools main has but `run_host.py` doesn't call, and the run host's call to it, from whatever form of tools#399 lands, or new in Go if none does | 177, plus part of `run_host` | A review run posts its own verdict |
+| 1 | What the review code imports: the content check in `content_vet` (186) with the parts of `content` and `content_model` it calls, the app and review tokens in `gh_app` (815), the parts of `pull_request` that `review_post.py` calls, and the GitHub client on go-github (D24) | unverified, part of each module | Ported as Go library packages beside the Python libraries, both tested on the same fixtures |
+| 2 | `alpha agent`, the launcher, with `agent env` and `agent gh-shim` passed through to `tbhbdev-py` until wave 3 (D26) | 9,769, of which `decisions/` is 2,912 | The launcher works today, and `decisions/` is already pure, so it needs only translation |
 | 2 | The libraries the launcher imports: `version` (83), `userconfig` (203), `telemetry` (147), the `secrets` library (701), `gitleaks_check` (84), and constants from `identity`, `repo`, and `host` | about 1,250 | The launcher can't run without them |
 | 2 | The launcher's uses of other `alpha` modules: `brief` (`driver.py`), `gh_app` (`credentials.py`), `install` (`worktree.py`), and `pull_request` (`open_pr.py`) | unverified, part of each module | Ported as library packages with no command yet, so Go never calls `alpha` (D5). The review pieces are in Go from wave 1 |
 | 3 | `identity`, the `guard_*` modules, `gh_shim`, `state_guard`, and `session_context` | 3,137 and 4,283 | Hooks run on every tool call, so their start time matters most |
@@ -52,18 +52,20 @@ The lists below come from the tools inventory of 2026-11-25, which read the git 
 ### In Python today
 
 - **Review runs**, in `alpha/agent/` (`launcher`, `driver`, `run_host`, `render`, and `admission`): read-only tokens with no approval routes (tools#238), `--ref` required for a review `exec` (tools#249), launch slots kept for reviews (tools#321), no second live review of one commit (tools#340), both runs launched for a declared review pair (tools#347), sessions that launch their own reviews (tools#370), and reviewer-role runs refused from unlisted sessions (tools#265).
-- **The verdict line.** A review run ends with `VERDICT: GO|NO-GO <sha>` (tools#395), and the run host posts it by the older path from tools#278.
+- **The verdict line.** The review prompt from tools#395 asks a run to end with `VERDICT: GO|NO-GO <sha>`. ADR 0004 names the verdicts GO and HOLD, so the prompt's `NO-GO` is a drift that wave 1 removes ([the review contract](#the-review-contract-wave-1-keeps)).
+- **The run host's poster.** `agent/review_post.py`, from tools#278, is on tools main, but `run_host.py` on main doesn't call it, so no review run posts its own verdict on main today (existing at tools `1be1910`).
 - **Review documents:** types and pure functions (tools#385) and parse and render (tools#388) in `review_doc.py`, the schema `schemas/review.cue` (tools#384), and the content check before posting in `content_vet.py` (tools#310).
-- **Review commands:** `draft` and `check` (tools#33), `post`, `dismiss`, and `reply` (tools#392) in `review.py`, the policy check in `review_policy.py` (tools#277), the floor template and schemas (tools#268), the org floor checklist (tools#274), the prompt templates in `review_prompt.py` and `review_prompt_data/` (tools#393), and the review token and commit fetch (tools#212 and tools#215).
-- **In flight:** tools#399 posts review run verdicts from the run host, through `review_post.py`, `post_review` in `run_host.py`, and `review check N --no-lint`. At the inventory's read it was open, approved, and queued, and it lands unchanged.
+- **Review commands:** `draft` and `check` (tools#33), `post`, `dismiss`, and `reply` (tools#392) in `review.py`, the policy check in `review_policy.py` (tools#277), the floor template and schemas (tools#268), the org floor checklist (tools#274), and the prompt templates in `review_prompt.py` and `review_prompt_data/` (tools#393).
+- **The review-run token.** `credentials.py` gives a review run's host a run-scoped token (existing at `bf420ff`). The pull request that added it isn't identified here: tools#212 and tools#215 closed unmerged, so neither is evidence for it.
+- **In flight:** tools#399 wires the run host to post review run verdicts, through `review_post.py`, `post_review` in `run_host.py`, and `review check N --no-lint`. On 2026-11-25 it was open and approved, with a merge state of `DIRTY`, so it needs a rebase or changes before it can land.
 
-After tools#399, Python gets no new review features, so wave 1 ports the review code as it stands then.
+Wave 1 doesn't assume tools#399 lands unchanged, or at all. It plans against tools main on the day it starts and reads tools#399's final diff if it has merged. If it hasn't, wave 1 builds the run host's call to the poster in Go, under the contract below. After that day Python gets no new review features.
 
 ### Unbuilt
 
 The unbuilt list comes from the milestone plan and is not confirmed against a tracker.
 
-- **The M4 proof.** One real review run posts its verdict as a GitHub review at the head it judged, after tools#399 merges. If it first passes on the Python path, wave 1 repeats it on the Go path, and wave 1 is done only when the Go path passes.
+- **The M4 proof.** One real review run posts its GO or HOLD verdict as a comment review at the head it judged. If it first passes on the Python path, wave 1 repeats it on the Go path, and wave 1 is done only when the Go path passes.
 - **The M5 merge-gate switch.** A design for the operator on which identity approves, the rulesets, and retiring `tbhb-approve`. It's a decision, not code, and any code it calls for lands in Go.
 - **The paired review launch and its summary.** tools#358 and tools#365 closed, and no matching subject is on main, so they read as unmerged (checked only against the git log). Wave 1 builds them as a new `tbhbdev review` subcommand.
 - **Debt from the tools#399 and tools#400 reviews:** a guard against an empty brief, proxy variables that `version_heal` drops, and a lint for the review prompts. Each lands as a fix and a test in the Go package that ports its module.
@@ -73,7 +75,26 @@ The unbuilt list comes from the milestone plan and is not confirmed against a tr
 - **Launching.** The Go review code imports nothing from the launcher. To start a review run, it calls `tbhbdev agent exec` by its final name through `TBHBDEV_PATH`.
 - **Python answers `agent`.** From wave 1, the Python package answers the top-level name `agent` with the `alpha agent` code, so Go names no `alpha` command (D5). In wave 2 the Go `agent` plugin takes the name, and the review code doesn't change.
 - **Admission.** Rules that read the launcher's run state, such as reserved slots and one live review per commit, stay in the Python launcher until wave 2. Go doesn't copy them.
-- **Posting.** Once `tbhbdev review post` ships, the Python run host's `post_review` hands the verdict to it by its final name, so one poster serves both paths.
+- **Posting.** Once `tbhbdev review post` ships, the Python run host hands the verdict to it by its final name, under the contract below, so one poster serves both paths.
+
+### The review contract wave 1 keeps
+
+Wave 1 moves code, not review authority. ADR 0004 and ADR 0009 stay the rules, and each item below is a test in the wave 1 slices.
+
+- **Verdict words.** A verdict is `GO` or `HOLD`, as ADR 0004 names them. The Go prompt templates ask for `VERDICT: GO|HOLD <sha>`, and the Go parser accepts those two words and nothing else, except that it reads a legacy `NO-GO` as `HOLD` with a logged warning while runs from the Python prompt remain. One tools fix changes the Python prompt to `HOLD` in wave 1, and the `NO-GO` reading goes when no Python prompt is left. Table test: `GO`, `HOLD`, `NO-GO`, a lowercase word, a missing commit, and a short commit.
+- **The exact judged head.** The verdict line's commit is the head the run judged, the run's `--ref`. The poster posts on that commit and never on the pull request's current head, and if the two differ it still posts on the judged one, which marks the verdict stale for the head that moved. Test: a head that moves during the run.
+- **Comment only.** The poster sends a review with the event `COMMENT`, carrying the run identifier, the model provider, the exact head, the verdict, and the findings, as ADR 0004 lists them. No code path in `tbhbdev-review` sends `APPROVE` or `REQUEST_CHANGES`, an ast-grep rule bans those event names in the plugin, and a test drives every post path through a fake transport that fails on any other event.
+- **Approval stays independent.** Approval belongs to the independent approver of ADR 0009, through `tbhb-approve` until the M5 switch decides otherwise. Wave 1 builds no approval path.
+- **The host holds the posting token.** In a review run, the run host holds the run-scoped posting token, and the review run's own process never sees it. The run host starts `tbhbdev review post --from-run <run>` as its own child and passes the token on an inherited descriptor that the review run's sandbox never had. Test: the review run's environment and descriptors hold no token, and the poster child reads exactly one.
+
+Two paths post, under two identities, and the poster's wiring picks the token source from the path, never from a flag a caller can set:
+
+| Path | Who runs it | Identity it posts as | Token source |
+| --- | --- | --- | --- |
+| The run-host helper | The run host, after a review run ends | The reviews identity that `credentials.py` scopes to the run (existing) | The inherited descriptor only. With no descriptor, `--from-run` exits 2 and posts nothing |
+| The manual command, `tbhbdev review post <number>` | A role session | The caller's own identity, as `alpha review post` uses today (unverified which token it reads) | The caller's credential path only. It never opens a run's descriptor or reads a run's token file |
+
+Tests: each path posts under its own identity through a fake transport that records the token, the manual command with a run's descriptor open still uses the caller's token, and `--from-run` from a role session with no descriptor exits 2.
 
 ## Slices
 
@@ -81,15 +102,16 @@ The size gate allows 400 added code lines per pull request, tests included. With
 
 ### Go scaffolding
 
-About five pull requests, one after another:
+About six pull requests in tbhb-dev/tbhbdev under `<cli-root>`, one after another. The monorepo session owns the repository's own scaffolding, whose first pull request creates neither candidate CLI folder, so these wait for the operator to name `<cli-root>`. The first Go slice, tools#418, waits for the move and is rebuilt there rather than merged into tools.
 
-1. The front with `internal/dispatch` and `internal/plugin`.
+1. The front with `<cli-root>/internal/dispatch` and `<cli-root>/internal/plugin`.
 2. The stamp and the bundle test.
 3. `internal/plugin/io/run` with the cobra root, and `internal/config/io/load` with koanf ([appendix K](K-go-stack.md)).
 4. The checks with their planted fixtures, the stack rules included.
-5. `internal/schemas`, with the Configure Unify Execute (CUE) files moved over and in-process validation.
+5. `internal/schemas`, with byte-checked copies of the Configure Unify Execute (CUE) files, in-process validation, and the CUE boundary checks.
+6. `internal/ghapi`, with the go-github client, its rules, and a fake transport for tests.
 
-Each scaffolding pull request goes to the operator before it merges (D19). The phase 1 Python release, which adds the protocol schema and the `protocol-version` job, and the rules ast-grep macro run beside them.
+The front, dispatch, and plugin plumbing pull requests among them don't merge, and nobody approves them or runs `tbhb-approve` on them, until the operator says go on Open (D19). Review and CI come first, a reviewer's verdict is a GO or HOLD comment only, and coordination then puts the pull request on Open. The phase 1 Python release in tools, which adds the protocol schema and the `protocol-version` job, and the rules ast-grep macro run beside them.
 
 ### Wave 1 in parallel
 
@@ -124,4 +146,4 @@ Host load rules cap real concurrency, not the code (unverified as current).
 1. Pure types and functions, with their table tests.
 2. The adapter, with its `io_go_test` against real tools in a temporary root.
 3. The `io/app` wiring and the command, behind its final name.
-4. The corpus or golden comparison against the Python command from the same commit.
+4. The corpus or golden comparison against the Python command from the pinned tools commit.

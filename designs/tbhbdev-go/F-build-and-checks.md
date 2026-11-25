@@ -1,7 +1,7 @@
 ---
 type: Design Appendix
 title: tbhbdev Go port build and checks
-description: The Bazel layout of the tbhbdev Go port beside the Python, the disjoint inputs that keep the Python suite off Go-only changes, and each check that runs from the first commit.
+description: The Bazel layout of the tbhbdev Go port in the tbhb-dev/tbhbdev monorepo, how its inputs stay apart from the Python in tools, and each check that runs from the first commit.
 tags: [tbhbdev, go, bazel, checks, design]
 status: draft
 parent: README.md
@@ -10,7 +10,7 @@ parent: README.md
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
-<!-- cspell:words selfupdate flock gazelle depguard golangci gobco gomutants govulncheck deadcode genquery buildinfo termio procexec statedir ghapi sshcall gochecknoglobals httptest gostd sgconfig deptry strconv lookpath cobra koanf cuelang gochecknoinits gomodguard pflag stdlib -->
+<!-- cspell:words selfupdate flock gazelle depguard golangci gobco gomutants govulncheck deadcode genquery buildinfo termio procexec statedir ghapi sshcall gochecknoglobals httptest gostd sgconfig deptry strconv lookpath cobra koanf cuelang gochecknoinits gomodguard pflag stdlib ghinstallation githubv -->
 
 # tbhbdev Go port build and checks
 
@@ -18,47 +18,48 @@ Back to [the design](README.md).
 
 ## Layout
 
+The Go port lives in the monorepo tbhb-dev/tbhbdev (D22). The monorepo session owns its root, and its first scaffolding pull request creates neither candidate CLI folder. The CLI's tree sits under `<cli-root>`, the folder the operator hasn't named yet ([the design](README.md#the-open-cli-folder)).
+
 ```text
-tools/
-  MODULE.bazel        rules_go 0.65.0, gazelle 0.54.0, tbhb_rules_go, as awrel pins them
-  go.mod              module go.tbhb.dev/tools, no go.work
+tbhb-dev/tbhbdev/
+  MODULE.bazel        rules_go 0.65.0, gazelle 0.54.0, tbhb_rules_go, as awrel pins them, and the pinned tools commit
+  go.mod              module github.com/tbhb-dev/tbhbdev, the only place the path is written, no go.work
   BUILD.bazel         gazelle, the whole-module Go checks, repository hygiene
   .golangci.yml       linters, depguard lists, gomodguard bans, gochecknoglobals, gochecknoinits
-  .go-arch-lint.yml   components, allowed imports, and vendor lists
+  .go-arch-lint.yml   components, allowed imports, and vendor lists, with paths under <cli-root>
   sgconfig.yml        ast-grep rule directories
-  cmd/tbhbdev/                  the front, one-line main
-  cmd/tbhbdev-<name>/           one plugin each, one-line main
-  cmd/tbhbdev-self-update/      the self-update helper, one-line main
-  internal/<domain>/<topic>/    pure packages
-  internal/<domain>/io/<name>/  I/O adapters, and io/app for wiring and cobra commands
-  internal/schemas/cue/         the CUE schemas, moved from the root schemas/ (D20)
-  bundle/                       the release archive, manifest, and main.json pointer targets
-  schemas/agent-protocol.json   the protocol schema, with its decisions file and frozen versions
-  src/tbhbdev/                  Python, as today
-  tests/                        Python tests, with pytest_test moved here
-  tests/agent-corpus/           request envelopes both languages test against
+  <cli-root>/
+    cmd/tbhbdev/                  the front, one-line main
+    cmd/tbhbdev-<name>/           one plugin each, one-line main
+    cmd/tbhbdev-self-update/      the self-update helper, one-line main
+    internal/<domain>/<topic>/    pure packages
+    internal/<domain>/io/<name>/  I/O adapters, and io/app for wiring and cobra commands
+    internal/schemas/cue/         byte-checked copies of the tools CUE schemas (D20)
+    internal/agent/protocol/      a byte-checked copy of the tools protocol schema
+    bundle/                       the release archive, manifest, and main.json pointer targets
+    tests/agent-corpus/           request envelopes both languages test against
 ```
 
-gazelle writes one `BUILD.bazel` per Go package with `# gazelle:prefix go.tbhb.dev/tools` at the root, as afakt and awrel do with their own prefixes. There's no plain `go build` path, and release builds use `bazelisk build --config=release` as in afakt and awrel CI.
+tbhb-dev/tools keeps `src/tbhbdev/`, its Python tests, `schemas/agent-protocol.json` with its decisions file and frozen versions, and the `protocol-version` job.
 
-## Disjoint inputs
+gazelle writes one `BUILD.bazel` per Go package. The root carries no `# gazelle:prefix` directive, since gazelle takes the prefix from `go.mod` (unverified against gazelle 0.54.0). If it needs the directive, a test fails when the directive and `go.mod` differ, so a rename still edits one value by hand. Bazel labels name the folder as `//<cli-root>/...`. There's no plain `go build` path, and release builds use `bazelisk build --config=release` as in afakt and awrel CI.
 
-Today `//:pytest_test` in tools takes `srcs = [":repo_files"]`, the whole tree, and has a `long` timeout because the suite runs near 300 seconds on CI runners (existing). Any change, Go included, makes it run again.
+## Inputs across the two repositories
 
-The port splits the inputs (D7):
+Today `//:pytest_test` in tools takes `srcs = [":repo_files"]`, the whole tree, and has a `long` timeout because the suite runs near 300 seconds on CI runners (existing). Any change makes it run again.
 
-| Target | Package | Inputs |
+With the Go code in its own repository, a Go change never starts the tools suite (D7). Inside each repository, inputs stay apart:
+
+| Target | Repository and package | Inputs |
 | --- | --- | --- |
-| `pytest_test` | `//tests` | `src/tbhbdev/**`, `tests/**` except the corpus, `pyproject.toml`, `uv.lock`, and the pytest config |
-| ruff, vulture, complexipy, bandit, and deptry tests | `//tests` or `//src/tbhbdev` | The Python tree only |
-| Each `go_test` | its own package | That package's sources and its Go dependencies |
-| Whole-module Go checks | root | `go.mod`, `go.sum`, the lint configs, and the Go packages |
-| Corpus tests | `//tests/agent-corpus` | The corpus, the protocol schema, plus the Python server or the Go server under test |
-| Repository hygiene: gitleaks, REUSE, editorconfig, and formatting | root | The whole tree, as today |
+| `pytest_test` and the Python linters | tools, as today | The Python tree. Splitting `:repo_files` is the CI speed role's call, and no longer part of this port |
+| Each `go_test` | tbhbdev, its own package under `<cli-root>` | That package's sources and its Go dependencies |
+| Whole-module Go checks | tbhbdev root | `go.mod`, `go.sum`, the lint configs, and the Go packages |
+| Schema copy checks | tbhbdev, `//<cli-root>/internal/schemas` and `//<cli-root>/internal/agent/protocol` | The embedded copies and the same files from the pinned tools commit |
+| Corpus tests | tbhbdev, `//<cli-root>/tests/agent-corpus` | The corpus, the protocol schema, and the Go server or the pinned tools wheel under test |
+| Repository hygiene: gitleaks, REUSE, editorconfig, and formatting | each repository's root | The whole tree, as today |
 
-Two `genquery` targets list the source files under `//tests:pytest_test` and under every Go test, and a shell test fails if the first holds a `.go` file or the second holds a file under `src/tbhbdev`. No target named `all`, `everything`, or similar collects both languages.
-
-With the inputs apart, a Go-only change leaves `pytest_test` with unchanged inputs. Bazel then reuses its result wherever the remote cache serves the run. tools CI gives the main cache token to `push` and `merge_group` runs (existing), so merge queue runs read main's results. Whether pull request runs read them is unverified, and the CI speed role decides whether to add affected-target selection there.
+The pinned tools commit is a Bazel repository in `MODULE.bazel`, so the copy checks and corpus tests run again only on a pin bump or a change to their Go side. No target named `all`, `everything`, or similar collects both languages.
 
 ## Checks
 
@@ -68,15 +69,16 @@ With the inputs apart, a Go-only change leaves `pytest_test` with unchanged inpu
 | Import direction | `go_arch_lint_test` with the components below | existing macro in rules `go/defs.bzl`, new config |
 | Standard-library bans | depguard through the golangci-lint aspect | existing factory in rules `go/defs.bzl`, new lists |
 | No package globals | `gochecknoglobals`, with one exception in `internal/buildinfo` | existing linter, as in awrel's `buildmeta` |
-| The Go stack in its place | cobra, pflag, koanf, and `cuelang.org/go` only in their packages, no `init()`, no viper, no `os/exec` outside one package, and no `cue` child process ([appendix K](K-go-stack.md#the-rules-that-hold-it)) | existing linters and go-arch-lint vendor lists, as awrel uses them, with new config |
+| The Go stack in its place | cobra, pflag, koanf, `cuelang.org/go`, and go-github only in their packages, no `init()`, no viper, `githubv4`, or `ghinstallation`, no `os/exec` outside one package, and no `cue` child process by name or path ([appendix K](K-go-stack.md#the-rules-that-hold-it)) | existing linters and go-arch-lint vendor lists, as awrel uses them, with new config |
+| The CUE boundary | `run.Main` clears the `CUE_` variables before any CUE call, and the linked CUE packages read no other variable ([appendix K](K-go-stack.md#the-cue-boundary)) | new |
 | input/output (I/O) in pure code and unit tests | `ast_grep_test` | new macro in rules, plan step 1 |
-| Test time caps | `unit_go_test` and `io_go_test` | new macros in tools |
-| The front budget | Imports and size of `cmd/tbhbdev` | new |
+| Test time caps | `unit_go_test` and `io_go_test` | new macros in the monorepo |
+| The front budget | Imports and size of `<cli-root>/cmd/tbhbdev` | new |
 | Every binary stamped | Each bundle binary prints the bundle version for `--version` | new release test |
 | Contract | One test per contract variable, and no plugin exit code in 125 to 127 | new |
 | Protocol version | The `protocol-version` CI job compares the schema at the merge base with the head and requires a matching decision entry ([appendix I](I-protocol.md#the-schema-version-check)) | new, a tools CI job outside Bazel, since it needs the merge base |
-| Protocol corpus | Writers emit only schema-valid documents, both servers read each served version, and the Python and Go schema copies match byte for byte | new |
-| Self-update | `unit_go_test` tables for `selfupdate.Decide`, and an `io_go_test` that runs two swaps at once, prunes beside a held bundle, and feeds each failure in [appendix J](J-self-update.md#failures) | new |
+| Protocol corpus | Writers emit only schema-valid documents, both servers read each served version and the legacy shape, the staged request file matches the envelope's request, and the tools and monorepo schema copies match byte for byte | new |
+| Self-update | The tests that [appendix J](J-self-update.md#tests) lists | new |
 | Coverage and mutation | `gobco_test` at 100% branch coverage on pure packages, `gomutants_test` on changed functions | existing macros, as awrel runs them |
 | Module hygiene | `go_mod_tidy_test`, `go_deadcode_test`, `govulncheck_test` | existing macros, as awrel runs them |
 
@@ -86,11 +88,11 @@ Each new rule ships with a planted fixture that must fail it, run through `expec
 
 | Component | Paths | May import |
 | --- | --- | --- |
-| front | `cmd/tbhbdev` | `internal/dispatch/io/front` |
-| front wiring | `internal/dispatch/io/front` | `internal/dispatch`, `internal/buildinfo`, `internal/plugin`, `internal/selfupdate` |
-| plugin mains | `cmd/tbhbdev-*` | `internal/plugin/io/run`, the plugin's own `io/app` |
-| io | `internal/**/io/**` | io and pure packages |
-| pure | the rest of `internal/**` | pure packages only |
+| front | `<cli-root>/cmd/tbhbdev` | `<cli-root>/internal/dispatch/io/front` |
+| front wiring | `<cli-root>/internal/dispatch/io/front` | `<cli-root>/internal/dispatch`, `<cli-root>/internal/buildinfo`, `<cli-root>/internal/plugin`, `<cli-root>/internal/selfupdate` |
+| plugin mains | `<cli-root>/cmd/tbhbdev-*` | `<cli-root>/internal/plugin/io/run`, the plugin's own `io/app` |
+| io | `<cli-root>/internal/**/io/**` | io and pure packages |
+| pure | the rest of `<cli-root>/internal/**` | pure packages only |
 
 A domain's packages import another domain's only through a package that the arch config names as shared. That stops the cross-command imports gh grew ([appendix B](B-gh-pitfalls.md#26-shared-code-for-checks-that-diverged)).
 
@@ -104,12 +106,12 @@ The rules live in tbhb-dev/rules for other Go repositories to use, behind an `as
 | --- | --- | --- |
 | `pure-no-io` | pure sources | `os.$F(...)`, `exec.$F(...)`, `net.$F(...)`, `http.$F(...)`, `time.Now()`, `time.Sleep(...)`, `time.After(...)`, `filepath.Glob/Walk/WalkDir/Abs/EvalSymlinks(...)` |
 | `unit-test-no-io` | `_test.go` in pure packages | All of the above, plus `t.TempDir()`, `t.Setenv(...)`, `httptest.$F(...)`, and `os.Getenv(...)` |
-| `front-no-lookpath` | `internal/dispatch/**` | `exec.LookPath(...)` and `os.Getenv("PATH")` |
-| `front-no-net` | `internal/dispatch/**` and `cmd/tbhbdev` | `net.$F(...)`, `http.$F(...)`, and any import of `internal/selfupdate/io/**` |
-| `one-http-client` | everywhere except `internal/ghapi/io/**` | `http.Client{...}` and `&http.Client{...}` |
-| `no-alpha` | all Go sources except `internal/dispatch` | the string literal `"alpha"`, so no Go code names an `alpha` command (D5) |
+| `front-no-lookpath` | `<cli-root>/internal/dispatch/**` | `exec.LookPath(...)` and `os.Getenv("PATH")` |
+| `front-no-net` | `<cli-root>/internal/dispatch/**` and `<cli-root>/cmd/tbhbdev` | `net.$F(...)`, `http.$F(...)`, and any import of `<cli-root>/internal/selfupdate/io/**` |
+| `one-http-client` | everywhere except `<cli-root>/internal/ghapi/io/**` | `http.Client{...}` and `&http.Client{...}` |
+| `no-alpha` | all Go sources except `<cli-root>/internal/dispatch` | the string literal `"alpha"`, so no Go code names an `alpha` command (D5) |
 
-Two more rules, `no-cue-binary` and `no-cobra-globals`, stay in tools' own `sgconfig.yml`, since they hold this module's stack ([appendix K](K-go-stack.md#the-rules-that-hold-it)).
+Three more rules, `no-cue-binary`, `cue-one-context`, and `no-cobra-globals`, stay in the monorepo's own `sgconfig.yml`, since they hold this module's stack ([appendix K](K-go-stack.md#the-rules-that-hold-it)).
 
 ### Test tiers and time caps
 

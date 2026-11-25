@@ -10,7 +10,7 @@ parent: README.md
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
-<!-- cspell:words busybox kubectl goreleaser cutover cobra viper koanf cuelang -->
+<!-- cspell:words busybox kubectl goreleaser cutover cobra viper koanf cuelang ghinstallation githubv -->
 
 # tbhbdev Go port alternatives
 
@@ -22,7 +22,7 @@ Keep tbhbdev in Python and finish moving decisions out of input/output (I/O) mod
 
 ## One Go binary with every command
 
-A single binary with a full command tree, as gh builds it. It's one artifact and one build, but every call pays every command's start-up cost, and gh lost 12 to 40 ms per call to dependency start-up ([appendix B](B-gh-pitfalls.md#51-dependency-start-up-costs)). It also pulls every command toward one shared dependency object, which became gh's 16-field Factory. Plugin binaries keep the hooks small and let each command port on its own.
+A single binary with a full command tree, as gh builds it. It's one artifact and one build, but every call pays every command's start-up cost, and gh lost 12 to 40 ms per call to dependency start-up ([appendix B](B-gh-pitfalls.md#51-dependency-start-up-costs)). It also pulls every command toward one shared dependency object, which became gh's 17-field Factory. Plugin binaries keep the hooks small and let each command port on its own.
 
 ## One multi-call binary
 
@@ -72,9 +72,13 @@ Download the new front and write it over the old file, as many single-binary upd
 
 Check for updates while the command runs and swap afterward. gh learned that exit then waits on the check ([appendix B](B-gh-pitfalls.md#53-exit-waiting-on-background-work)), and after exec the front isn't there to finish it. The check runs first, in the foreground, under fixed deadlines.
 
-## A Python console script on PATH for the fallthrough
+## The fallthrough found on PATH
 
-Add a `tbhbdev-py` console script and have the front run it from `PATH`, as the outline proposed. uv would then install a second `tbhbdev` script beside it, and the two could shadow each other. The Python it found could also come from a different commit than the front. The bundled interpreter, run by absolute path, avoids both.
+Have the front run a `tbhbdev-py` it finds on `PATH`, as the outline proposed. A `tbhbdev-py` found that way could come from a different tools commit than the bundle pins, or from an old uv install beside it. The operator chose the same entry point in the front's own folder instead, run by absolute path (D25).
+
+## The bundled interpreter as `python3 -m tbhbdev`
+
+Have the front run `py/bin/python3 -m tbhbdev` by absolute path, as an earlier draft of this design did. It avoids a script's first line, but the operator chose the `tbhbdev-py` entry point in the front's own folder (D25). That keeps every route the front takes a file in `bin/`, and the relocatable environment keeps the script's first line valid after the rename.
 
 ## A Go bridge to Python `alpha` commands
 
@@ -100,9 +104,9 @@ Keep Python's approach: install a pinned `cue` and run `cue vet` as a child proc
 
 Let the Go plugins answer to `alpha` names as aliases. That keeps two names alive in Go with no end date, and D5 rules it out. The Python forwarder carries the old names, logs their use, and goes away once the logs stay empty.
 
-## A separate repository for the Go code
+## The Go code in tools
 
-Start a new repository for Go. One bundle from one commit then can't hold both the Go binaries and the Python fallthrough, and the two would drift. D8 keeps them in tools.
+Build the Go module in tools beside the Python, as an earlier draft of this design decided in D8, so one tools commit holds both. The operator chose the monorepo tbhb-dev/tbhbdev instead (D22). One monorepo commit still builds one bundle, because it pins the tools commit of its wheel, and byte checks against that commit keep the shared schemas from drifting.
 
 ## A Go workspace with many modules
 
@@ -115,3 +119,15 @@ gh builds with a Go task runner and releases with goreleaser. tbhb-dev builds Go
 ## A pure-package naming scheme instead of directories
 
 Mark pure packages by a suffix or by a comment that a linter reads. A directory rule, `io/` for I/O, is one glob in every checker, and anyone can see a package's class in its import path.
+
+## githubv4 for GraphQL
+
+Use `githubv4`, the typed GraphQL client, for the calls REST lacks. Those are a few: marking a pull request ready, the merge queue state and enqueue, and Projects v2 by node ID. A small helper on the go-github client covers them with one transport and one token path, and adds no second client to keep current (D24).
+
+## ghinstallation for app tokens
+
+Use `ghinstallation` to mint app installation tokens. It pins go-github v88, which would hold the module five majors behind or put two go-github majors in one build. A JSON Web Token from the standard library and go-github's own installation calls cover the same ground and keep today's lookup, cache, and cooldown (D24).
+
+## Following go-github's latest major
+
+Bump go-github each time it releases a major. Six of the eight majors from v86 to v93 broke calls this code uses. The compiler finds each break, but each one is a pull request at a time tbhb-dev didn't choose, so majors move on tbhb-dev's schedule, and the client uses only constructor options present in both the pinned major and go-github's main branch (D24).
