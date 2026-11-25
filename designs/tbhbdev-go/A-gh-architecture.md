@@ -38,7 +38,7 @@ Before any command runs, `Main` loads config, builds the terminal streams, resol
 - Package globals sit beside it: `factory.SSOURL()` reads `ssoHeader` (`default.go:26`), and `root.HasFailed()` reads a flag the help function sets (`pkg/cmd/root/help.go:54`).
 - A counter-example inside gh: `pkg/cmd/codespace/common.go:40` takes narrow dependencies explicitly.
 
-**For tbhbdev:** no Factory. Each plugin's `io/app` package builds only what that plugin uses and passes narrow values to pure code ([appendix E](E-plugin-contract.md#the-library-surface)).
+**For tbhbdev:** no Factory. Each plugin's `io/app` package builds only what that plugin uses, gives each cobra command a private struct of its own dependencies, and passes narrow values to pure code ([appendix E](E-plugin-contract.md#the-library-surface), [appendix K](K-go-stack.md#explicit-dependencies-and-no-shared-object)).
 
 ## Terminal streams
 

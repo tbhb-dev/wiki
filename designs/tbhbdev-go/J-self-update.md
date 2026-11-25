@@ -25,7 +25,7 @@ The front decides, and a separate bundle binary acts. The front does one file re
 1. **Read.** The front reads the cache file. A missing or unreadable cache is a stale one.
 2. **Decide.** `selfupdate.Decide` in `internal/selfupdate` is pure and returns `Run`, `Refresh`, or `Update(commit)`.
 3. **Run.** On `Run`, dispatch goes on as [appendix E](E-plugin-contract.md#dispatch) describes.
-4. **Hand off.** On `Refresh` or `Update`, the front execs `<bundle>/bin/tbhbdev-self-update` with the original argv. That binary is the I/O adapter: it does the network call, the download, the checks, the rename, and the re-exec.
+4. **Hand off.** On `Refresh` or `Update`, the front execs `<bundle>/bin/tbhbdev-self-update` with the original argv. That binary is the input/output (I/O) adapter: it does the network call, the download, the checks, the rename, and the re-exec.
 5. **Re-exec.** The adapter always ends by exec of a front, the new one after a swap or the current one otherwise, with `TBHBDEV_SELF_UPDATED=1` set. The front drops that variable before dispatch, so the next call checks again.
 
 `tbhbdev version`, `--version`, and `help` skip the check, so they still read only the manifest. `tbhbdev-self-update` is a helper the manifest lists apart from plugins, and no plugin may take the name `self-update`.

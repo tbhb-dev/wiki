@@ -16,7 +16,7 @@ parent: README.md
 
 Back to [the design](README.md).
 
-Go has no `alpha` (D5). Each command takes its final name when it ports, and `tbhbdev alpha <command>` keeps working through the Python fallthrough until then. The commands below come from the `alpha` usage text at tools `938f65f` (existing, a local clone older than the outline's basis). A command added since then gets a row when it ports.
+Go has no `alpha` (D5). Each command takes its final name when it ports, and `tbhbdev alpha <command>` keeps working through the Python fallthrough until then. The commands below come from the `alpha` usage text at tools `938f65f` (existing, a local clone older than the outline's basis), and the review subcommands from `review.py` at `bf420ff`. A command added since then gets a row when it ports.
 
 ## The name map
 
@@ -24,41 +24,43 @@ One file in tools, `names.toml`, holds this map with the first bundle version th
 
 | Today | Final name | Plugin binary | Wave |
 | --- | --- | --- | --- |
-| `alpha agent exec`, `wait`, `status`, `kill`, `clean`, `keep` | `agent exec`, `wait`, `status`, `kill`, `clean`, `keep` | `tbhbdev-agent` | 1 |
-| `alpha agent ssh-serve` | `agent ssh-serve` | `tbhbdev-agent` | 1 |
-| `alpha agent-env` | `agent env` | `tbhbdev-agent` | 2 |
-| `alpha gh-shim` | `agent gh-shim` | `tbhbdev-agent` | 2 |
-| `alpha identity record`, `trailer`, `consume`, `check`, `stamp-docs` | `identity record`, `trailer`, `consume`, `check`, `stamp-docs` | `tbhbdev-identity` | 2 |
-| `alpha verify-range` | `identity verify-range` | `tbhbdev-identity` | 3 |
-| `alpha guard-gh-pr` | `hook gh-pr` | `tbhbdev-hook` | 2 |
-| `alpha guard-op` | `hook op` | `tbhbdev-hook` | 2 |
-| `alpha state-guard` | `hook state` | `tbhbdev-hook` | 2 |
-| `alpha session-context` | `hook session-context` | `tbhbdev-hook` | 2 |
-| `alpha guard-gh-poll` | `hook gh-poll` | `tbhbdev-hook` | 2 |
-| `alpha guard-gh-config-dir` | `hook gh-config-dir` | `tbhbdev-hook` | 2 |
-| `alpha guard-scripts` | `hook scripts` | `tbhbdev-hook` | 2 |
-| `alpha pre-push-guard` | `hook pre-push` | `tbhbdev-hook` | 3 |
-| `alpha pr check`, `create`, `edit`, `hook`, `backfill-opened`, `rerun`, `delete-branch`, `close` | `pr check`, `create`, `edit`, `hook`, `backfill-opened`, `rerun`, `delete-branch`, `close` | `tbhbdev-pr` | 2 |
-| `alpha merge` | `pr merge` | `tbhbdev-pr` | 2 |
-| `alpha review draft`, `check` | `pr review draft`, `check` | `tbhbdev-pr` | 2 |
-| `alpha pr-stats` | `pr stats` | `tbhbdev-pr` | 3 |
-| `alpha gh-app` | `gh-app` | `tbhbdev-gh-app` | 2 |
-| `alpha repo bootstrap` | `repo bootstrap` | `tbhbdev-repo` | 2 |
-| `alpha loop` | `loop` | `tbhbdev-loop` | 2 |
-| `alpha issue close` | `issue close` | `tbhbdev-issue` | 3 |
-| `alpha brief new`, `check` | `brief new`, `check` | `tbhbdev-brief` | 3 |
-| `alpha install` | `install` | `tbhbdev-install` | 3 |
-| `alpha version-check` | `install check` | `tbhbdev-install` | 3 |
+| `alpha review draft`, `check`, `policy`, `post`, `dismiss`, `reply` | `review draft`, `check`, `policy`, `post`, `dismiss`, `reply` | `tbhbdev-review` | 1 |
+| `alpha agent exec`, `wait`, `status`, `kill`, `clean`, `keep` | `agent exec`, `wait`, `status`, `kill`, `clean`, `keep` | `tbhbdev-agent` | 2 |
+| `alpha agent ssh-serve` | `agent ssh-serve` | `tbhbdev-agent` | 2 |
+| `alpha agent-env` | `agent env` | `tbhbdev-agent` | 3 |
+| `alpha gh-shim` | `agent gh-shim` | `tbhbdev-agent` | 3 |
+| `alpha identity record`, `trailer`, `consume`, `check`, `stamp-docs` | `identity record`, `trailer`, `consume`, `check`, `stamp-docs` | `tbhbdev-identity` | 3 |
+| `alpha verify-range` | `identity verify-range` | `tbhbdev-identity` | 4 |
+| `alpha guard-gh-pr` | `hook gh-pr` | `tbhbdev-hook` | 3 |
+| `alpha guard-op` | `hook op` | `tbhbdev-hook` | 3 |
+| `alpha state-guard` | `hook state` | `tbhbdev-hook` | 3 |
+| `alpha session-context` | `hook session-context` | `tbhbdev-hook` | 3 |
+| `alpha guard-gh-poll` | `hook gh-poll` | `tbhbdev-hook` | 3 |
+| `alpha guard-gh-config-dir` | `hook gh-config-dir` | `tbhbdev-hook` | 3 |
+| `alpha guard-scripts` | `hook scripts` | `tbhbdev-hook` | 3 |
+| `alpha pre-push-guard` | `hook pre-push` | `tbhbdev-hook` | 4 |
+| `alpha pr check`, `create`, `edit`, `hook`, `backfill-opened`, `rerun`, `delete-branch`, `close` | `pr check`, `create`, `edit`, `hook`, `backfill-opened`, `rerun`, `delete-branch`, `close` | `tbhbdev-pr` | 3 |
+| `alpha merge` | `pr merge` | `tbhbdev-pr` | 3 |
+| `alpha pr-stats` | `pr stats` | `tbhbdev-pr` | 4 |
+| `alpha gh-app` | `gh-app` | `tbhbdev-gh-app` | 3 |
+| `alpha repo bootstrap` | `repo bootstrap` | `tbhbdev-repo` | 3 |
+| `alpha loop` | `loop` | `tbhbdev-loop` | 3 |
+| `alpha issue close` | `issue close` | `tbhbdev-issue` | 4 |
+| `alpha brief new`, `check` | `brief new`, `check` | `tbhbdev-brief` | 4 |
+| `alpha install` | `install` | `tbhbdev-install` | 4 |
+| `alpha version-check` | `install check` | `tbhbdev-install` | 4 |
 
-The top-level names `admin`, `secret`, `adr`, `agy`, `cue`, and `issue` keep their names and port in wave 3 ([appendix H](H-waves.md)). `analytics` and `host` follow D2.
+The top-level names `admin`, `secret`, `adr`, `agy`, and `issue` keep their names and port in wave 4 ([appendix H](H-waves.md)). `cue` doesn't port, since Go runs no `cue` binary (D20), and `analytics` and `host` follow D2.
 
-The harness hooks share one binary, `tbhbdev-hook`, because they run on every tool call and a small binary starts fastest. The pull request commands share `tbhbdev-pr` because they share the GitHub adapters.
+From wave 1, the Python package also answers the top-level name `agent` with the `alpha agent` code. The Go review code then starts runs by the final name, and the Go `agent` plugin takes that name in wave 2 ([appendix H](H-waves.md#review-runs-before-the-launcher-ports)).
+
+The harness hooks share one binary, `tbhbdev-hook`, because they run on every tool call and a small binary starts fastest. The pull request commands share `tbhbdev-pr` because they share the GitHub adapters. The review commands get their own `tbhbdev-review`, because they ship in wave 1, two waves before `pr` (D21).
 
 ## Collisions with Python names
 
 A Go plugin takes a name before Python does. Three rules keep that from hiding a Python command:
 
-- **Built-in Python names.** A Go plugin for `admin`, `secret`, `issue`, or another top-level Python name ships only when it covers every Python subcommand of that name. `tbhbdev-issue` therefore ports `import` and `close` together. A bundle test compares the Go plugin's subcommands with the Python ones from the same commit.
+- **Built-in Python names.** A Go plugin for `admin`, `secret`, `issue`, `agent`, or another top-level Python name ships only when it covers every Python subcommand of that name. `tbhbdev-issue` therefore ports `import` and `close` together, and `tbhbdev-agent` every subcommand that Python's `agent` answers. A bundle test compares the Go plugin's subcommands with the Python ones from the same commit.
 - **Entry-point plugins from other repositories.** graph and the private ITSM repository add names through `tbhbdev.plugins`. The bundle can't see those, so `tbhbdev install check` lists each host's entry-point names and reports any that a bundle plugin shadows.
 - **Reserved words.** `alpha`, `help`, and `version` never name a Go plugin, and the bundle build fails on them.
 

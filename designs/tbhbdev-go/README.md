@@ -1,7 +1,7 @@
 ---
 type: Design Draft
 title: Port tbhbdev to Go as plugin binaries
-description: How tbhbdev moves from Python to a Go front and per-command plugin binaries in one monorepo, with a Python fallthrough, final command names, a versioned protocol that never refuses a launch, and self-update at start.
+description: How tbhbdev moves from Python to a Go front and per-command plugin binaries in one monorepo, with a Python fallthrough, final command names, the review tooling first, a cobra, koanf, and in-process CUE stack, a versioned protocol that never refuses a launch, and self-update at start.
 tags: [tbhbdev, go, cli, plugins, bazel, design]
 status: draft
 owner: tools maintainer
@@ -12,7 +12,7 @@ decisions_open: 3
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
-<!-- cspell:words gazelle depguard golangci kubectl syscall buildinfo unported selfupdate libexec -->
+<!-- cspell:words gazelle depguard golangci kubectl syscall buildinfo unported selfupdate libexec cobra pflag koanf cuelang gochecknoinits -->
 
 # Port tbhbdev to Go as plugin binaries
 
@@ -22,26 +22,27 @@ decisions_open: 3
 
 ## Summary
 
-On 2026-11-25 the operator chose to port tbhbdev, about 37,700 lines of Python, to Go as plugin binaries in one monorepo, modeled on the GitHub command-line tool `gh`. This design gives the port's shape and its first build.
+On 2026-11-25 the operator chose to port tbhbdev, about 37,700 lines of Python, to Go as plugin binaries in one monorepo, modeled on the GitHub command-line tool `gh`. This design gives the port's shape, stack, and wave order.
 
-A small Go front, `tbhbdev`, execs `tbhbdev-<name>` from its own release bundle. It hands every other name, all of `alpha` included, to the Python tbhbdev built from the same commit. Commands move one at a time under final names, and a Python forwarder carries old `alpha` callers until they move.
+A small standard-library front, `tbhbdev`, execs `tbhbdev-<name>` from its release bundle, and hands every other name, `alpha` included, to the Python tbhbdev from the same commit. Plugins use cobra, pflag, koanf, and in-process Configure Unify Execute (CUE) validation, with explicit dependencies and no package state.
 
-Drivers and hosts agree on the version of one shared schema file, and a build mismatch only logs. tbhbdev updates itself at start when behind main, by an atomic swap that never refuses a run.
+Wave 1 ports the unfinished review tooling, and the launcher follows. Drivers and hosts agree on a versioned schema, and tbhbdev updates itself at start without refusing a run.
 
-Pure and input/output (I/O) packages are checked apart from the first commit. Three questions wait on the operator: release signing, what retires, and plugins outside the bundle.
+Implementation waits for the operator's read of the merged design. Three questions remain open for the operator: release signing, what retires, and plugins outside the bundle.
 
 ## Proposal
 
 When the first build merges, these parts exist in tbhb-dev/tools, beside the Python under `src/tbhbdev` (D8):
 
 - **The front, `cmd/tbhbdev`** (new). A Go binary that maps argv to one route and replaces itself with that route's program. It does no network, config, or per-plugin work before the exec.
-- **Plugin binaries, `cmd/tbhbdev-<name>`** (new). One per top-level command word, such as `tbhbdev-agent` for `tbhbdev agent exec`. Each owns its subcommands and its own small dependency set.
+- **Plugin binaries, `cmd/tbhbdev-<name>`** (new). One per top-level command word, such as `tbhbdev-review` for `tbhbdev review post`. Each owns its subcommands and its own small dependency set.
+- **The Go stack** (new). cobra and pflag for each plugin's commands, koanf for config, and `cuelang.org/go` for every schema check, each held to its packages by the rules in [appendix K](K-go-stack.md). The front uses none of them.
 - **The Python fallthrough** (existing code, new place). The Python package from the same commit, installed inside the bundle, runs every name the front doesn't route to Go, including all of `tbhbdev alpha` (D5).
 - **The release bundle** (new). One archive per platform, built from one commit, with the front, every plugin, the Python wheel, and a manifest. The tools continuous integration (CI) release job builds it, and the tools maintainer role runs that job.
 - **The installer** (new behavior). It unpacks a bundle into its own versioned directory and swaps one symbolic link, so a failed install leaves the old bundle running. The ops maintainer role runs the first install on each host, and after that event-driven sync and self-update keep hosts current.
 - **The protocol schema, `schemas/agent-protocol.json`** (new). One versioned file for the run request and the run metadata, with a CI job that fails when it changes without a version decision ([appendix I](I-protocol.md)).
-- **The self-update helper, `cmd/tbhbdev-self-update`** (new). The I/O side of self-update, run only when the front's pure decision says the build is behind or the cache is stale ([appendix J](J-self-update.md)).
-- **A shared Go library** (new). Small packages for the plugin contract, routing, build stamps, terminal streams, and process runs. [Appendix E](E-plugin-contract.md) lists them.
+- **The self-update helper, `cmd/tbhbdev-self-update`** (new). The input/output (I/O) side of self-update, run only when the front's pure decision says the build is behind or the cache is stale ([appendix J](J-self-update.md)).
+- **A shared Go library** (new). Small packages for the plugin contract, routing, build stamps, terminal streams, process runs, config, and schemas. [Appendix E](E-plugin-contract.md) lists them.
 - **Checks from the first commit** (new, on existing rules). The pull request size gate, an import-direction check that keeps I/O out of pure packages, ast-grep rules for I/O in unit tests, and test time caps. [Appendix F](F-build-and-checks.md) has the layout and each check.
 
 Other roles carry parts of it. The rules maintainer adds the ast-grep test macro to tbhb-dev/rules, the agent-config maintainer moves hook and brief callers to final names, and the CI speed role owns CI wall time across repositories.
@@ -63,6 +64,14 @@ The front never searches `PATH` for plugins and never routes `alpha` to Go. Whet
 Each plugin gets the argv after its name, unparsed. It also gets `TBHBDEV_DISPATCHED=1`, `TBHBDEV_PROG`, `TBHBDEV_PATH`, `TBHBDEV_BUNDLE`, `TBHBDEV_BUNDLE_VERSION`, and `TBHBDEV_CONTRACT=1` beside the inherited environment. Every binary carries the same build stamp, linked from one package as awrel's `buildmeta` does, and prints it for a lone `--version`.
 
 The manifest lists each plugin's name, file, and SHA-256 hash, the Python entry, and the contract version. The installer checks the hashes once, and the front trusts the manifest at run time. [Appendix E](E-plugin-contract.md) gives the full contract.
+
+### The Go stack
+
+The front and `dispatch.Resolve` use only the standard library. The front runs before any flag parsing and must pass unknown names and flags through untouched, which a flag library would consume or reject (D18).
+
+Each plugin builds its command tree with cobra and pflag, wired to avoid gh's Factory and its global state. Each command's constructor takes a private struct of only the dependencies it uses, and no package holds state or registers commands in `init()`. koanf loads the config file once in `io/app` and hands pure code a plain struct.
+
+Schemas are embedded with `go:embed` and validated in-process by `cuelang.org/go` in pure packages, and no Go code runs the `cue` binary (D20). The Python `src/tbhbdev/schemas/*.cue` files move over as the source, and [appendix K](K-go-stack.md) gives the depguard, go-arch-lint, and ast-grep rules that hold each library in place.
 
 ### Versions without refusal
 
@@ -107,6 +116,7 @@ These checks run from the first commit, and the two protocol checks from the pha
 | `ast_grep_test` | No file, process, network, clock, or environment calls in pure code or its tests | new macro in rules |
 | Test caps | A unit test target fails after 10 seconds, and any Go test target after 5 minutes | new wrapper macros |
 | Front budget | The front links only routing, contract, stamp, and self-update decision packages, under a size cap, and makes no network call | new |
+| Stack rules | cobra, pflag, and koanf only in I/O wiring, `cuelang.org/go` only in pure schema packages, no `init()`, no `os/exec` outside one package, and no `cue` child process | existing linters, new config ([appendix K](K-go-stack.md#the-rules-that-hold-it)) |
 | `protocol-version` CI job | A change to the protocol schema fails without a decision entry for its hash, an additive entry keeps the version, and a breaking one adds exactly 1 | new, in tools CI |
 | Protocol corpus | Every writer emits only schema-valid documents, each side reads every served version's corpus, and the Python and Go schema copies match | new |
 | Self-update | Table tests for every `Decide` row and cache-age boundary, two swaps at once, a prune beside a held bundle, and each failure running the current build | new |
@@ -123,11 +133,13 @@ After a command ports, its Python `alpha` entry becomes a silent forwarder to th
 
 ### Port waves
 
-Wave 1 ports the agent launcher and the libraries it imports, because its `decisions/` package is already pure. Wave 2 ports the harness hooks, the pull request commands, and `loop`. Wave 3 ports the rest. [Appendix H](H-waves.md) gives the line counts and the parallel slices: about four serial pull requests, then up to eight at once.
+Wave 1 ports the review tooling, the one unfinished part of tbhbdev: review runs, verdicts, posting reviews to GitHub, and the unbuilt pieces of the review-wire milestone plan (D17). Until wave 2, Go review code starts runs through `tbhbdev agent exec`, which the Python launcher answers under that final name.
+
+Wave 2 ports the launcher, which works today. Wave 3 ports the harness hooks, the pull request commands, and `loop`, and wave 4 the rest. [Appendix H](H-waves.md) lists the review pieces in Python and the unbuilt ones, the line counts, and the slices: about five serial scaffolding pull requests, each read by the operator before merge (D19), then up to about eight at once.
 
 ### What gh taught
 
-gh got the one-line `main`, the typed exit errors, and the injected process seams right ([appendix A](A-gh-architecture.md)). Its history shows what to avoid: plugins found on `PATH`, silent name collisions, a version stamp that silently didn't apply, five fixes to find its own path, and a 16-field Factory. [Appendix B](B-gh-pitfalls.md) ties each pitfall to a rule here.
+gh got the one-line `main`, the typed exit errors, and the injected process seams right ([appendix A](A-gh-architecture.md)). Its history shows what to avoid: plugins found on `PATH`, silent name collisions, a version stamp that silently didn't apply, five fixes to find its own path, and a 16-field Factory beside package state read in `init()`. [Appendix B](B-gh-pitfalls.md) ties each pitfall to a rule here, and [appendix K](K-go-stack.md) shows the cobra wiring that avoids the last two.
 
 ## Risks and unknowns
 
@@ -140,6 +152,9 @@ gh got the one-line `main`, the typed exit errors, and the injected process seam
 | Self-update runs on a hook's start | A hook waits on a download or hits its timeout | Sync installs first, so updates at start are rare. A killed update leaves only a temporary directory, and the cache waits a lifetime before retrying | new |
 | A bad bundle on main | Every machine takes it at its next start | Prior bundles stay on disk, a revert on main ships forward, and `TBHBDEV_NO_SELF_UPDATE=1` holds a machine | new |
 | Concurrent runs during a swap | A run loses its files mid-run | Renames of whole directories and links, one update lock, and a shared lock per bundle that pruning respects | new |
+| Go review code depends on the Python launcher until wave 2 | A review run fails if the Go call and the Python arguments drift | Python answers `tbhbdev agent` with the `alpha agent` code itself, and a test runs the Go review command against the Python launcher from the same commit | new |
+| `cuelang.org/go` reads a JSON Schema differently from Python's `jsonschema` | The two languages accept different documents | The protocol corpus and the review fixtures run both validators on every valid and planted invalid document | unverified |
+| `cuelang.org/go` adds start-up time, or reads its own environment | Plugins that validate start slower, or pure code depends on the environment | Only plugins that validate link it, never the front or `tbhbdev-hook`, and the schema slice measures both | unverified |
 | The Go agent server behaves differently from the Python one | A launch fails or runs wrongly on a Go host | Both validate against the same schema bytes, the corpus runs both ways in CI, and the Go host hands requests it can't parse to Python | new |
 | The forced command or the push-token descriptor doesn't survive exec | Remote launches break | An integration test per host operating system, in the first build | unverified |
 | Timeout and kill behavior drifts from `process_group.py` | Runs hang or die early | Port the Python tests for it first, as Go table tests | unverified |
@@ -157,15 +172,16 @@ gh got the one-line `main`, the typed exit errors, and the injected process seam
 | --- | --- | --- | --- |
 | 1 | `ast_grep_test` in tbhb-dev/rules | A rules test fails on a planted `os.ReadFile` in a pure test fixture | rules maintainer |
 | 2 | Phase 1 Python release: a warning in place of the build-version refusal, the protocol schema at version 2 with validation on both sides, `alpha agent protocol`, the `protocol-version` job, `TBHBDEV_PROG`, and `pytest_test` and the Python linters on Python inputs only. The release installs on driving machines first | A driver test with mismatched stamps launches, a schema edit with no decision entry fails the job, the release record lists the driving machines installed before any host, and a commit that adds only a `.go` file reports `//tests:pytest_test` as cached or not run | tools maintainer, ops maintainer |
-| 3 | Go skeleton: the front, `internal/dispatch`, `internal/plugin`, `internal/buildinfo`, the Bazel setup, and every check in the table | `tbhbdev alpha agent status` through the front prints what the Python command prints, and each check fails on its planted fixture | tools maintainer |
+| 3 | Go scaffolding: the front, `internal/dispatch`, `internal/plugin` with the cobra runner, `internal/buildinfo`, the koanf loader, `internal/schemas`, the Bazel setup, and every check in the table. Each pull request goes to the operator before it merges (D19) | `tbhbdev alpha agent status` through the front prints what the Python command prints, each check fails on its planted fixture, and each merged scaffolding pull request has the operator's review | tools maintainer |
 | 4 | The bundle build, the release job, and the installer | On one host, `tbhbdev version` names the bundle, a launch through the fallthrough works, and pointing the link back restores the old bundle | tools maintainer, ops maintainer |
 | 5 | Self-update: the release pointer, `internal/selfupdate`, and the self-update helper | On one host with a stale cache and an older bundle, `tbhbdev agent status` swaps to the main bundle and runs, and with no network it warns and runs the old one | tools maintainer |
-| 6 | Wave 1: `tbhbdev agent` | The envelope corpus passes both ways in CI, and a Go driver launches on a phase 1 host | tools maintainer |
-| 7 | Caller migration for each ported command | `rg 'tbhbdev alpha <command>'` finds nothing in tools, agent-config, ops, or wiki, and the forwarder logs stay empty for 14 days | agent-config maintainer, ops maintainer |
-| 8 | Waves 2 and 3 | Each wave's commands answer under final names from the bundle | tools maintainer |
-| 9 | The fallthrough retires, per D2 | `tbhbdev` with an unported name exits 127, and no bundle carries the Python wheel | tools maintainer |
+| 6 | Wave 1: `tbhbdev review`, the review run's verdict and post, the Python `agent` name, and the unbuilt review pieces | One real review run posts its verdict as a GitHub review at the head it judged through the Go poster, and `tbhbdev review check N` reports what the Python command reports on the same pull request | tools maintainer |
+| 7 | Wave 2: `tbhbdev agent` | The envelope corpus passes both ways in CI, and a Go driver launches on a phase 1 host | tools maintainer |
+| 8 | Caller migration for each ported command | `rg 'tbhbdev alpha <command>'` finds nothing in tools, agent-config, ops, or wiki, and the forwarder logs stay empty for 14 days | agent-config maintainer, ops maintainer |
+| 9 | Waves 3 and 4 | Each wave's commands answer under final names from the bundle | tools maintainer |
+| 10 | The fallthrough retires, per D2 | `tbhbdev` with an unported name exits 127, and no bundle carries the Python wheel | tools maintainer |
 
-Steps 1 and 2 run in parallel. Steps 4 and 5 wait on D1 for provenance, and step 9 waits on D2.
+No step starts until the operator has read the merged design (D17). Steps 1 and 2 then run in parallel, steps 4 and 5 wait on D1 for provenance, and step 10 waits on D2.
 
 ## Appendices
 
@@ -177,6 +193,7 @@ Steps 1 and 2 run in parallel. Steps 4 and 5 wait on D1 for provenance, and step
 - [E. Plugin contract](E-plugin-contract.md): dispatch, the contract, the install layout, and the library surface.
 - [F. Build and checks](F-build-and-checks.md): the Bazel layout, the disjoint inputs, and each check.
 - [G. Names and migration](G-names-and-migration.md): the `alpha` name map and how callers move.
-- [H. Waves](H-waves.md): what ports in which wave, and how the work runs in parallel.
+- [H. Waves](H-waves.md): what ports in which wave, the review tooling in Python and what's unbuilt, and how the work runs in parallel.
 - [I. Protocol and versions](I-protocol.md): the versioned schema, its change rules and CI check, and the transition in which no launch is refused.
 - [J. Self-update](J-self-update.md): the decision, the cache, the swap, failures, and how self-update relates to sync.
+- [K. Go stack](K-go-stack.md): cobra, pflag, koanf, and `cuelang.org/go`, how commands get their dependencies, and the rules that keep each library in its place.

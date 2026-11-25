@@ -10,7 +10,7 @@ parent: README.md
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
-<!-- cspell:words gazelle depguard ITSM syscall unported libexec -->
+<!-- cspell:words gazelle depguard ITSM syscall unported libexec cobra pflag koanf cuelang -->
 
 # tbhbdev Go port decisions
 
@@ -31,7 +31,7 @@ Back to [the design](README.md).
 - **Recommendation:** yes.
 - **Why:** `host` is 2,395 lines that a memory note calls frozen until ops replaces it (unverified as current). `analytics` is 727 lines of PostgreSQL migrations with no tie to the launcher. Porting either costs more than it returns, and keeping either in the bundle keeps a Python interpreter in every install for good. Neither speaks the agent protocol, so neither touches D14 or D16.
 - **If yes:** `host` stays in the fallthrough until ops ships its replacement, then goes. `analytics` moves to its own package with its own console script before plan step 9. The library-only modules stay in Python until their callers in other repositories move.
-- **If no:** `host` or `analytics` joins wave 3 as Go, about 2,400 or 700 more Python lines to port, or the bundle keeps the Python wheel with no end date.
+- **If no:** `host` or `analytics` joins wave 4 as Go, about 2,400 or 700 more Python lines to port, or the bundle keeps the Python wheel with no end date.
 - **Reversible:** yes until the Python code is deleted, then only by restoring it from history.
 
 ### D3. May the front run plugins from outside its release bundle, but only from absolute paths listed in an operator-owned file, and never from a `PATH` search?
@@ -43,6 +43,41 @@ Back to [the design](README.md).
 - **Reversible:** yes. Removing the file read narrows the boundary again, and the entries just stop working.
 
 ## Decided
+
+### D21. The review commands take the top-level name `review`
+
+- **Decided:** 2026-11-25, by the tools maintainer role, under D17 and refining D10.
+- **Rule:** `alpha review draft`, `check`, `policy`, `post`, `dismiss`, and `reply` port as `tbhbdev review` in their own plugin, `tbhbdev-review`, and not as `pr review` in `tbhbdev-pr`. Wave 1 ships the review commands alone. A `tbhbdev-pr` that answered only `review` would send every other `pr` word to a Go usage error until wave 3.
+- **Undo:** rename before callers move. After they move, a rename is a second migration.
+- **Record:** this design's pull request.
+
+### D20. Go validates schemas in-process with `cuelang.org/go`
+
+- **Decided:** 2026-11-25, by the operator.
+- **Rule:** the Go port never runs the `cue` binary. Every schema check goes through `cuelang.org/go` in a pure package, with the schema embedded by `go:embed`, including the issue and pull request templates and the D16 run request and run metadata schema. depguard and ast-grep rules forbid running `cue` and forbid `os/exec` in pure packages ([appendix K](K-go-stack.md#the-rules-that-hold-it)), and the Python `src/tbhbdev/schemas/*.cue` files are the source that moves over.
+- **Undo:** a new operator decision.
+- **Record:** the operator's decisions of 2026-11-25 on the wave order and the stack, relayed with D17 to D19.
+
+### D19. Scaffolding pull requests go to the operator before merge
+
+- **Decided:** 2026-11-25, by the operator.
+- **Rule:** each Go scaffolding pull request goes to the operator before it merges. These are the serial pull requests in [appendix H](H-waves.md#go-scaffolding) that set up the front, the plugin runner, the stack, the schema package, and the checks.
+- **Undo:** a new operator decision.
+- **Record:** the operator's decisions of 2026-11-25, relayed with D17, D18, and D20.
+
+### D18. The Go stack is cobra, pflag, and koanf, with a standard-library front
+
+- **Decided:** 2026-11-25, by the operator.
+- **Rule:** plugin binaries build their command trees with cobra, parse flags with pflag, and load config with koanf. Each command's constructor takes its dependencies explicitly, no package holds state or registers commands in `init()`, and koanf loads once in the input/output (I/O) shell and hands pure code a plain value. The front's dispatch stays pure and on the standard library, because it runs before any flag parsing and must pass unknown names and flags through untouched ([appendix K](K-go-stack.md)).
+- **Undo:** a new operator decision. A later library swap touches each plugin's `io/app` and the config loader, and no pure package.
+- **Record:** the operator's decisions of 2026-11-25, relayed with D17, D19, and D20.
+
+### D17. The review tooling ports first, and implementation waits for the operator's read
+
+- **Decided:** 2026-11-25, by the operator, reordering the first draft's waves.
+- **Rule:** wave 1 ports the review tooling, the one unfinished part of tbhbdev: review runs, verdicts, posting reviews to GitHub, and the unbuilt pieces of the review-wire milestone plan. The launcher moves to wave 2, because the rest of tbhbdev works today. Protocol versioning (D14 and D16) and self-update (D15) stay as decided, and no implementation starts until the operator has read the merged design.
+- **Undo:** a new operator decision.
+- **Record:** the operator's decisions of 2026-11-25, relayed with D18 to D20.
 
 ### D16. The driver-host format is one versioned schema with a CI check
 
@@ -89,7 +124,7 @@ Back to [the design](README.md).
 ### D10. Final names follow appendix G
 
 - **Decided:** 2026-11-25, by the tools maintainer role, under D5.
-- **Rule:** each ported command takes the final name in [appendix G](G-names-and-migration.md). `tbhbdev pr` gathers the pull request commands and `tbhbdev hook` gathers the harness hooks.
+- **Rule:** each ported command takes the final name in [appendix G](G-names-and-migration.md). `tbhbdev pr` gathers the pull request commands, `tbhbdev review` the review commands (D21), and `tbhbdev hook` the harness hooks.
 - **Undo:** rename before callers move. After they move, a rename is a second migration.
 - **Record:** this design's pull request.
 

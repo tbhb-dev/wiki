@@ -10,7 +10,7 @@ parent: README.md
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
-<!-- cspell:words selfupdate termio procexec buildinfo ghapi sshcall procgroup runfiles runstate statedir userconfig sigterm memfd syscall ITSM libexec -->
+<!-- cspell:words selfupdate termio procexec buildinfo ghapi sshcall procgroup runfiles runstate statedir userconfig sigterm memfd syscall ITSM libexec cobra koanf cuelang -->
 
 # tbhbdev Go port plugin contract
 
@@ -38,7 +38,7 @@ The front is `cmd/tbhbdev`. Its `main` is one line that calls `front.Main` in `i
 | an outside plugin name (D3) | the listed absolute path | Read only when no bundle plugin matches |
 | anything else | Python fallthrough | Full argv, verbatim |
 
-The front takes no flags of its own before the command word, so a flag such as `--repo` always reaches the plugin as typed. It starts no goroutine, reads no config, makes no network call, and runs no migration, and it reads only the manifest and the self-update cache.
+The front takes no flags of its own before the command word and links no flag library, so a flag such as `--repo` always reaches the plugin as typed ([appendix K](K-go-stack.md#why-the-front-doesnt-use-cobra)). It starts no goroutine, reads no config, makes no network call, and runs no migration, and it reads only the manifest and the self-update cache.
 
 It doesn't hash or verify plugins at run time, because the installer did that once.
 
@@ -137,17 +137,20 @@ Each package below is pure unless its path has `io/`. Names follow D11, and none
 | `internal/dispatch/io/front` | `Main() int`: find the bundle, read the manifest and the self-update cache, call `Decide` and `Resolve`, exec | `cmd/tbhbdev` only |
 | `internal/selfupdate` | `Decide(Build, Cache, now, Policy) Action` and cache parsing from bytes | The front, the self-update helper |
 | `internal/selfupdate/io/swap` | The pointer fetch, download, checks, rename, link swap, pruning, and re-exec | `cmd/tbhbdev-self-update`, the installer, sync |
-| `internal/agent/protocol` | The embedded schema, `Validate`, the lenient reader, and `Choose` ([appendix I](I-protocol.md)) | The agent driver and server, the version check |
+| `internal/agent/protocol` | The embedded schema, `Validate` through `cuelang.org/go`, the lenient reader, and `Choose` ([appendix I](I-protocol.md)) | The agent driver and server, the version check |
+| `internal/schemas` | The embedded Configure Unify Execute (CUE) and JSON Schema files, and `Validate(name, document)` through `cuelang.org/go`, returning findings ([appendix K](K-go-stack.md#schemas-with-cue-in-go)) | The review commands, the content check, and later the issue and pull request commands |
 | `internal/plugin` | `Env` and `FromEnviron([]string) (Env, error)`, the exit-code constants, typed errors, and `ExitCode(error) int`, the one place errors become codes | Every plugin |
-| `internal/plugin/io/run` | `Main(name string, fn func(Context) error) int`: parse the environment, answer `--version`, call `fn`, map the error | Every plugin's `cmd/` |
+| `internal/plugin/io/run` | `Main(name string, newRoot func(Context) *cobra.Command) int`: parse the environment, answer `--version`, build the cobra root, execute it with the argv tail, and map the error | Every plugin's `cmd/` |
+| `internal/config` | The plain `Config` struct and `Check`, which names each missing `[table] key` | Pure code that reads settings |
+| `internal/config/io/load` | One koanf load of `$XDG_CONFIG_HOME/tbhbdev/config.toml`, at most once per process, into `config.Config` | Each plugin's `io/app` |
 | `internal/termio` | `Streams{In, Out, Err}`, terminal flags, and `Test()` returning buffers | Plugins that print |
 | `internal/procexec/io/command` | Running a child with an explicit environment, a context deadline, process-group kill, and injected `newCommand` and `lookPath` functions | Adapters that run tools |
 | `internal/statedir/io/files` | Paths under `$XDG_STATE_HOME/tbhbdev`, atomic writes, and the forwarder log reader | Telemetry, the installer, `install check` |
-| `internal/ghapi/io/client` | The one constructor for GitHub HTTP clients, with User-Agent and auth options | Wave 2 commands |
+| `internal/ghapi/io/client` | The one constructor for GitHub HTTP clients, with User-Agent and auth options | The wave 1 review commands, then every GitHub command |
 
-Domain packages follow the same split, such as `internal/agent/argv`, `internal/agent/request`, `internal/agent/remote`, and `internal/agent/runstate` as pure packages, and `internal/agent/io/sshcall`, `internal/agent/io/procgroup`, `internal/agent/io/runfiles`, and `internal/agent/io/app` as I/O. Shared plain types from the Python `model.py` go in `internal/agent/model`.
+Domain packages follow the same split, such as `internal/agent/argv`, `internal/agent/request`, `internal/agent/remote`, and `internal/agent/runstate` as pure packages, and `internal/agent/io/sshcall`, `internal/agent/io/procgroup`, `internal/agent/io/runfiles`, and `internal/agent/io/app` as input/output (I/O). Shared plain types from the Python `model.py` go in `internal/agent/model`.
 
-There's no shared dependency object. A plugin's `io/app` builds the adapters it uses, resolves context such as the repository and host once, and passes plain values to pure code. Settings and credentials are separate adapters. Telemetry writes to the state directory in-process and starts no child.
+There's no shared dependency object. A plugin's `io/app` builds the adapters it uses, resolves context such as the repository and host once, and passes each cobra command only what it uses ([appendix K](K-go-stack.md#explicit-dependencies-and-no-shared-object)). Settings and credentials are separate adapters. Telemetry writes to the state directory in-process and starts no child.
 
 ## Versions
 

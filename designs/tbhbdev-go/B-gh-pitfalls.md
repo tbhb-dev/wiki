@@ -10,7 +10,7 @@ parent: README.md
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
-<!-- cspell:words ghcs ldflag ldflags Lstat cygwin tcell runewidth tzutil keyring safeexec mintty moq Homebrew Codespaces GHES ghdebug updateable textconv golangci gochecknoglobals termio -->
+<!-- cspell:words ghcs ldflag ldflags Lstat cygwin tcell runewidth tzutil keyring safeexec mintty moq Homebrew Codespaces GHES ghdebug updateable textconv golangci gochecknoglobals termio gochecknoinits koanf -->
 
 # tbhbdev Go port gh pitfalls
 
@@ -126,13 +126,13 @@ Each entry ends with the rule it gives this design and the place the design appl
 
 `bef62faaead7` (2020-05-20) created the Factory with two fields. It grew to 6 by `8ff4cc40e642`, 9 by `354bac82b3a5`, 11 by `6618baaf63cb`, 12 by `541ce0e5b492`, 13 by `5761a1e66965`, and 16 by `663eda0c3285` (2026-11-24). Nobody has split it.
 
-**Rule:** no shared dependency object. Each plugin's `io/app` builds what that plugin uses. **Applied in:** [E, library surface](E-plugin-contract.md#the-library-surface).
+**Rule:** no shared dependency object. Each plugin's `io/app` builds what that plugin uses, and each cobra command's constructor takes only its own dependencies. **Applied in:** [E, library surface](E-plugin-contract.md#the-library-surface), and [K, explicit dependencies](K-go-stack.md#explicit-dependencies-and-no-shared-object).
 
 ### 3.2 Flags read before parsing
 
 `c82e38353fd0` (2019-10-18), `8370602f4910` (2019-10-25), and `5e24e0d9b9d7` (2020-08-07) removed package-level state that read flags at `init()` time, which tests swapped by hand.
 
-**Rule:** no package-level mutable state. golangci-lint's `gochecknoglobals` runs on every package, and only the stamp package carries an exception, as awrel's `buildmeta` does. **Applied in:** [F, checks](F-build-and-checks.md#checks).
+**Rule:** no package-level mutable state and no `init()`. golangci-lint's `gochecknoglobals` and `gochecknoinits` run on every package, and only the stamp package carries a globals exception, as awrel's `buildmeta` does. koanf loads config once in `io/app`, after flags are parsed. **Applied in:** [F, checks](F-build-and-checks.md#checks), and [K, config](K-go-stack.md#config-with-koanf).
 
 ### 3.3 Commands reading the environment
 
@@ -214,7 +214,7 @@ Each entry ends with the rule it gives this design and the place the design appl
 
 `ff4e9aad5629` (2026-10-16) probed the usual keyring slot first, saving about 30 ms per request on macOS.
 
-**Rule:** a credential adapter caches within one run and probes the common case first. **Applied in:** [H, wave 1](H-waves.md#waves).
+**Rule:** a credential adapter caches within one run and probes the common case first. **Applied in:** [H, waves 1 and 2](H-waves.md#waves).
 
 ### 5.5 A child process on every call
 
@@ -246,7 +246,7 @@ Each entry ends with the rule it gives this design and the place the design appl
 
 `0ca080da51a7` (2026-07-03) raised the keyring timeout from 3 s to 60 s.
 
-**Rule:** timeouts are named values passed into pure code, with a test per value. **Applied in:** [H, wave 1](H-waves.md#waves).
+**Rule:** timeouts are named values passed into pure code, with a test per value. **Applied in:** [H, wave 2](H-waves.md#waves).
 
 ### 6.5 A migration on the hot path
 
@@ -264,7 +264,7 @@ Each entry ends with the rule it gives this design and the place the design appl
 
 `604120a8cf26` (2026-10-13) fixed a token lookup keyed on the resolved user instead of the flag.
 
-**Rule:** credential lookup lives in one adapter with table-tested keys. **Applied in:** [H, wave 1](H-waves.md#waves).
+**Rule:** credential lookup lives in one adapter with table-tested keys. **Applied in:** [H, waves 1 and 2](H-waves.md#waves).
 
 ## 7. Exec and processes
 

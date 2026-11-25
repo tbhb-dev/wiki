@@ -10,7 +10,7 @@ parent: README.md
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
-<!-- cspell:words selfupdate flock gazelle depguard golangci gobco gomutants govulncheck deadcode genquery buildinfo termio procexec statedir ghapi sshcall gochecknoglobals httptest gostd sgconfig deptry strconv lookpath -->
+<!-- cspell:words selfupdate flock gazelle depguard golangci gobco gomutants govulncheck deadcode genquery buildinfo termio procexec statedir ghapi sshcall gochecknoglobals httptest gostd sgconfig deptry strconv lookpath cobra koanf cuelang gochecknoinits gomodguard pflag stdlib -->
 
 # tbhbdev Go port build and checks
 
@@ -23,14 +23,15 @@ tools/
   MODULE.bazel        rules_go 0.65.0, gazelle 0.54.0, tbhb_rules_go, as awrel pins them
   go.mod              module go.tbhb.dev/tools, no go.work
   BUILD.bazel         gazelle, the whole-module Go checks, repository hygiene
-  .golangci.yml       linters, depguard lists, gochecknoglobals
-  .go-arch-lint.yml   components and allowed imports
+  .golangci.yml       linters, depguard lists, gomodguard bans, gochecknoglobals, gochecknoinits
+  .go-arch-lint.yml   components, allowed imports, and vendor lists
   sgconfig.yml        ast-grep rule directories
   cmd/tbhbdev/                  the front, one-line main
   cmd/tbhbdev-<name>/           one plugin each, one-line main
   cmd/tbhbdev-self-update/      the self-update helper, one-line main
   internal/<domain>/<topic>/    pure packages
-  internal/<domain>/io/<name>/  I/O adapters, and io/app for wiring
+  internal/<domain>/io/<name>/  I/O adapters, and io/app for wiring and cobra commands
+  internal/schemas/cue/         the CUE schemas, moved from the root schemas/ (D20)
   bundle/                       the release archive, manifest, and main.json pointer targets
   schemas/agent-protocol.json   the protocol schema, with its decisions file and frozen versions
   src/tbhbdev/                  Python, as today
@@ -67,7 +68,8 @@ With the inputs apart, a Go-only change leaves `pytest_test` with unchanged inpu
 | Import direction | `go_arch_lint_test` with the components below | existing macro in rules `go/defs.bzl`, new config |
 | Standard-library bans | depguard through the golangci-lint aspect | existing factory in rules `go/defs.bzl`, new lists |
 | No package globals | `gochecknoglobals`, with one exception in `internal/buildinfo` | existing linter, as in awrel's `buildmeta` |
-| I/O in pure code and unit tests | `ast_grep_test` | new macro in rules, plan step 1 |
+| The Go stack in its place | cobra, pflag, koanf, and `cuelang.org/go` only in their packages, no `init()`, no viper, no `os/exec` outside one package, and no `cue` child process ([appendix K](K-go-stack.md#the-rules-that-hold-it)) | existing linters and go-arch-lint vendor lists, as awrel uses them, with new config |
+| input/output (I/O) in pure code and unit tests | `ast_grep_test` | new macro in rules, plan step 1 |
 | Test time caps | `unit_go_test` and `io_go_test` | new macros in tools |
 | The front budget | Imports and size of `cmd/tbhbdev` | new |
 | Every binary stamped | Each bundle binary prints the bundle version for `--version` | new release test |
@@ -92,7 +94,7 @@ Each new rule ships with a planted fixture that must fail it, run through `expec
 
 A domain's packages import another domain's only through a package that the arch config names as shared. That stops the cross-command imports gh grew ([appendix B](B-gh-pitfalls.md#26-shared-code-for-checks-that-diverged)).
 
-go-arch-lint may not police the standard library (unverified), so depguard does. In pure files it allows only `bytes`, `cmp`, `encoding/json`, `errors`, `fmt`, `maps`, `math`, `path`, `path/filepath`, `regexp`, `slices`, `sort`, `strconv`, `strings`, `time`, `unicode`, `unicode/utf8`, and the module's pure packages. ast-grep then bans the calls in `time` and `path/filepath` that reach the clock or the disk.
+go-arch-lint may not police the standard library (unverified), so depguard does. In pure files it allows only `bytes`, `cmp`, `embed`, `encoding/json`, `errors`, `fmt`, `maps`, `math`, `path`, `path/filepath`, `regexp`, `slices`, `sort`, `strconv`, `strings`, `time`, `unicode`, `unicode/utf8`, and the module's pure packages. The two schema packages may also import the `cuelang.org/go` packages that [appendix K](K-go-stack.md#the-libraries) lists. ast-grep then bans the calls in `time` and `path/filepath` that reach the clock or the disk.
 
 ### ast-grep rules
 
@@ -107,6 +109,8 @@ The rules live in tbhb-dev/rules for other Go repositories to use, behind an `as
 | `one-http-client` | everywhere except `internal/ghapi/io/**` | `http.Client{...}` and `&http.Client{...}` |
 | `no-alpha` | all Go sources except `internal/dispatch` | the string literal `"alpha"`, so no Go code names an `alpha` command (D5) |
 
+Two more rules, `no-cue-binary` and `no-cobra-globals`, stay in tools' own `sgconfig.yml`, since they hold this module's stack ([appendix K](K-go-stack.md#the-rules-that-hold-it)).
+
 ### Test tiers and time caps
 
 gazelle's `map_kind` directive makes every generated `go_test` one of two kinds (D13):
@@ -118,6 +122,6 @@ A `genquery` test fails on any `go_test` in the module that isn't one of those k
 
 ### The front budget
 
-- `go_arch_lint_test` keeps the front's imports to the four packages in the components table and the standard library.
+- `go_arch_lint_test` keeps the front's imports to the four packages in the components table and the standard library, and depguard's `front-stdlib-only` list holds the same line for third-party packages.
 - A size test fails if the stripped front binary grows past a budget set from the first build (new, value to be measured).
 - A test runs the front under a process counter and fails if it starts any process before its exec. The front's only reads are the manifest and the self-update cache, plus the shared lock on its bundle.

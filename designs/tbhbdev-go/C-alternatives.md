@@ -10,7 +10,7 @@ parent: README.md
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
-<!-- cspell:words busybox kubectl goreleaser cutover -->
+<!-- cspell:words busybox kubectl goreleaser cutover cobra viper koanf cuelang -->
 
 # tbhbdev Go port alternatives
 
@@ -18,7 +18,7 @@ Back to [the design](README.md).
 
 ## Finish the Python pure-core refactor
 
-Keep tbhbdev in Python and finish moving decisions out of I/O modules. The operator stopped that work in favor of the port (D4). The refactor's finished pieces still help, because a pure Python function with plain-data tests ports almost line for line ([appendix H](H-waves.md)).
+Keep tbhbdev in Python and finish moving decisions out of input/output (I/O) modules. The operator stopped that work in favor of the port (D4). The refactor's finished pieces still help, because a pure Python function with plain-data tests ports almost line for line ([appendix H](H-waves.md)).
 
 ## One Go binary with every command
 
@@ -76,9 +76,25 @@ Check for updates while the command runs and swap afterward. gh learned that exi
 
 Add a `tbhbdev-py` console script and have the front run it from `PATH`, as the outline proposed. uv would then install a second `tbhbdev` script beside it, and the two could shadow each other. The Python it found could also come from a different commit than the front. The bundled interpreter, run by absolute path, avoids both.
 
-## A Go bridge to Python `alpha` commands in wave 1
+## A Go bridge to Python `alpha` commands
 
-Have the Go launcher run `tbhbdev alpha pr` and `review` as subprocesses until wave 2 ports them, as the outline proposed. That puts `alpha` names in Go code, which D5 rules out, and ties Go behavior to Python argv parsing. Wave 1 ports the library functions the launcher needs instead, with no command yet.
+Have Go code run `tbhbdev alpha` commands as subprocesses until they port, as the outline proposed for the launcher. That puts `alpha` names in Go code, which D5 rules out, and ties Go behavior to Python argv parsing. The wave 1 review code instead starts runs through the final name `tbhbdev agent`, which Python answers until wave 2, and the launcher's wave ports the library functions it needs, with no command yet.
+
+## The launcher first
+
+Port the launcher in wave 1, as the first draft did, because its `decisions/` package is already pure. The launcher works today, while the review tooling is the part still unbuilt, so the operator put review first (D17). Building the unbuilt review pieces in Go also keeps them out of Python code that the port would replace.
+
+## Cobra in the front
+
+Build the front's command tree with cobra, as gh does. The front must pass unknown names and flags through to a plugin or to Python before anything parses them, and a flag parser consumes or rejects flags it doesn't define. gh turned flag parsing off and then matched error text to work around it ([appendix B](B-gh-pitfalls.md#14-matching-the-unknown-command-error-string)), so the front stays on the standard library (D18).
+
+## Viper for config
+
+Load config with viper, which many cobra programs pair it with. Its usual entry points act on a package-level default instance (unverified), which the no-globals rule bans. koanf loads into a local that the shell owns (D18).
+
+## Running the pinned `cue` binary from Go
+
+Keep Python's approach: install a pinned `cue` and run `cue vet` as a child process. Go has `cuelang.org/go`, which validates in-process with no download, no child, and no I/O in the check itself, so the schema check stays pure (D20).
 
 ## Go aliases for alpha names
 

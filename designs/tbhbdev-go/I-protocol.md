@@ -10,7 +10,7 @@ parent: README.md
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
-<!-- cspell:words jsonschema runfiles sigterm -->
+<!-- cspell:words jsonschema runfiles sigterm cuelang -->
 
 # tbhbdev Go port protocol and versions
 
@@ -40,7 +40,7 @@ The protocol version is the schema's `version`, and nothing else names a protoco
 
 ### Both sides validate
 
-The Python package ships the file as package data and validates with `jsonschema`, already a tools dependency (existing). The Go packages embed the same bytes, and a build test fails if the two copies differ.
+The Python package ships the file as package data and validates with `jsonschema`, already a tools dependency (existing). The Go packages embed the same bytes with `go:embed` and validate in-process through `cuelang.org/go`, never a `cue` child process (D20), and a build test fails if the two copies differ.
 
 - **Writers are strict.** The driver validates each request, and the host each metadata file, before writing it, against the schema with `additionalProperties: false`. A code change that adds a field fails its own tests until the schema names the field.
 - **Readers are lenient.** A reader removes properties the schema doesn't name, logs their names as a warning, and then validates. That's what lets an additive change reach an older reader without a refusal.
@@ -113,7 +113,7 @@ After callers move, a host's forced command becomes `tbhbdev agent ssh-serve`. T
 
 The Go server starts that server as a child, feeds it the bytes already read followed by the rest of standard input, passes the other descriptors, forwards SIGINT and SIGTERM, and exits with the child's status.
 
-CI runs the corpus four ways: the Python and Go servers each against every envelope of each served version, and each driver's output checked against a corpus member. Changes to the Python launcher after wave 1 land in Go first, so the two can't drift.
+CI runs the corpus four ways: the Python and Go servers each against every envelope of each served version, and each driver's output checked against a corpus member. Changes to the Python launcher after wave 2 land in Go first, so the two can't drift.
 
 ### Phase 4: the Python server retires
 
