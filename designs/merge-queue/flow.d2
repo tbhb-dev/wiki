@@ -1,0 +1,43 @@
+direction: down
+
+agent: Agent or person {
+  merge: tbhbdev alpha merge N
+}
+
+github: GitHub {
+  pr: Pull request with merge-queue label
+  check: merge-queue check run
+  branch: "merge-queue/main/<entry> branch"
+  ci: CI on push
+  main: main
+}
+
+gateway: Event gateway {
+  stream: Durable event stream
+}
+
+temporal: Service host {
+  server: Temporal server
+  worker: Queue worker
+  server -> worker: workflow tasks
+}
+
+o11y: Grafana stack {
+  loki: Loki logs
+  mimir: Mimir metrics
+}
+
+operator: Operator {
+  pause: pause signal or App suspension
+}
+
+agent.merge -> github.pr: add label
+github.pr -> gateway.stream: webhook
+github.ci -> gateway.stream: check results
+gateway.stream -> temporal.server: signals
+temporal.worker -> github.branch: push candidates
+github.branch -> github.ci: push event
+temporal.worker -> github.check: status and reasons
+temporal.worker -> github.main: merge API
+temporal.worker -> o11y: logs and metrics
+operator.pause -> temporal.server: pause

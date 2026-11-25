@@ -8,6 +8,7 @@
     "bazel-*/**/*",
     ".bazel-*/**/*",
     "coverage.xml",
+    "designs/merge-queue/flow.d2.svg",
     "MODULE.bazel.lock",
     "mise.lock",
     "tmp/**/*",

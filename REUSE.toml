@@ -75,3 +75,14 @@ SPDX-License-Identifier = "Apache-2.0"
 path = ["adrs/*.md"]
 SPDX-FileCopyrightText = "Tony Burns"
 SPDX-License-Identifier = "Apache-2.0"
+
+# The merge queue diagram files are kept byte for byte with their checksums.
+[[annotations]]
+path = [
+  "designs/merge-queue/flow.d2",
+  "designs/merge-queue/flow.d2.png",
+  "designs/merge-queue/flow.d2.sha256",
+  "designs/merge-queue/flow.d2.svg",
+]
+SPDX-FileCopyrightText = "Tony Burns"
+SPDX-License-Identifier = "Apache-2.0"
