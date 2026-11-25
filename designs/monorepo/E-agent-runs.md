@@ -44,10 +44,10 @@ The companion gets a plain full mirror and copy clones, as today. It's small, an
 2. **Compute the cone.** The launcher keeps one full checkout per host, the index worktree, which no agent uses. It moves that checkout to the fetched commit and asks Bazel which folders the run needs:
 
    ```sh
-   bazel query 'buildfiles(deps(//factory/services/event-gateway/...))' --output=package
+   bazel query 'buildfiles(deps(//factory/event-gateway/...))' --output=package
    ```
 
-   `deps` lists everything the targets depend on, and `buildfiles` adds the build and rule files those packages load. The cone is the set of folders in the answer, plus the target paths themselves and `factory/build/policy`.
+   `deps` lists everything the targets depend on, and `buildfiles` adds the build and rule files those packages load. The cone is the set of folders in the answer, plus the target paths themselves.
 3. **Add the worktree.** The launcher takes a free slot path, described under [Bazel state](#bazel-state), and runs:
 
    ```sh
@@ -58,7 +58,7 @@ The companion gets a plain full mirror and copy clones, as today. It's small, an
 
    Cone mode always includes the files at the repository root, so `MODULE.bazel`, the lock files, and the lint configuration are present. The checkout fetches all missing blobs for the cone in one request (per docs, tested in plan step 2).
 4. **Install hooks.** The launcher installs the same read-only hooks as today, plus the push hook from [appendix D](D-public-private.md#keeping-private-content-out).
-5. **Run.** The agent builds and tests its own paths, such as `bazelisk test //factory/services/event-gateway/...`. It doesn't run `//...`, because a sparse tree doesn't hold every package. CI runs whatever else the change affects.
+5. **Run.** The agent builds and tests its own paths, such as `bazelisk test //factory/event-gateway/...`. It doesn't run `//...`, because a sparse tree doesn't hold every package. CI runs whatever else the change affects.
 
 The run's brief names its target paths. A brief with no paths gets a full checkout, through the same `--full` flag an agent can ask for.
 
@@ -112,7 +112,7 @@ How much a warm slot saves is unverified, and plan step 2 measures it. A slot's 
 | Disk cache | A fixed limit, 50 GB to start | none shared |
 | Repository cache | Grows with distinct dependency versions | shared by default |
 
-The launcher refuses to start a run when the disk is over 90% full, and it reports the host in the dashboard at 80%. Slot count per host is a launcher setting that the ops role sizes from memory, because each active slot holds a Bazel server.
+The launcher refuses to start a run when the disk is over 90% full, and it reports the host in the dashboard at 80%. Slot count per host is a launcher setting, sized from the host's memory, because each active slot holds a Bazel server.
 
 ## Cleanup
 

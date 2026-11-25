@@ -23,14 +23,14 @@ These land in the old repositories first. Each is useful even if the move stops.
 | Order | Prerequisite | State today | Why first |
 | --- | --- | --- | --- |
 | 1 | The baseline measurements | None recorded | Without them the move can't show a gain |
-| 2 | The spike on a scratch repository | Seven unverified items in [appendix A](A-evidence.md#what-plan-step-2-must-prove) | Each one can change the design |
+| 2 | The spike on a scratch repository | Six unverified items in [appendix A](A-evidence.md#what-plan-step-2-must-prove) | Each one can change the design |
 | 3 | Gazelle in every Go and Python repository | Go repositories use it and CI checks it. No repository uses the Python plugin, and tools has one hand-written build file | Affected-target CI needs one target per package, or every change affects everything |
 | 4 | The Go port's layout, one package per directory | No design found in this pass; the brief says the port is under way | Gazelle writes one Go target per directory, so the port's layout decides the target graph |
 | 5 | Tests inside a time cap | No cap is written down. Tools' one test target sets `timeout = "long"` | The proposal adopts Bazel's `medium` limit of 300 seconds per target, so a shard's time is predictable |
 | 6 | The combined coverage rule | Coverage is checked inside one target | Per-package targets need a check across targets ([appendix F](F-ci.md#coverage)) |
 | 7 | `bazel-diff` in one repository's CI | None | Proves the plan job where a mistake costs one repository |
 
-Items 3 to 5 meet in tools. If the Go port replaces the Python tree soon, the port carries gazelle and the time cap, and nobody splits the Python target first. The tools maintainer makes that call when the port's design exists.
+Items 3 to 5 meet in tools. If the Go port replaces the Python tree soon, the port carries gazelle and the time cap, and nobody splits the Python target first. That call waits for the port's design.
 
 One gate applies to the port and to nothing else here. A Go port pull request for the tool's front, its dispatch, or its plugin plumbing goes to the operator before it merges (D29). The scaffolding and the imports don't wait on that gate.
 
@@ -38,7 +38,7 @@ One gate applies to the port and to nothing else here. A Go port pull request fo
 
 | Wave | What lands | Why here |
 | --- | --- | --- |
-| 0 | The scaffolding of both repositories | The shared roots, the inline CI workflow, the rulesets, the `OWNERS` file for every planned path, the generated labels, and the two Projects exist before any code |
+| 0 | The scaffolding of both repositories | The shared roots, the inline CI workflow, the rulesets, a folder and `README.md` for every planned project, the tier 2 path map, the area labels, and the two Projects exist before any code |
 | 1 | renovate-config | Renovate arrives with it: the presets, the root `renovate.json5`, and the root Renovate workflow. Every later import's dependencies are then kept current from its first day |
 | 2 | rules | Everything else loads them, and the lint gates arrive with them. After this wave an imported project reads the rules from the tree |
 | 3 | tools | The import tool, the launcher, and the review tool live here, and the later waves use them from the monorepo |
@@ -55,10 +55,10 @@ Between waves, plan step 11 measures queue wait and CI time. A wave doesn't star
 ## Importing one repository
 
 1. **Sort the issues.** The relevance pass in [appendix I](I-issues-and-projects.md#the-relevance-pass) starts. It doesn't block the import, and it does block the archive.
-2. **Announce and drain.** The owning role posts a freeze time. Open pull requests merge or close before it, and agents get no new briefs for that repository.
-3. **Freeze.** The owning role removes the Apps' write access, and the import names the frozen commit.
+2. **Announce and drain.** The run that prepares the import posts a freeze time in the old repository. Open pull requests merge or close before it, and agents get no new briefs for that repository.
+3. **Freeze.** The Apps' write access to the old repository is removed, which takes the organization admin grant, and the import names the frozen commit.
 4. **Map.** A path map lists every file at that commit as copied to a new path, dropped, or rewritten. Dropped files are the root configuration that the shared roots replace. Rewritten files are those that called, pinned, or imported an old repository.
-5. **Import.** `tbhbdev alpha monorepo import <repository>@<commit>` builds one signed commit and opens a pull request. The commit holds the files at their new paths, the project's dependencies folded into the shared roots, its `OWNERS` file, and the build files gazelle writes. Its message names the source repository and the full commit hash, and it has no parent in the old repository.
+5. **Import.** `tbhbdev alpha monorepo import <repository>@<commit>` builds one signed commit and opens a pull request. The commit holds the files at their new paths, the project's dependencies folded into the shared roots, its rows in the tier 2 path map, and the build files gazelle writes. Its message names the source repository and the full commit hash, and it has no parent in the old repository.
 6. **Prove.** A required `import` job checks that each copied file is byte-identical to its source, that the map accounts for every source file, and that no executable reference to an old repository remains. The project's targets then build and test like any affected targets.
 7. **Review.** GitHub's diff view shows at most 300 files (per docs), so the reviewer works from a local checkout of the exact head. The `import` job's summary lists the dropped, rewritten, and generated files, and the reviewer reads each of those (D9).
 8. **Archive.** Once the repository has no open issue and no open pull request, its README gets one line that points to the new path, and it becomes an archive. `tbhbdev alpha monorepo archive` refuses while either count is above 0.
@@ -71,13 +71,13 @@ A private-origin repository adds the split, the scan, and the operator's sign-of
 
 | Thing | How it moves |
 | --- | --- |
-| Open pull requests | Drained before the freeze. The agent that owns a straggler makes it again against the new paths, as a new pull request |
+| Open pull requests | Drained before the freeze. A straggler is made again against the new paths, as a new pull request |
 | Issues | Through the relevance pass, then into the monorepo or the companion with one area label each ([appendix I](I-issues-and-projects.md)) |
 | Releases and tags | Old ones stay on the archived repository, where they remain downloadable. New ones are tagged `<project>/vX.Y.Z` |
 | Go import paths | The import rewrites each one to the root module's path, and the map lists the files it touched. The vanity import service keeps serving only the standalone modules |
-| Bazel module consumers outside the monorepo | A standalone repository keeps its rules pins until its own cutover, which it schedules itself. It then points each override at the monorepo with `strip_prefix = "factory/build/rules/<module>"` |
+| Bazel module consumers outside the monorepo | A standalone repository keeps its rules pins until its own cutover, which it schedules itself. It then points each override at the monorepo with `strip_prefix = "factory/rules/<module>"` |
 | Renovate | One root `renovate.json5` and one root workflow, from wave 1 ([appendix H](H-dependencies-and-renovate.md#renovate)) |
-| Tier 0 approval | One root workflow, written inline, with the path lists in [appendix C](C-layout-and-ownership.md#review-tiers-by-path) |
+| Tier 0 approval | One root workflow, written inline, with the path lists in [appendix C](C-layout-and-ownership.md#the-tier-0-workflow) |
 | Reusable workflows | The monorepo calls none. The ones standalone repositories need are published from the root `.github/workflows` ([appendix F](F-ci.md#what-stays-for-standalone-repositories)) |
 | Deploy workflows | Deploys that need private values move to the companion. Others run on each push to `main` and deploy when `bazel-diff` marks their target as affected, with no path filter |
 | Scheduled jobs, such as nightly mutation tests | One root workflow each, with a matrix over projects |
@@ -107,7 +107,7 @@ Plan step 1 fills the last row with one read of the Actions API for each reposit
 ## What gets worse
 
 - **A rules change runs everything.** Today it runs the rules' tests, and consumers find breakage later through a pin update. The monorepo finds it at once and pays for the full run each time.
-- **One queue.** A slow or flaky test anywhere delays every role's landings. The flake handling that the merge queue design planned has no home here, and GitHub's queue only removes the failing entry.
+- **One queue.** A slow or flaky test anywhere delays every landing. The flake handling that the merge queue design planned has no home here, and GitHub's queue only removes the failing entry.
 - **One public log.** Ops and agent configuration work becomes visible as it happens.
 - **A wider blast radius for root files.** A bad change to `MODULE.bazel` or a lock file breaks every project, where today it breaks one.
 - **Clone-based tools.** Anything that assumes one repository for each project, such as a tracker keyed by repository, needs a project field instead.
@@ -124,7 +124,6 @@ If D24 is yes, renaming `tbhb-dev` to `tbhbdev` is the last migration step, afte
 | Actions `uses:` lines in standalone repositories that call the monorepo | Not redirected for a renamed repository, and unverified for a renamed organization | per docs, unverified | Edit each caller in the same hour |
 | REST and GraphQL calls that spell the old login | Fail for the organization's own endpoints | per docs | One setting in `tbhbdev` holds the login |
 | Bazel `git_override` remotes and Renovate `github>` presets in standalone repositories | Follow Git's redirect | unverified | Edit at each repository's next update |
-| Team mentions in the generated `CODEOWNERS` and `roles.yaml` | Not redirected | per docs | Regenerate from one setting |
 | App installations and their permissions | Kept, because they key on the organization's ID | unverified | None expected |
 | Webhook payloads and anything keyed on `owner/repo`, such as event gateway routes and allow lists | Carry the new name from the rename on | unverified | Key on repository ID, or edit in the same change |
 | OpenID Connect (OIDC) subject claims in cloud trust policies, such as the remote cache's | Carry the new name | unverified | Trust the owner ID claim, or edit the policy first |
@@ -133,9 +132,9 @@ If D24 is yes, renaming `tbhb-dev` to `tbhbdev` is the last migration step, afte
 
 The step runs in this order:
 
-1. **Rehearse.** The admin role creates a free throwaway organization with one repository, one action, one App installation, and one webhook, then renames it. The run records what each class above did.
+1. **Rehearse.** A run under the organization admin grant creates a free throwaway organization with one repository, one action, one App installation, and one webhook, then renames it. The run records what each class above did.
 2. **Prepare.** Every "edit" fix above is ready as a pull request, and settings that can key on an ID already do.
-3. **Rename.** The admin role renames the organization and at once creates a free organization on the old login, with no repositories, so nobody else can claim it. An empty placeholder is expected to leave the redirects in place, and the rehearsal confirms that first.
+3. **Rename.** A run under the same grant renames the organization and at once creates a free organization on the old login, with no repositories, so nobody else can claim it. An empty placeholder is expected to leave the redirects in place, and the rehearsal confirms that first.
 4. **Check.** A clone by the old address works, a standalone repository's CI passes, an agent run starts, a webhook reaches the event gateway, and a deploy gets its cloud token.
 
 ## Stopping partway

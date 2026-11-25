@@ -18,7 +18,7 @@ Back to [the design](README.md).
 
 Labels: **proven** means a read or count run on 2026-11-25 against each repository's `origin/main` in the clones on one agent host, **existing** means a file or record at the named place, **per docs** means the vendor's documentation as read on 2026-11-25, **new** means this design proposes it, and **unverified** means nobody checked it. "The brief says" marks facts from the task brief that this pass didn't re-read.
 
-The clones were fetched at different times, and the rules clone's `origin/main` dates from 2026-11-23. This pass had no access to the GitHub API, so it read no live ruleset, App installation, workflow run, or billing figure.
+The clones were fetched at different times, and the rules clone's `origin/main` dated from 2026-11-23 for the counts. A later fetch on 2026-11-25 read commit f0fdf1d for the tier 2 table. This pass had no access to the GitHub API, so it read no live ruleset, App installation, workflow run, or billing figure.
 
 ## Change counts
 
@@ -84,7 +84,9 @@ In 14 of the in-scope repositories, 200 landed dependency updates named a third-
 | Claim | Label | Source |
 | --- | --- | --- |
 | The size check fails a pull request that adds more than 400 code lines or 1,500 raw lines. No label raises it, and a repository's first pull request and Renovate are exempt | existing | the rules repository's actions README |
-| The review tiers are in the wiki's first decision record. The rules repository's `AGENTS.md` has no tier table, though the brief points there | existing | `adrs/0001`, and a read of the rules clone |
+| The review tiers are in the wiki's first decision record: tier 0 is CI only, tier 1 is one fresh run, and tier 2 is two | existing | `adrs/0001` |
+| The rules repository's `AGENTS.md` has a "Tier 2 review paths" table of 50 rows, each a glob with class 2 or class 3 and a reason | existing | rules at `origin/main`, commit f0fdf1d, read on 2026-11-25 |
+| This repository's main ruleset requires the `conclusion` check pinned to GitHub Actions and dismisses stale reviews on a push. It requires no approving review and no last-push approval, unlike the rules repository's ruleset in the row below | existing | `.github/rulesets/main.json` |
 | No test time cap is written down. The nearest is Bazel's `medium` timeout of 300 seconds | proven | search of the rules clone and the wiki |
 | The `pytest_test` macro enforces 100% branch coverage inside one target, and consumers can't change it | existing | the rules' Python module |
 | The rules' main ruleset requires signatures, a pull request with one approval, merge commits only, and a `conclusion` check pinned to GitHub Actions. It has no bypass actors | existing | the checked-in ruleset file |
@@ -113,6 +115,7 @@ In 14 of the in-scope repositories, 200 landed dependency updates named a third-
 | The merge queue rule is available on public repositories under the Team plan and refused on private ones | existing | the merge queue design's evidence |
 | Push rulesets, including file path restrictions, apply to private and internal repositories only | per docs | GitHub Docs, "About rulesets", push rulesets |
 | Standard hosted runners are free on public repositories, larger runners always bill, and the Team plan includes 3,000 minutes a month for private repositories | per docs | GitHub Docs, "About billing for GitHub Actions" |
+| A pull request's author can't approve their own pull request | per docs, not re-read in this pass | GitHub Docs, "About pull request reviews" |
 | An issue transfers only between repositories of one owner, and never from a private repository to a public one | per docs | GitHub Docs, "Transferring an issue to another repository" |
 | A reusable workflow must sit in `.github/workflows` at a repository's root | per docs | GitHub Docs, "Reuse workflows" |
 | `git sparse-checkout` in cone mode always includes files at the root and keeps its settings per worktree | per docs | `git-sparse-checkout(1)`, "Internals: cone pattern set" |
@@ -143,12 +146,11 @@ The brief gives these from GitHub Docs, "Repository limits", read on 2026-11-25.
 
 ## What plan step 2 must prove
 
-These seven items are unverified, and the design depends on each:
+These six items are unverified, and the design depends on each:
 
 1. The rules' own tests pass from the monorepo root as `@tbhb_rules` targets, or need a second Bazel invocation inside the nested workspace.
 2. `--override_module` on the command line replaces a `local_path_override` in the root `MODULE.bazel`, so the companion can replace the stub.
 3. `bazel-diff` gives correct affected targets under bzlmod with nested local modules, and its hashes survive a round trip through the remote cache.
 4. Gazelle and Bazel behave in a cone-mode sparse worktree: no wrong build file edits, and a clear error for a missing package.
-5. GitHub's merge queue accepts a required check that an App sets on a queue candidate.
-6. A worktree from a partial bare mirror fetches its missing blobs in one batch, and a reused worktree path gets a warm Bazel output base.
-7. A Bazel pin and a workflow call still resolve against an archived repository.
+5. A worktree from a partial bare mirror fetches its missing blobs in one batch, and a reused worktree path gets a warm Bazel output base.
+6. A Bazel pin and a workflow call still resolve against an archived repository.

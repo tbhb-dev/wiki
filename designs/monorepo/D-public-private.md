@@ -49,10 +49,10 @@ local_path_override(module_name = "tbhb_private", path = "third_party/private_st
 
 ```sh
 # on a host that deploys, with the companion checked out beside the monorepo
-bazel run //factory/infra/ops:deploy --override_module=tbhb_private=../tbhbdev-private
+bazel run //factory/ops:deploy --override_module=tbhb_private=../tbhbdev-private
 ```
 
-Public targets refer to `@tbhb_private//factory/infra/ops:inventory` and get the stub unless a command overrides it. Whether the command-line override wins over the one in `MODULE.bazel` is unverified, and plan step 2 tests it.
+Public targets refer to `@tbhb_private//factory/ops:inventory` and get the stub unless a command overrides it. Whether the command-line override wins over the one in `MODULE.bazel` is unverified, and plan step 2 tests it.
 
 The public repository owns the schema for every private value. The stub must validate against it in public CI, and the companion's values must validate against it in the companion's CI. A schema change that breaks the real values fails in the companion before a deploy can use it.
 
@@ -82,13 +82,13 @@ A branch pushed to a public repository is public at once, even before any review
 | Import scan and sign-off | The import tool, on a host with the list, before the first push (D4) | Private content in a private-origin repository | new |
 | Review | The reviewer of each pull request | What a pattern can't catch | existing |
 
-The private-name list lives in the companion, because the list is itself private. A host without the companion can't run the name scan. The hook installer therefore refuses to enable pushes to the monorepo from such a host for roles that also handle private content.
+The private-name list lives in the companion, because the list is itself private. A host without the companion can't run the name scan. The hook installer therefore refuses to enable pushes to the monorepo from such a host when the host also holds a private checkout.
 
 Hooks come from `tbhbdev alpha install` only, as today (existing rule). The push hook is new, and it scans every commit that the push would publish.
 
 ## Importing a private-origin repository
 
-1. In the private repository, a pull request adds a path map: which globs are public and which go to the companion. The owning role reviews it there.
+1. In the private repository, a pull request adds a path map: which globs are public and which go to the companion. It gets its review there, before anything is copied.
 2. The import tool builds the public tree from the map, and the companion tree from the rest.
 3. It runs gitleaks and the name scan over the public tree, and writes a report: every file, every finding, and every file held back.
 4. The operator signs off the report (D4).

@@ -25,13 +25,13 @@ Back to [the design](README.md).
 | `plan` | Computes the affected targets and splits them into shards | none |
 | `test` | One matrix entry per shard: `bazelisk test --config=ci --target_pattern_file=<shard>` | `plan` |
 | `coverage` | For each affected project, runs coverage over all of the project's test targets and checks the combined figure | `plan` |
-| `repo` | Gazelle diff, `bazel mod tidy`, gitleaks over the pull request's commits, commit identity, pull request size, workflow lint, the generated `CODEOWNERS`, and the layering test | none |
+| `repo` | Gazelle diff, `bazel mod tidy`, gitleaks over the pull request's commits, commit identity, pull request size, the pull request body check, workflow lint, and the layering test | none |
 | `names` | The private-name scan, if D6 is yes | none |
 | `import` | On an import pull request, checks the copy against its source and its path map ([appendix G](G-import-and-cutover.md#importing-one-repository)) | none |
-| `rules` | Runs the nested rules workspace's own tests when a file under `factory/build/rules` changed, if plan step 2 shows the root can't run them | `plan` |
+| `rules` | Runs the nested rules workspace's own tests when a file under `factory/rules` changed, if plan step 2 shows the root can't run them | `plan` |
 | `conclusion` | Fails unless every job above passed or was skipped on purpose | all |
 
-The main ruleset requires two checks. `conclusion` is pinned to GitHub Actions, as in every repository's ruleset today (existing). `owners` is pinned to the review tool's App, which sets it on each pull request head and each queue candidate ([appendix C](C-layout-and-ownership.md#mapping-apps-rulesets-and-branch-rules), new). A green `conclusion` alone therefore can't merge a change that its path's owner hasn't approved.
+The main ruleset requires one check, `conclusion`, pinned to GitHub Actions as in every repository's ruleset today (existing). It also requires an independent approval of the exact head: one approving review that isn't the author's or the last pusher's, dismissed by any new commit. The review tool's App posts that approval only after the fresh review runs the change's tier requires ([appendix C](C-layout-and-ownership.md#mapping-apps-rulesets-and-branch-rules), new). A green `conclusion` alone therefore can't merge a change.
 
 No workflow uses a `paths` filter. GitHub reads at most 300 changed files for one (per docs), so an import or a lock update could skip a job that should run. The `plan` job decides from the build graph instead.
 
@@ -67,7 +67,7 @@ A fork gets no secrets on a public repository (per docs), so its run is uncached
 
 Today the Python macro runs one test target per repository and fails it under 100% branch coverage (existing). With one target per package, no single target sees the whole figure.
 
-A new rule in the rules' Python and Go modules takes a project's test targets, merges their coverage reports, and fails under 100% branch coverage (new). "Project" replaces "repository" as the unit: a project root, which is a folder whose `OWNERS` file marks it as one. When any target in a project is affected, the `coverage` job runs that project's whole set, and unaffected tests come back from the cache with their reports.
+A new rule in the rules' Python and Go modules takes a project's test targets, merges their coverage reports, and fails under 100% branch coverage (new). "Project" replaces "repository" as the unit: a direct child of `factory/`, `products/`, `lib/`, or `docs/`. When any target in a project is affected, the `coverage` job runs that project's whole set, and unaffected tests come back from the cache with their reports.
 
 How the Go repositories measure branch coverage today wasn't read in this pass (unverified). The Go port's design owns that question.
 

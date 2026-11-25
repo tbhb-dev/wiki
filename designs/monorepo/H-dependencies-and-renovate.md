@@ -39,7 +39,7 @@ Three details complete the table:
 
 ## A second version
 
-A lock file resolves a second version of a dependency only through an entry in `factory/build/policy/version-exceptions.yaml`. That folder is a tier 2 floor path, so two review runs read each entry.
+A lock file resolves a second version of a dependency only through an entry in the root `version-exceptions.yaml`. An entry is a code change, so it takes tier 1 unless a reviewer raises it.
 
 - An entry names the dependency, both versions, the project that needs the second, the reason, and an end date at most 90 days out.
 - A test fails when any lock holds two versions of one package with no entry, and when an entry has passed its end date.
@@ -66,11 +66,11 @@ Today a self-hosted Renovate runs once for each repository, from a reusable work
 | --- | --- |
 | Internal pins | None exist inside the monorepo, so Renovate has none to move. The companion's one pin on a monorepo commit is the exception, and the companion's own run moves it |
 | One version | The single root for each language is the enforcement. Renovate has no second manifest to update differently |
-| Runs | One root workflow, written inline, on today's schedule and the same App token. The root `renovate.json5` loads the presets from `factory/build/renovate` in the same repository |
+| Runs | One root workflow, written inline, on today's schedule and the same App token. The root `renovate.json5` loads the presets from `factory/renovate-config` in the same repository |
 | Grouping | One group for each lock file holds its minor, patch, and digest updates, opened once a day. Each major version gets its own pull request, and a security update opens at once |
-| Automerge | A green non-major update is tier 0. The tier 0 workflow approves it, and Renovate's platform automerge adds it to the merge queue, so it lands through the same queue as every change |
+| Automerge | A green non-major update needs only CI under the review tier record. The tier 0 workflow approves it, and Renovate's platform automerge adds it to the merge queue, so it lands through the same queue as every change |
 | Limits | At most 10 Renovate pull requests are open at once, which keeps the bot well inside the 1,000 open pull requests GitHub recommends for a branch |
-| Owner routing | A grouped update has no single owner, so it waits on no one while it's green. When it fails, the workflow labels it with the `area/<path>` of each failing project. A major update is routed to the roles of the projects that depend on the package, from `bazel query 'rdeps(...)'` |
+| Failures | A grouped update waits on no one while it's green. When it fails, the workflow comments with each failing project, from the failing targets' paths. A major update's body lists the projects that depend on the package, from `bazel query 'rdeps(...)'` |
 
 ### Tasks after an upgrade
 
