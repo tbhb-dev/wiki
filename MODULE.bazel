@@ -11,7 +11,7 @@ module(name = "tbhb_dev_drafts")
 bazel_dep(name = "tbhb_rules", version = "0.0.0", dev_dependency = True)
 git_override(
     module_name = "tbhb_rules",
-    commit = "b625589aa7417e706445072dc63b9bcfecf30070",
+    commit = "f1e02fb9682b3e12dcb8d8ccd1a0a2e07d9939a4",
     remote = "https://github.com/tbhb-dev/rules.git",
 )
 
