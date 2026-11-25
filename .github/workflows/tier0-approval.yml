@@ -21,7 +21,7 @@ jobs:
       pull-requests: write  # Required by the reusable workflow in both modes for its enqueue step.
     uses: tbhb-dev/rules/.github/workflows/tier0-approval.yml@2de1b0669148fef75ff198391114a83ce9a5c575  # main
     with:
-      mode: evaluate
+      mode: enforce
       check_workflows: |
         conclusion:407569943
       tier0_paths: |
