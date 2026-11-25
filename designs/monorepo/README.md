@@ -6,7 +6,7 @@ tags: [monorepo, bazel, git, ci, agents, design]
 status: draft
 owner: Design author
 updated: "2026-11-25"
-decisions_open: 12
+decisions_open: 14
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
@@ -18,7 +18,7 @@ decisions_open: 12
 
 | Status | Owner | Updated | Needs from the operator |
 | --- | --- | --- | --- |
-| Draft | Design author | 2026-11-25 | 12 open decisions in [decisions.md](decisions.md), about 30 minutes |
+| Draft | Design author | 2026-11-25 | 14 open decisions in [decisions.md](decisions.md), about 35 minutes |
 
 ## Summary
 
@@ -26,7 +26,7 @@ The factory lives in about 20 repositories that pin each other. In the 28 days t
 
 This design puts the factory in one public Bazel repository, with a thin private companion for private values. Agents work in sparse Git worktrees cut from one mirror per host. One workflow tests only the targets a change affects, and GitHub's merge queue lands it.
 
-Nothing is built until the operator reads this and says go. The operator then answers 12 questions, signs off each publication of private-origin code, and reads one repository instead of 20.
+Nothing is built until the operator reads this and says go. The operator then answers 14 questions, signs off each publication of private-origin code, and reads one repository instead of 20.
 
 ## Proposal
 
@@ -52,7 +52,7 @@ Folders go by project and never by language. `factory/` is one flat boundary: ea
 
 Three rules hold, and Bazel fails the build when one breaks:
 
-1. A product depends only on `lib/`. Its build files load the build rules as `@tbhb_rules` labels, and it reaches any other published module through a `lib/` project.
+1. A product depends only on `lib/` (pending D35, and D14 as decided also allows published modules). Its build files load the build rules as `@tbhb_rules` labels, and it reaches any other published module through a `lib/` project.
 2. Nothing under `factory/` or `lib/` depends on a product.
 3. `lib/` depends only on `lib/` and third-party code.
 
@@ -133,7 +133,7 @@ Each import sorts the old repository's issues, freezes it, and lands one pull re
 | 1 | The baseline: workflow runs, billed minutes, wall time, and pin-bump counts per repository for 28 days | The numbers sit in this design's appendix A with the commands that produced them | `tbhb-agent` |
 | 2 | A spike in the spikes repository: copy rules and tools into a scratch repository, and test the six unverified items in appendix A | The spike's README states pass or fail for each of the six | `tbhb-agent` |
 | 3 | Prerequisites in the old repositories: gazelle and per-package targets in tools, and each test target inside Bazel's `medium` timeout. Go port pull requests for the front, dispatch, and plugin plumbing go to the operator before merge | `bazelisk run //:gazelle -- -mode=diff` prints nothing in each repository, and no test target sets `timeout = "long"` | `tbhb-agent` |
-| 4 | The scaffolding of the monorepo and the companion: dependency roots, the inline CI workflow, a folder, a `README.md`, and an `OWNERS` file for every planned project, the tier 2 path map, the area labels, both Projects, the layering test, and the rulesets without the queue rule | `bazelisk test //...` passes on `main`, the ruleset read matches the checked-in file, both repositories' `area/` labels match the monorepo's project folders, and the `OWNERS` test passes | `tbhb-agent`, under the organization admin grant for repository creation |
+| 4 | The scaffolding of the monorepo and the companion: dependency roots, the inline CI workflow, a folder, a `README.md`, and an `OWNERS` file for every planned project, the tier 2 path map, the area labels, both Projects, the layering test, and the rulesets without the queue rule | `bazelisk test //...` passes on `main`, the ruleset read matches the checked-in file, both repositories' `area/` labels match the monorepo's project folders (pending D36), and the `OWNERS` test passes | `tbhb-agent`, under the organization admin grant for repository creation |
 | 5 | Every tracker issue the final relevance pass keeps imported, each with one area label | The sync check passes: no issue has zero or several area labels | `tbhb-agent` for the import. The sorting waits on D34 |
 | 6 | The import tool, its `import` check, and the archive gate | An import of a scratch repository passes the check, and a changed file or an old-repository pin makes it fail | `tbhb-agent` |
 | 7 | renovate-config imported, with the root Renovate workflow running | Renovate opens a grouped update in the monorepo, and a search for old-repository callers and pins returns nothing | `tbhb-agent` |
@@ -151,7 +151,7 @@ The owner column names the identity that carries a step out, as the operator rul
 
 ## Appendices
 
-- [Decisions](decisions.md): 12 open, then the decided record and a one-table summary of the open items.
+- [Decisions](decisions.md): 14 open, then the decided record and a one-table summary of the open items.
 - [A. Evidence](A-evidence.md): what the repository reads, counts, and docs show, labeled proven, existing, new, or unverified.
 - [B. Alternatives considered](B-alternatives.md): Scalar, virtual filesystems, copy clones, a single root module, and the other options not taken.
 - [C. Layout and ownership](C-layout-and-ownership.md): the tree, where each repository goes, the `OWNERS` files, the dependency rules, who carries out each duty, the review tiers, and how Apps and rulesets map.

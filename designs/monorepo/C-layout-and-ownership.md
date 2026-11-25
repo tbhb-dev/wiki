@@ -110,12 +110,12 @@ Every repository arrives as one copy commit with no history (D10). One source re
 
 | From | May depend on | Never on |
 | --- | --- | --- |
-| `products/<name>` | itself and `lib/`, built with the rules | `factory/`, `third_party/`, another product, and a published module named directly |
+| `products/<name>` | itself and `lib/`, built with the rules (pending D35) | `factory/`, `third_party/`, another product, and a published module named directly |
 | `factory/<project>` | itself, `lib/`, `third_party/`, published modules, and targets another factory project exports | `products/` |
 | `lib/<name>` | `lib/`, `third_party/`, and published modules | `factory/`, `products/` |
 | `docs/` | `lib/`, the rules | `products/`, factory internals |
 
-A published module is one that resolves through a shared dependency root at a version: a Bazel module, or a package from a language's registry. The factory and `lib/` may name one, and a product may not: it reaches a published module or vendored code only through a `lib/` project that wraps it. The one exception is what builds a product: its build files load the build rules as `@tbhb_rules` labels, and the language rule sets those load.
+A published module is one that resolves through a shared dependency root at a version: a Bazel module, or a package from a language's registry. The factory and `lib/` may name one, and a product may not, pending D35: it reaches a published module or vendored code only through a `lib/` project that wraps it. The one exception is what builds a product: its build files load the build rules as `@tbhb_rules` labels, and the language rule sets those load.
 
 Two mechanisms enforce the table.
 
@@ -146,7 +146,7 @@ bazel query --noimplicit_deps 'deps(//products/..., 1) except (//products/...:* 
 bazel query 'deps(//products/P/...) intersect (//products/...:* except //products/P/...:*)'
 ```
 
-The fifth query finds a product's direct dependency on anything but a product or `lib/`, which covers `third_party/` and every published module, and the `:*` patterns count source files as well as rule targets. It leaves out implicit dependencies, so the rules' own toolchains don't count, and whether that flag excludes exactly those is unverified until plan step 4 writes the test. The last query runs once for each product folder and finds a dependency from one product to another, whatever a visibility line says.
+The fifth query, pending D35, finds a product's direct dependency on anything but a product or `lib/`, which covers `third_party/` and every published module, and the `:*` patterns count source files as well as rule targets. It leaves out implicit dependencies, so the rules' own toolchains don't count, and whether that flag excludes exactly those is unverified until plan step 4 writes the test. The last query runs once for each product folder and finds a dependency from one product to another, whatever a visibility line says.
 
 The rules never appear in these queries, because they're separate modules with `@tbhb_rules` labels. That's what lets a product use them and still leave the monorepo later. [Appendix H](H-dependencies-and-renovate.md#extracting-a-product) has the extraction steps, and the first rule above is what keeps them short.
 

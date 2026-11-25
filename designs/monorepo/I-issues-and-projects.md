@@ -29,7 +29,7 @@ Issues live in the monorepo and in the companion, and both have Issues and Proje
 
 ## Area labels
 
-Each issue carries exactly one area label (D28). The label names a project, and a project is a folder that holds an `OWNERS` file. The generator finds those folders in the monorepo's tree and names each label after the folder's path, so no list file exists and nothing inside an `OWNERS` file becomes a label.
+Each issue carries exactly one area label (D28). How the set is computed below is pending D36, and until the operator answers, D28's decided rule stands. The label names a project, and a project is a folder that holds an `OWNERS` file. The generator finds those folders in the monorepo's tree and names each label after the folder's path, so no list file exists and nothing inside an `OWNERS` file becomes a label.
 
 | Label | One for each |
 | --- | --- |
@@ -46,8 +46,8 @@ An issue about the event gateway's retry logic is `area/factory/event-gateway`. 
 A project's label covers the project's own records. An issue about a need, a requirement, or a knowledge article under `factory/tbhbdev/docs` is `area/factory/tbhbdev`, not `area/docs/wiki` (D33). The `area/docs/<name>` labels cover only the wiki, research, and spikes, and a project's `docs/` folder never gets a label of its own.
 
 - **Computed on every push to `main`.** A workflow in the monorepo lists the folders under the four top-level folders that hold an `OWNERS` file and creates each missing label. It needs no checked-in file, so a new project folder gets its label with the commit that adds it.
-- **One identical set in both repositories.** The monorepo's tree is the only source. The companion's workflow reads the same list from the monorepo commit it pins and creates the same labels, with `area/repo`, `area/third_party`, and `area/none` among them. The companion's own tree adds none, so no private name becomes a label in either repository.
-- **The nearest folder with an `OWNERS` file decides.** A path takes the label of the nearest folder at or above it that holds an `OWNERS` file in the monorepo, and a companion path is read at its mirrored public path. An issue with no such folder is `area/repo` when it concerns the root and `area/none` otherwise. A companion test fails for an `OWNERS` file at a path the monorepo doesn't have.
+- **One identical set in both repositories, pending D36.** The monorepo's tree is the only source. The companion's workflow reads the same list from the monorepo commit it pins and creates the same labels, with `area/repo`, `area/third_party`, and `area/none` among them. The companion's own tree adds none, so no private name becomes a label in either repository.
+- **The nearest folder with an `OWNERS` file decides, pending D36.** A path takes the label of the nearest folder at or above it that holds an `OWNERS` file in the monorepo, and a companion path is read at its mirrored public path. An issue with no such folder is `area/repo` when it concerns the root and `area/none` otherwise. A companion test fails for an `OWNERS` file at a path the monorepo doesn't have.
 - **Bounded.** GitHub caps a label's name at 50 characters (per docs, unverified here), so a test fails for a project folder whose label would be longer.
 - **Kept while in use.** When a project folder goes away, its label stays until no open issue carries it. The sync check fails for each of those issues until it's relabeled.
 - **Separate from review and from CI.** An area label doesn't set a review tier, names no approver, and doesn't pick the record lane. The tier 2 path map does the first, the reviews App and the tier 0 workflow approve by tier, and a path check on the diff does the third ([appendix C](C-layout-and-ownership.md#separation-of-duties)).

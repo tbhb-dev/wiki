@@ -114,6 +114,22 @@ Back to [the design](README.md).
 - **If no:** name the identity that sorts and the identity that confirms, for each source. If `tbhb` confirms each close list, each archive waits on the operator's time.
 - **Reversible:** yes. A later list can go to another identity. A close already made follows D25.
 
+### D35. May D14's product rule change to `lib/` only?
+
+- **Recommendation:** yes.
+- **Why:** the third review found that appendix C lets a product name a published package directly, against the `lib/`-only boundary the tree states. D14 as decided says "`lib/` and published modules only", and only the operator changes it.
+- **If yes:** D14's sentence reads "Products depend on `lib/` only and are built with the rules." A product reaches any other published module through a `lib/` project, and the fifth layering query enforces it.
+- **If no:** D14 stands. A product may name a published module, and the fifth query checks `third_party/` only.
+- **Reversible:** yes, by a build file and test change.
+
+### D36. May D28's label rule change to one identical set in both repositories?
+
+- **Recommendation:** yes.
+- **Why:** the third review found that labels taken from each repository's direct children can differ between the two. D28 as decided has each repository compute labels from its own tree, and never from an `OWNERS` file.
+- **If yes:** D28's sentences read "A project is a folder under `factory/`, `products/`, `lib/`, or `docs/` that holds an `OWNERS` file. The monorepo computes the set from its tree, and the companion creates the same set from the commit it pins." Nothing inside an `OWNERS` file becomes a label.
+- **If no:** D28 stands. Each repository lists its own direct children, and the companion adds a label for each folder only it has.
+- **Reversible:** yes. Change the generator and relabel.
+
 ## Decided
 
 ### D33. Project records live in each project's own docs folder, and a record pull request takes a lighter CI lane
@@ -160,10 +176,10 @@ Back to [the design](README.md).
 
 ### D28. Issues live in two repositories, with two Projects and one area label each
 
-- **Decided:** 2026-11-25, by the operator. The label rule is the operator's later ruling of the same day, which replaced labels generated from owner files. Labels still come from the tree: an `OWNERS` file only marks its folder as a project, and nothing inside it becomes a label.
-- **Rule:** issues live in the monorepo and in the companion, and both have Issues and Projects on. A public roadmap Project holds only the monorepo's issues, and a private Project exists beside it. Each issue carries exactly one area label: `area/<top>/<name>` for a folder under `factory/`, `products/`, `lib/`, or `docs/` that holds an `OWNERS` file, or one of `area/repo`, `area/third_party`, and `area/none`. The monorepo computes the set from its tree on every push to `main`, and the companion creates the same set from the commit it pins, so no private project's name becomes a label. The issue commands and a sync check enforce the one-label rule. Existing issues get a relevance pass before they move ([appendix I](I-issues-and-projects.md)).
+- **Decided:** 2026-11-25, by the operator. The label rule is the operator's later ruling of the same day, which replaced labels generated from owner files. Labels still come from the tree and never from an `OWNERS` file.
+- **Rule:** issues live in the monorepo and in the companion, and both have Issues and Projects on. A public roadmap Project holds only the monorepo's issues, and a private Project exists beside it. Each issue carries exactly one area label: `area/<top>/<name>` for a direct child of `factory/`, `products/`, `lib/`, or `docs/`, or one of `area/repo`, `area/third_party`, and `area/none`. Each repository computes its labels from its own tree on every push to `main`, and the companion adds the public set, so no private project's name becomes a public label. The issue commands and a sync check enforce the one-label rule. Existing issues get a relevance pass before they move ([appendix I](I-issues-and-projects.md)).
 - **Undo:** change the label generator or the Projects. Imported issues stay where they landed.
-- **Record:** the operator's brief of 2026-11-25, addendum 5, and the second and sixth fix briefs for this design's pull request.
+- **Record:** the operator's brief of 2026-11-25, addendum 5, and the second fix brief for this design's pull request.
 
 ### D27. A clean break, starting with scaffolding, then renovate-config, then rules
 
@@ -238,9 +254,9 @@ Back to [the design](README.md).
 ### D14. Five top-level folders, a flat `factory/`, and three dependency rules
 
 - **Decided:** 2026-11-25, by the operator. The flat `factory/` is the operator's later ruling of the same day, which replaced the first sketch's extra level of folders.
-- **Rule:** top-level folders are `factory/`, `products/`, `lib/`, `docs/`, and `third_party/`. `factory/` is one boundary with no grouping folders: each project is one folder directly under it, and one source repository becomes one folder. Each project's `README.md` and `OWNERS` file describe the project, and neither sorts it into a category. The top-level `docs/` holds the wiki, research, and spikes, and each project's own records live in the project (D33). Products depend on `lib/` only and are built with the rules, the factory never depends on a product, and Bazel visibility and the layering test enforce both. The companion mirrors the public paths.
+- **Rule:** top-level folders are `factory/`, `products/`, `lib/`, `docs/`, and `third_party/`. `factory/` is one boundary with no grouping folders: each project is one folder directly under it, and one source repository becomes one folder. Each project's `README.md` and `OWNERS` file describe the project, and neither sorts it into a category. The top-level `docs/` holds the wiki, research, and spikes, and each project's own records live in the project (D33). Products depend on `lib/` and published modules only, the factory never depends on a product, and Bazel visibility enforces both. The companion mirrors the public paths.
 - **Undo:** move folders by pull request. The rules live in build files and one test.
-- **Record:** the operator's brief of 2026-11-25, and the second, third, and sixth fix briefs for this design's pull request.
+- **Record:** the operator's brief of 2026-11-25, and the second and third fix briefs for this design's pull request.
 
 ### D13. Gazelle writes build files, coverage stays at 100% branch, and CI runs affected targets
 
@@ -286,3 +302,5 @@ Back to [the design](README.md).
 | D25 | The relevance pass sorts both issue sources by appendix I's criteria | yes |
 | D26 | The private Project holds issues from both repositories | yes |
 | D34 | `tbhb-agent` sorts the issues, and a fresh `tbhb-agent` run confirms each close list | yes |
+| D35 | D14's product rule changes to `lib/` only | yes |
+| D36 | D28's label rule changes to one identical set in both repositories | yes |

@@ -48,7 +48,7 @@ A lock file resolves a second version of a dependency only through an entry in t
 
 ## Extracting a product
 
-A product depends only on `lib/` and is built with the rules, so it can leave. `tbhbdev alpha monorepo extract products/<name>` is planned to do it in these steps:
+A product depends only on `lib/` and is built with the rules (pending D35), so it can leave. `tbhbdev alpha monorepo extract products/<name>` is planned to do it in these steps:
 
 1. Copy the folder into a new repository as one commit that names the monorepo commit. No history goes along, and the monorepo keeps it.
 2. Ask Bazel which external dependencies the product's targets reach through `lib/`, and write new manifests that list only those, at the versions the shared locks hold.
