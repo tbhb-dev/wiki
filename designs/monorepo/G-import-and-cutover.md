@@ -54,12 +54,12 @@ Between waves, plan step 11 measures queue wait and CI time. A wave doesn't star
 
 ## Importing one repository
 
-1. **Sort the issues.** The relevance pass in [appendix I](I-issues-and-projects.md#the-relevance-pass) starts. It doesn't block the import, and it does block the archive.
-2. **Announce and drain.** The run that prepares the import posts a freeze time in the old repository. Open pull requests merge or close before it, and agents get no new briefs for that repository.
-3. **Freeze.** The Apps' write access to the old repository is removed, which takes the organization admin grant, and the import names the frozen commit.
+1. **Sort the issues.** The relevance pass in [appendix I](I-issues-and-projects.md#the-relevance-pass) starts, carried out by the identities D34 names. It doesn't block the import, and it does block the archive.
+2. **Announce and drain.** `tbhb-agent` posts a freeze time in the old repository. Open pull requests merge or close before it, and agents get no new briefs for that repository.
+3. **Freeze.** `tbhb-agent` removes the Apps' write access to the old repository, under the organization admin grant, and the import names the frozen commit.
 4. **Map.** A path map lists every file at that commit as copied to a new path, dropped, or rewritten. Dropped files are the root configuration that the shared roots replace. Rewritten files are those that called, pinned, or imported an old repository.
 5. **Import.** `tbhbdev alpha monorepo import <repository>@<commit>` builds one signed commit and opens a pull request. The commit holds the files at their new paths, the project's dependencies folded into the shared roots, its rows in the tier 2 path map, and the build files gazelle writes. Its message names the source repository and the full commit hash, and it has no parent in the old repository.
-6. **Prove.** A required `import` job checks that each copied file is byte-identical to its source, that the map accounts for every source file, and that no executable reference to an old repository remains. The project's targets then build and test like any affected targets.
+6. **Prove.** A required `import` job fetches a public source at the named commit, which needs no credential. It checks that each copied file is byte-identical to its source, that the map accounts for every source file, and that no executable reference to an old repository remains. It can't read a private source, so [appendix D](D-public-private.md#what-public-ci-proves-for-a-private-origin-import) says what it checks then, and the project's targets build and test like any affected targets.
 7. **Review.** GitHub's diff view shows at most 300 files (per docs), so the reviewer works from a local checkout of the exact head. The `import` job's summary lists the dropped, rewritten, and generated files, and the reviewer reads each of those (D9).
 8. **Archive.** Once the repository has no open issue and no open pull request, its README gets one line that points to the new path, and it becomes an archive. `tbhbdev alpha monorepo archive` refuses while either count is above 0.
 
@@ -127,15 +127,18 @@ If D24 is yes, renaming `tbhb-dev` to `tbhbdev` is the last migration step, afte
 | App installations and their permissions | Kept, because they key on the organization's ID | unverified | None expected |
 | Webhook payloads and anything keyed on `owner/repo`, such as event gateway routes and allow lists | Carry the new name from the rename on | unverified | Key on repository ID, or edit in the same change |
 | OpenID Connect (OIDC) subject claims in cloud trust policies, such as the remote cache's | Carry the new name | unverified | Trust the owner ID claim, or edit the policy first |
+| Team mentions, written `@<organization>/<team>`, in issues, pull requests, and prose | Not redirected | per docs, and whether the organization has a team is unverified | Edit the ones in files before the rename, and mention again in open issues after it |
 | Go module paths | Unchanged, because they use the vanity domain | existing | Point the vanity service at the new name |
 | Package and container namespaces, badges, and prose | Not redirected | unverified | A search of both repositories for the old login must return nothing |
 
 The step runs in this order:
 
-1. **Rehearse.** A run under the organization admin grant creates a free throwaway organization with one repository, one action, one App installation, and one webhook, then renames it. The run records what each class above did.
+1. **Rehearse.** `tbhb-agent`, under the organization admin grant, creates a free throwaway organization with one repository, one action, one App installation, one webhook, and one team that an issue mentions, then renames it. The rehearsal's record says what each class above did, team mentions among them.
 2. **Prepare.** Every "edit" fix above is ready as a pull request, and settings that can key on an ID already do.
-3. **Rename.** A run under the same grant renames the organization and at once creates a free organization on the old login, with no repositories, so nobody else can claim it. An empty placeholder is expected to leave the redirects in place, and the rehearsal confirms that first.
-4. **Check.** A clone by the old address works, a standalone repository's CI passes, an agent run starts, a webhook reaches the event gateway, and a deploy gets its cloud token.
+3. **Rename.** `tbhb-agent`, under the same grant, renames the organization and at once creates a free organization on the old login, with no repositories, so nobody else can claim it. An empty placeholder is expected to leave the redirects in place, and the rehearsal confirms that first.
+4. **Check.** A clone by the old address works, a standalone repository's CI passes, an agent run starts, a webhook reaches the event gateway, and a deploy gets its cloud token. A search of both repositories and their open issues for a team mention under the old login returns nothing.
+
+`tbhb` answers for the rename through D24, and `tbhb-agent` carries out each of the four steps.
 
 ## Stopping partway
 

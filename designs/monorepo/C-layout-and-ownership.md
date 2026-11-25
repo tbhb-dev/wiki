@@ -10,7 +10,7 @@ parent: README.md
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
-<!-- cspell:words monorepo somepath subpackages tbhbdev gomodscan evals bzlmod -->
+<!-- cspell:words monorepo somepath subpackages tbhbdev gomodscan evals bzlmod noimplicit -->
 
 # One public monorepo for the factory layout and ownership
 
@@ -110,12 +110,12 @@ Every repository arrives as one copy commit with no history (D10). One source re
 
 | From | May depend on | Never on |
 | --- | --- | --- |
-| `products/<name>` | itself, `lib/`, and published modules | `factory/`, `third_party/`, another product |
+| `products/<name>` | itself and `lib/`, built with the rules | `factory/`, `third_party/`, another product, and a published module named directly |
 | `factory/<project>` | itself, `lib/`, `third_party/`, published modules, and targets another factory project exports | `products/` |
 | `lib/<name>` | `lib/`, `third_party/`, and published modules | `factory/`, `products/` |
 | `docs/` | `lib/`, the rules | `products/`, factory internals |
 
-A published module is one that resolves through a shared dependency root at a version: a Bazel module, or a package from a language's registry. The build rules count, because every consumer loads them as `@tbhb_rules` labels. Code vendored under `third_party/` isn't published, so a product reaches it only through a `lib/` project that wraps it.
+A published module is one that resolves through a shared dependency root at a version: a Bazel module, or a package from a language's registry. The factory and `lib/` may name one, and a product may not: it reaches a published module or vendored code only through a `lib/` project that wraps it. The one exception is what builds a product: its build files load the build rules as `@tbhb_rules` labels, and the language rule sets those load.
 
 Two mechanisms enforce the table.
 
@@ -134,15 +134,19 @@ Two mechanisms enforce the table.
 
 A factory project exports a target to other factory projects by naming `//factory:__subpackages__` on that target by hand. Go's own `internal/` rule still applies below each project.
 
-**A layering test.** Anyone can widen a visibility line, so one test in the root `BUILD.bazel` runs five queries and fails when any returns a result:
+**A layering test.** Anyone can widen a visibility line, so one test in the root `BUILD.bazel` runs these queries and fails when any returns a result:
 
 ```sh
 bazel query 'somepath(//products/..., //factory/...)'
 bazel query 'somepath(//factory/..., //products/...)'
 bazel query 'somepath(//lib/..., //factory/... + //products/...)'
 bazel query 'somepath(//docs/..., //products/...)'
-bazel query 'deps(//products/..., 1) intersect //third_party/...'
+bazel query --noimplicit_deps 'deps(//products/..., 1) except (//products/...:* + //lib/...:*)'
+# once for each folder P under products/
+bazel query 'deps(//products/P/...) intersect (//products/...:* except //products/P/...:*)'
 ```
+
+The fifth query finds a product's direct dependency on anything but a product or `lib/`, which covers `third_party/` and every published module, and the `:*` patterns count source files as well as rule targets. It leaves out implicit dependencies, so the rules' own toolchains don't count, and whether that flag excludes exactly those is unverified until plan step 4 writes the test. The last query runs once for each product folder and finds a dependency from one product to another, whatever a visibility line says.
 
 The rules never appear in these queries, because they're separate modules with `@tbhb_rules` labels. That's what lets a product use them and still leave the monorepo later. [Appendix H](H-dependencies-and-renovate.md#extracting-a-product) has the extraction steps, and the first rule above is what keeps them short.
 
@@ -193,7 +197,7 @@ The tiers are the three in the wiki's first decision record, and this design add
 
 At every tier the author is the builder, and the builder never approves. The wiki's tier 0 workflow receives the approver App's credentials today (existing, read from the wiki's workflow file), and the monorepo's tier 0 workflow keeps the identity it posts with.
 
-The diff's paths and content set the tier. A reviewer may raise it, and it never falls. The record's repository words carry over as paths: the wiki, research, and spikes are `docs/wiki`, `docs/research`, and `docs/spikes`. Its rule for a first-party pin change has nothing left to cover inside the monorepo, and routine third-party updates still need only CI.
+The diff's paths and content set the tier. A reviewer may raise it, and it never falls. The record's repository words carry over as paths: the wiki, research, and spikes are `docs/wiki`, `docs/research`, and `docs/spikes`. Its rule for a first-party pin change has nothing left to cover inside the monorepo, and routine third-party updates still need only CI as review, with the approval that [appendix H](H-dependencies-and-renovate.md#approval-and-owner-notices) describes.
 
 The record lane changes which checks CI runs, and it changes no tier (D33). A record pull request under `docs/wiki`, `docs/research`, or `docs/spikes` is prose there, so it's tier 0. One under `factory/`, `products/`, or `lib/` is documentation in code, so it's tier 1 and gets one fresh review run. A knowledge article that holds a credential, or anything else the content triggers name, is tier 2 like any other file.
 

@@ -6,7 +6,7 @@ tags: [monorepo, bazel, git, ci, agents, design]
 status: draft
 owner: Design author
 updated: "2026-11-25"
-decisions_open: 11
+decisions_open: 12
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
@@ -18,7 +18,7 @@ decisions_open: 11
 
 | Status | Owner | Updated | Needs from the operator |
 | --- | --- | --- | --- |
-| Draft | Design author | 2026-11-25 | 11 open decisions in [decisions.md](decisions.md), about 25 minutes |
+| Draft | Design author | 2026-11-25 | 12 open decisions in [decisions.md](decisions.md), about 30 minutes |
 
 ## Summary
 
@@ -26,7 +26,7 @@ The factory lives in about 20 repositories that pin each other. In the 28 days t
 
 This design puts the factory in one public Bazel repository, with a thin private companion for private values. Agents work in sparse Git worktrees cut from one mirror per host. One workflow tests only the targets a change affects, and GitHub's merge queue lands it.
 
-Nothing is built until the operator reads this and says go. The operator then answers 11 questions, signs off each publication of private-origin code, and reads one repository instead of 20.
+Nothing is built until the operator reads this and says go. The operator then answers 12 questions, signs off each publication of private-origin code, and reads one repository instead of 20.
 
 ## Proposal
 
@@ -52,7 +52,7 @@ Folders go by project and never by language. `factory/` is one flat boundary: ea
 
 Three rules hold, and Bazel fails the build when one breaks:
 
-1. A product depends only on `lib/` and on published modules. The build rules count as published modules, because every consumer loads them as `@tbhb_rules` labels.
+1. A product depends only on `lib/`. Its build files load the build rules as `@tbhb_rules` labels, and it reaches any other published module through a `lib/` project.
 2. Nothing under `factory/` or `lib/` depends on a product.
 3. `lib/` depends only on `lib/` and third-party code.
 
@@ -119,7 +119,7 @@ Each import sorts the old repository's issues, freezes it, and lands one pull re
 | Nested rules modules don't test cleanly from the root | The rules' own tests need a second Bazel invocation | Plan step 2 spikes it, and the fallback runs Bazel inside the nested workspace | unverified |
 | Sparse worktrees confuse gazelle or Bazel | A run writes wrong build files or can't build | Plan step 2 spikes it, and a `--full` flag checks out everything | unverified |
 | A shared object store lets one run damage another's refs | A run loses work it has not pushed or reads a forged ref | Reviews check out by commit hash from GitHub, the launcher alone prunes, and copy clones remain as a launcher mode | new |
-| Agent traffic passes GitHub's recommended push and merge rates | GitHub throttles pushes or merges | Grouped merges, one push for each review round, and a retry with backoff ([appendix A](A-evidence.md#githubs-repository-limits)) | per docs, unverified rate |
+| Agent traffic passes GitHub's recommended push, merge, and read rates | GitHub throttles pushes, merges, or fetches | Grouped merges, one push for each review round, one launcher fetch at a time for each host, and a retry with backoff ([appendix A](A-evidence.md#githubs-repository-limits)) | per docs, unverified rate |
 | An import carries a reference to an old repository | The new repository depends on an archive | The `import` job fails on any executable reference | new |
 | The organization rename breaks a reference that doesn't redirect | Standalone CI, API calls, or cloud tokens fail | A rehearsal on a throwaway organization, a placeholder on the old login, and the checks in appendix G | per docs, unverified |
 | A red `main` blocks every change | All landings stop until the fix lands | The merge queue tests each candidate on the projected `main`, and the full run on `main` opens an incident when it fails | existing mechanism |
@@ -133,14 +133,14 @@ Each import sorts the old repository's issues, freezes it, and lands one pull re
 | 1 | The baseline: workflow runs, billed minutes, wall time, and pin-bump counts per repository for 28 days | The numbers sit in this design's appendix A with the commands that produced them | `tbhb-agent` |
 | 2 | A spike in the spikes repository: copy rules and tools into a scratch repository, and test the six unverified items in appendix A | The spike's README states pass or fail for each of the six | `tbhb-agent` |
 | 3 | Prerequisites in the old repositories: gazelle and per-package targets in tools, and each test target inside Bazel's `medium` timeout. Go port pull requests for the front, dispatch, and plugin plumbing go to the operator before merge | `bazelisk run //:gazelle -- -mode=diff` prints nothing in each repository, and no test target sets `timeout = "long"` | `tbhb-agent` |
-| 4 | The scaffolding of the monorepo and the companion: dependency roots, the inline CI workflow, a folder, a `README.md`, and an `OWNERS` file for every planned project, the tier 2 path map, the area labels, both Projects, the layering test, and the rulesets without the queue rule | `bazelisk test //...` passes on `main`, the ruleset read matches the checked-in file, each repository's `area/` labels match its tree, and the `OWNERS` test passes | `tbhb-agent`, under the organization admin grant for repository creation |
-| 5 | Every tracker issue the final relevance pass keeps imported, each with one area label | The sync check passes: no issue has zero or several area labels | `tbhb-agent` |
+| 4 | The scaffolding of the monorepo and the companion: dependency roots, the inline CI workflow, a folder, a `README.md`, and an `OWNERS` file for every planned project, the tier 2 path map, the area labels, both Projects, the layering test, and the rulesets without the queue rule | `bazelisk test //...` passes on `main`, the ruleset read matches the checked-in file, both repositories' `area/` labels match the monorepo's project folders, and the `OWNERS` test passes | `tbhb-agent`, under the organization admin grant for repository creation |
+| 5 | Every tracker issue the final relevance pass keeps imported, each with one area label | The sync check passes: no issue has zero or several area labels | `tbhb-agent` for the import. The sorting waits on D34 |
 | 6 | The import tool, its `import` check, and the archive gate | An import of a scratch repository passes the check, and a changed file or an old-repository pin makes it fail | `tbhb-agent` |
 | 7 | renovate-config imported, with the root Renovate workflow running | Renovate opens a grouped update in the monorepo, and a search for old-repository callers and pins returns nothing | `tbhb-agent` |
 | 8 | Rules imported, with the lint gates | `bazelisk test //...` passes on `main` with the rules loaded from the tree, and the root `AGENTS.md` holds the rewritten tier 2 rows | `tbhb-agent` |
 | 9 | Tools imported, then the launcher's mirror, worktree, cone, and cleanup changes | Two runs on one host share one mirror, and a finished run leaves no worktree after the reaper runs | `tbhb-agent` |
 | 10 | The merge queue rule on `main`, and affected-target CI as the required path | A queued pull request merges through a `merge_group` run that tests fewer targets than `//...` | `tbhb-agent` |
-| 11 | Public repositories imported in the order in appendix G, with issues sorted and moved, and queue wait and CI time measured after each | Each old repository has no open issue or pull request and is archived, and appendix A holds the measurements | `tbhb-agent` |
+| 11 | Public repositories imported in the order in appendix G, with issues sorted and moved, and queue wait and CI time measured after each | Each old repository has no open issue or pull request and is archived, and appendix A holds the measurements | `tbhb-agent`, with the issues sorted by whoever D34 names |
 | 12 | Private-origin repositories split, scanned, signed off, and imported as copy commits | The scan report for each import is in the companion, and the operator's sign-off is in the import pull request | `tbhb-agent`, with a sign-off from `tbhb` |
 | 13 | The after numbers, 28 days after the last import | Appendix A holds both columns of the before and after table | `tbhb-agent` |
 | 14 | The organization rename, if the operator chooses it, as the last migration step | Every check in appendix G's rename section passes, and a search of both repositories for the old login returns nothing | `tbhb-agent`, under the organization admin grant |
@@ -151,7 +151,7 @@ The owner column names the identity that carries a step out, as the operator rul
 
 ## Appendices
 
-- [Decisions](decisions.md): 11 open, then the decided record and a one-table summary of the open items.
+- [Decisions](decisions.md): 12 open, then the decided record and a one-table summary of the open items.
 - [A. Evidence](A-evidence.md): what the repository reads, counts, and docs show, labeled proven, existing, new, or unverified.
 - [B. Alternatives considered](B-alternatives.md): Scalar, virtual filesystems, copy clones, a single root module, and the other options not taken.
 - [C. Layout and ownership](C-layout-and-ownership.md): the tree, where each repository goes, the `OWNERS` files, the dependency rules, who carries out each duty, the review tiers, and how Apps and rulesets map.

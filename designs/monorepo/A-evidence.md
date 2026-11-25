@@ -92,7 +92,7 @@ In 14 of the in-scope repositories, 200 landed dependency updates named a third-
 | The rules' main ruleset requires signatures, a pull request with one approval, merge commits only, and a `conclusion` check pinned to GitHub Actions. It has no bypass actors | existing | the checked-in ruleset file |
 | Tools' CI runs on `merge_group`, reads a main-only `cache` environment, uses the shared remote cache, and runs `bazelisk test --config=ci //...` on a standard hosted runner | proven | tools' `ci.yml` at `origin/main` |
 | Reusable workflows send private repositories to a self-hosted runner label, and public ones to hosted runners, because the private runner groups don't take public repositories | existing | the rules' reusable workflows |
-| The remote cache has token roles for reading, for `main`, for pull requests in their own namespace, for trusted build hosts, and for end-to-end tests | existing | the remote cache repository's docs |
+| The remote cache has kinds of token for reading, for `main`, for pull requests in their own namespace, for trusted build hosts, and for end-to-end tests | existing | the remote cache repository's docs |
 | The wiki's tier 0 workflow calls a reusable workflow in the rules repository, with path lists for auto-approval and for denial | existing | this repository's `.github/workflows/tier0-approval.yml` |
 | The interim approval command posts its approvals as the reviews App, `tbhb-dev-agent-reviews`, and not as `tbhb` | existing, the brief says | the command's own docstring and its `APP_LOGIN` value, as the fifth fix brief gives them. This pass didn't read the script |
 | No design for the Go port exists in this repository or in any clone on the host | proven | search of designs, branches, and clones |
@@ -131,7 +131,7 @@ In 14 of the in-scope repositories, 200 landed dependency updates named a third-
 
 ## GitHub's repository limits
 
-The brief gives these from GitHub Docs, "Repository limits", read on 2026-11-25. This pass didn't re-read the page, and the page's limit on read operations wasn't checked at all (unverified).
+These come from GitHub Docs, "Repository limits". The brief gave most of them, and the sixth fix round re-read the page on 2026-11-25, which added the read rate and the object size (per docs).
 
 | Limit | Kind | The monorepo |
 | --- | --- | --- |
@@ -140,10 +140,24 @@ The brief gives these from GitHub Docs, "Repository limits", read on 2026-11-25.
 | Depth of 50 | recommended | The deepest path read is 10 levels, and the layout adds at most 3 |
 | 5,000 branches | recommended | One branch for each open pull request. Merged heads are deleted, and the launcher prunes the rest ([appendix E](E-agent-runs.md#cleanup)) |
 | 6 pushes a minute | recommended | About 61 landings a day. If each takes four pushes, that's one push every six minutes on average, and the push count itself is unverified |
+| 15 Git reads a second, counting fetches and clones | recommended | Far under it on average, and a burst is unverified ([Git reads](#git-reads)) |
 | About 1 merge a minute | recommended | The queue merges in groups, at most one group for each finished pass ([appendix F](F-ci.md#the-merge-queue)) |
 | 1,000 open pull requests on a base branch | recommended | Renovate is capped at 10 ([appendix H](H-dependencies-and-renovate.md#renovate)). The open count today wasn't read (unverified) |
+| 1 MB in one object | recommended | No tracked file in the 19 counted clones passes it, and the largest is about 632 KB, a generated type file in rules (proven, `git ls-tree -r -l origin/main`). The `import` job's summary lists any file over 1 MB |
 | 2 GB in one push, and 100 MB in one file | enforced | No import nears either. The repository's size check already fails a file over 20 MB |
 | 300 files in a pull request's diff | enforced | Import pull requests pass it. Review and deploys don't depend on it ([appendix G](G-import-and-cutover.md#importing-one-repository)) |
+
+### Git reads
+
+Every CI job checks out the repository, so a workflow run makes one read for each job ([appendix F](F-ci.md#one-workflow)). That's about 8 for a small change and about 18 with 10 test shards, so five queue candidates that start together make about 90 reads in a burst (new, counted from the job table). The launcher adds one fetch for each run start on a host, plus one batched blob fetch for the run's cone ([appendix E](E-agent-runs.md)).
+
+At 15 a second the recommended rate allows 900 reads a minute, and a day's total is far under it. A burst is the risk, and its real size is unverified. Three things bound it (new):
+
+- **The launcher fetches one at a time for each host.** It fetches under the mirror's lock, and it skips the fetch when the mirror was fetched in the last minute.
+- **A worktree fills its blobs in one batch.** It never fetches them file by file.
+- **A run's reads spread out.** The `test`, `coverage`, and `records` jobs start only after `plan` finishes.
+
+`tbhbdev` retries a throttled fetch with backoff, and so does each job's checkout step. Plan step 11 records the peak reads a minute after each import.
 
 ## What plan step 2 must prove
 

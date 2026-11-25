@@ -48,10 +48,10 @@ A lock file resolves a second version of a dependency only through an entry in t
 
 ## Extracting a product
 
-A product depends only on `lib/` and published modules, so it can leave. `tbhbdev alpha monorepo extract products/<name>` is planned to do it in these steps:
+A product depends only on `lib/` and is built with the rules, so it can leave. `tbhbdev alpha monorepo extract products/<name>` is planned to do it in these steps:
 
 1. Copy the folder into a new repository as one commit that names the monorepo commit. No history goes along, and the monorepo keeps it.
-2. Ask Bazel which external dependencies the product's targets use, and write new manifests that list only those, at the versions the shared locks hold.
+2. Ask Bazel which external dependencies the product's targets reach through `lib/`, and write new manifests that list only those, at the versions the shared locks hold.
 3. Generate fresh lock files from those manifests, and fail if any resolved version differs from the shared lock's.
 4. Replace each `lib/` dependency with a published version of that library. A `lib/` project that a product uses therefore needs a release first.
 5. Load the rules by `git_override`, as any standalone repository does.
@@ -68,9 +68,18 @@ Today a self-hosted Renovate runs once for each repository, from a reusable work
 | One version | The single root for each language is the enforcement. Renovate has no second manifest to update differently |
 | Runs | One root workflow, written inline, on today's schedule and the same App token. The root `renovate.json5` loads the presets from `factory/renovate-config` in the same repository |
 | Grouping | One group for each lock file holds its minor, patch, and digest updates, opened once a day. Each major version gets its own pull request, and a security update opens at once |
-| Automerge | A green non-major update needs only CI under the review tier record. The tier 0 workflow approves it, and Renovate's platform automerge adds it to the merge queue, so it lands through the same queue as every change |
+| Automerge | A green non-major update needs only CI under the review tier record, and it still needs an approval to enter the queue. [Approval and owner notices](#approval-and-owner-notices) says who gives it. Renovate's platform automerge then adds it to the merge queue, so it lands through the same queue as every change |
 | Limits | At most 10 Renovate pull requests are open at once, which keeps the bot well inside the 1,000 open pull requests GitHub recommends for a branch |
-| Failures | A grouped update waits on no one while it's green. When it fails, the workflow comments with each failing project, from the failing targets' paths. A major update's body lists the projects that depend on the package, from `bazel query 'rdeps(...)'` |
+| Failures | A grouped update waits on no one while it's green. When it fails, the workflow comments with each failing project, from the failing targets' paths, and notifies that project's owners. A major update's body lists the projects that depend on the package, from `bazel query 'rdeps(...)'`, and notifies theirs |
+
+### Approval and owner notices
+
+The tier 0 workflow never approves a dependency update, because its list holds prose paths only and no manifest or lock file ([appendix C](C-layout-and-ownership.md#the-tier-0-workflow)). A qualifying update gets its approval from the approver App, `tbhb-dev-renovate-approver`, under the [Renovate approval design](../renovate-auto-approval/README.md) (existing decision). The monorepo carries that design's workflow inline.
+
+- **What qualifies.** The Renovate App is the author, the update is a patch, a minor, or a digest, the diff holds only the pin moves and lock entries that design's matcher accepts, and `conclusion` is green on the exact head.
+- **What doesn't.** An update the matcher refuses takes tier 1: `tbhb-agent` starts one fresh review run, and the reviews App approves. A major update always takes that path.
+- **The matcher's file list isn't widened here.** Which root manifests and locks it accepts is that design's list, and widening it is the operator's call there. Plan step 7 records how many updates qualify in the first week.
+- **Owners get a notice.** The workflow reads the `OWNERS` file of each affected project and mentions the identities it names in its comment, so GitHub notifies them. The notice asks for no approval, and an owner's reply is a comment.
 
 ### Tasks after an upgrade
 

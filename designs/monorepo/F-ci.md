@@ -45,7 +45,7 @@ A project's needs, requirements, and knowledge articles live in its own `docs/` 
 - **A check's definition is never a record.** Each project declares its record check in its top-level `BUILD.bazel`, such as `//factory/tbhbdev:record_check`, and the rule behind it lives under `factory/rules`. Neither sits in a record folder, and neither does `ci.yml`, which holds the path check. A change to any of them therefore takes the full lane, and the tier 2 path map covers the rule and the workflow.
 - **The lane runs one target for each project touched.** The `records` job runs `bazelisk test` on the record-check target of each project in the diff. The target checks that project's records: their front matter against the schema, their links, and their prose.
 - **It skips the full build and test.** `test`, `coverage`, and `rules` are skipped on purpose, and so are the parts of `repo` that build: the gazelle diff, `bazel mod tidy`, and the layering test.
-- **The scans stay.** gitleaks, the `names` scan, commit identity, pull request size, and the body check still run, because they guard what a public pull request publishes and none of them builds anything. Keeping them is this design's reading of D33, and the operator can drop them.
+- **The scans stay.** gitleaks, the `names` scan if D6 is yes, commit identity, pull request size, and the body check still run, because they guard what a public pull request publishes and none of them builds anything. Keeping them is this design's reading of D33, and the operator can drop them.
 
 `conclusion` reports the record lane like any other run, so it stays the one required check and the rulesets don't change. A record pull request still needs the independent approval its tier sets.
 
@@ -72,16 +72,16 @@ Whether `bazel-diff` handles nested local modules under bzlmod is unverified, an
 
 ## The remote cache
 
-The shared remote cache and its token roles stay as they are (existing).
+The shared remote cache and its kinds of token stay as they are (existing).
 
-| Event | Token role | Reads | Writes |
+| Event | Token kind | Reads | Writes |
 | --- | --- | --- | --- |
 | Push to `main` | `main`, through the main-only `cache` environment | main | main |
 | `merge_group` | `pr` | its own namespace, then main | its own namespace |
 | `pull_request` from a branch in the repository | `pr` | its own namespace, then main | its own namespace |
 | `pull_request` from a fork | none | nothing | nothing |
 
-A fork gets no secrets on a public repository (per docs), so its run is uncached. Agents push branches inside the repository, so their runs are cached. The merge queue design recorded an operator decision to give queue candidates the `main` token, and that decision covered the in-house queue's branches only. This design leaves GitHub's queue candidates on the `pr` role, and plan step 10 measures whether that costs enough to ask again.
+A fork gets no secrets on a public repository (per docs), so its run is uncached. Agents push branches inside the repository, so their runs are cached. The merge queue design recorded an operator decision to give queue candidates the `main` token, and that decision covered the in-house queue's branches only. This design leaves GitHub's queue candidates on the `pr` token, and plan step 10 measures whether that costs enough to ask again.
 
 ## Coverage
 

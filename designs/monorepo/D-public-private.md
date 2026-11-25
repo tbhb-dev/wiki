@@ -22,7 +22,7 @@ The companion is `tbhbdev-private`, and it's the only private repository in the 
 
 | Source today | Public monorepo | Private companion |
 | --- | --- | --- |
-| ops | Ansible roles and playbooks, service definitions, dashboards, the ops packages, OpenTofu modules, and the schema for inventory and values | The inventory, group and host variables, OpenTofu variable files and backend settings, and the overlay network's configuration |
+| ops | Ansible playbooks and the task sets they include, service definitions, dashboards, the ops packages, OpenTofu modules, and the schema for inventory and values | The inventory, group and host variables, OpenTofu variable files and backend settings, and the overlay network's configuration |
 | agent-config | Agent and ops configuration, routing, schemas, and docs | The operator-account folder |
 | agent-memories | Memories marked public | Every other memory |
 | wiki, research, spikes, evals, tools | The public repositories as they are | Their private counterparts, at `docs/wiki`, `docs/research`, `docs/spikes`, `factory/evals`, and the tool's folder |
@@ -112,9 +112,20 @@ Hooks come from `tbhbdev alpha install` only, as today (existing rule). The push
 
 The private repository's open issues go through the relevance pass, and the survivors move to the companion or are filed again in public with the private details removed ([appendix I](I-issues-and-projects.md#importing-the-survivors)). The repository is archived only when none are open.
 
+### What public CI proves for a private-origin import
+
+Public CI can't read a private original, so the byte comparison happens where the original is readable, and public CI checks a manifest.
+
+- **On the host that builds the import.** The tool writes a manifest into the import commit: each public file's new path and SHA-256 hash, and the source commit's hash. It compares each public file with the original byte for byte and puts the result and the manifest's digest in the scan report.
+- **In the companion's CI.** A workflow on a private runner checks out the original at the frozen commit and the import pull request's exact head, and repeats the comparison. It also checks that every source file is in the manifest or in the held-back list, and that list never leaves the companion.
+- **In public CI.** The `import` job checks that each file the commit adds matches its manifest hash or is listed as rewritten or generated, and that no executable reference to an old repository remains. It reads no sign-off and trusts no comment.
+- **At approval.** An import is tier 2, and both review runs have the companion. Each reads the companion's check for the exact head and clears the head only when it's green, so the reviews App never approves an import whose private comparison failed or didn't run.
+
+Public CI therefore proves only that the commit matches its own manifest. The match to the private bytes is proven in the companion, and it reaches the merge through the approval, never through public CI. The operator's sign-off in the companion names the manifest's digest, if D4 is yes.
+
 ## What becomes public that isn't today
 
-- Every future change to ops roles, agent configuration, and public memories, with its review discussion.
+- Every future change to ops playbooks, agent configuration, and public memories, with its review discussion.
 - The pace and shape of the factory's work, in one commit log.
 - CI logs for all of the above.
 

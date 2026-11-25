@@ -29,14 +29,14 @@ Issues live in the monorepo and in the companion, and both have Issues and Proje
 
 ## Area labels
 
-Each issue carries exactly one area label (D28). The label names a project, and the generator computes the projects from the tree. No list file exists, and no label comes from an `OWNERS` file.
+Each issue carries exactly one area label (D28). The label names a project, and a project is a folder that holds an `OWNERS` file. The generator finds those folders in the monorepo's tree and names each label after the folder's path, so no list file exists and nothing inside an `OWNERS` file becomes a label.
 
 | Label | One for each |
 | --- | --- |
-| `area/factory/<project>` | direct child folder of `factory/` |
-| `area/products/<name>` | direct child folder of `products/` |
-| `area/lib/<name>` | direct child folder of `lib/` |
-| `area/docs/<name>` | direct child folder of `docs/` |
+| `area/factory/<project>` | folder under `factory/` that holds an `OWNERS` file |
+| `area/products/<name>` | folder under `products/` that holds an `OWNERS` file |
+| `area/lib/<name>` | folder under `lib/` that holds an `OWNERS` file |
+| `area/docs/<name>` | folder under `docs/` that holds an `OWNERS` file |
 | `area/repo` | the repository, once: CI, `.github/`, rulesets, `MODULE.bazel`, and the language roots |
 | `area/third_party` | the repository, once: everything under `third_party/` |
 | `area/none` | the repository, once: an issue that belongs to no project |
@@ -45,8 +45,9 @@ An issue about the event gateway's retry logic is `area/factory/event-gateway`. 
 
 A project's label covers the project's own records. An issue about a need, a requirement, or a knowledge article under `factory/tbhbdev/docs` is `area/factory/tbhbdev`, not `area/docs/wiki` (D33). The `area/docs/<name>` labels cover only the wiki, research, and spikes, and a project's `docs/` folder never gets a label of its own.
 
-- **Computed on every push to `main`.** A workflow lists the direct children of the four folders and creates each missing label. It needs no checked-in file, so a new project folder gets its label with the commit that adds it.
-- **One set for each repository, from its own tree.** The monorepo's labels come from the public tree only. The companion's set is the public set, read from the monorepo commit it pins, plus one label for each project folder that exists only in the companion. No private project's name becomes a public label.
+- **Computed on every push to `main`.** A workflow in the monorepo lists the folders under the four top-level folders that hold an `OWNERS` file and creates each missing label. It needs no checked-in file, so a new project folder gets its label with the commit that adds it.
+- **One identical set in both repositories.** The monorepo's tree is the only source. The companion's workflow reads the same list from the monorepo commit it pins and creates the same labels, with `area/repo`, `area/third_party`, and `area/none` among them. The companion's own tree adds none, so no private name becomes a label in either repository.
+- **The nearest folder with an `OWNERS` file decides.** A path takes the label of the nearest folder at or above it that holds an `OWNERS` file in the monorepo, and a companion path is read at its mirrored public path. An issue with no such folder is `area/repo` when it concerns the root and `area/none` otherwise. A companion test fails for an `OWNERS` file at a path the monorepo doesn't have.
 - **Bounded.** GitHub caps a label's name at 50 characters (per docs, unverified here), so a test fails for a project folder whose label would be longer.
 - **Kept while in use.** When a project folder goes away, its label stays until no open issue carries it. The sync check fails for each of those issues until it's relabeled.
 - **Separate from review and from CI.** An area label doesn't set a review tier, names no approver, and doesn't pick the record lane. The tier 2 path map does the first, the reviews App and the tier 0 workflow approve by tier, and a path check on the diff does the third ([appendix C](C-layout-and-ownership.md#separation-of-duties)).
@@ -67,10 +68,10 @@ Five rules come with the move (D32). The issue commands in `factory/tbhbdev` enf
 
 No existing issue moves as it is. Two sets get a relevance pass first (D28):
 
-- **The tracker files.** The operator's file tracker held 804 issue files, which is the file count at the time of writing (the brief says; unverified). This design fixes no count of the issues that stay, because the relevance pass produces it.
+- **The tracker files.** The operator's file tracker holds issue files. This design states no count of them and none of the issues that stay, because the relevance pass reads the files and produces both.
 - **Open GitHub issues in the repositories that move in.** Their count wasn't read, because this pass had no access to the GitHub API (unverified).
 
-D25 asks the operator to confirm the criteria and the check on each close list. The proposed criteria sort each issue into one of three outcomes, with a one-line reason on each close and one area label on each kept issue:
+D25 asks the operator to confirm the criteria for both sets, and D34 asks who sorts and who confirms each close list. The proposed criteria sort each issue into one of three outcomes, with a one-line reason on each close and one area label on each kept issue:
 
 | Outcome | When |
 | --- | --- |
@@ -98,7 +99,8 @@ A source repository doesn't always map to one label, so the pass also picks each
 | Source | Destination | How |
 | --- | --- | --- |
 | A kept tracker file | Either repository | `tbhbdev alpha issue create`, through the staging steps in the [tracker import design](../pm/E-import.md) |
-| An open issue in a public repository | The monorepo | `gh issue transfer`, which keeps its comments, then the area label |
+| An open issue in a public repository, kept public | The monorepo | `gh issue transfer`, which keeps its comments, then the area label |
+| An open issue in a public repository, kept private | The companion | A new issue in the companion that links the old one and holds the private detail. The old issue closes with a reason that names no private detail |
 | An open issue in a private repository, kept private | The companion | `gh issue transfer`, then the area label |
 | An open issue in a private repository, kept public | The monorepo | A new issue with the private details removed. GitHub doesn't transfer an issue from a private repository to a public one (per docs) |
 

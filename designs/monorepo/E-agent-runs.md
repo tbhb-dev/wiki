@@ -40,7 +40,7 @@ The companion gets a plain full mirror and copy clones, as today. It's small, an
 
 ## A build run
 
-1. **Fetch.** The launcher fetches `main` into the mirror.
+1. **Fetch.** The launcher fetches `main` into the mirror, and skips the fetch when the mirror was fetched in the last minute.
 2. **Compute the cone.** The launcher keeps one full checkout per host, the index worktree, which no agent uses. It moves that checkout to the fetched commit and asks Bazel which folders the run needs:
 
    ```sh
@@ -97,7 +97,7 @@ Bazel keeps one output base per workspace path. Today each run clone has a new p
 - **Slot paths.** Worktrees live at a fixed set of paths, `<state>/worktrees/tbhbdev/slot-01` to `slot-NN`. A run takes a free slot under a lock and gives it back at the end. Bazel sees the same path again, so the next run reuses that slot's output base and its fetched external repositories. The count of output bases can't pass the count of slots.
 - **A shared disk cache.** One `--disk_cache` folder per host serves every slot, so a target built in one slot isn't rebuilt in another. Bazel trims it to a size limit (per docs).
 - **A shared repository cache.** Downloads of external dependencies are stored once per host, which is Bazel's default (per docs).
-- **The remote cache.** Hosts read it with the trusted host role that exists today, and CI's results reach every host.
+- **The remote cache.** Hosts read it with the trusted host token that exists today, and CI's results reach every host.
 
 How much a warm slot saves is unverified, and plan step 2 measures it. A slot's output base holds results from an earlier run, which is the same trust the shared caches already need. Whether the launcher confines a run to its own folder today wasn't read in this pass (unverified).
 

@@ -79,23 +79,23 @@ Back to [the design](README.md).
 - **Recommendation:** yes, when the import check passes.
 - **Why:** an import adds a whole repository, far past 1,500 lines and past the 300 files that GitHub's diff view shows, and the size check has no override. The copied files passed review where they were written. A required check proves each one is byte-identical to its source at the named commit, so nothing rides along.
 - **If yes:** the size check exempts a pull request that holds one import commit with a green import check. The reviewer reads the path map, the dropped list, and every rewritten or generated file, from a local checkout.
-- **If no:** each import splits into pull requests under the limit. Tools alone has about 105,000 lines of Python, which is over 70 pull requests, and the import is then no longer one commit, against D10.
+- **If no:** no import splits, because D10 makes each one a single copy commit. An import over the limit waits until its source is cut down in the old repository to fit one commit, or until the operator names another path. Tools alone has about 105,000 lines of Python, so it can't import under this answer.
 - **Reversible:** yes. Remove the exemption after the last import.
 
 ### D24. Is the organization renamed from `tbhb-dev` to `tbhbdev` as the last migration step?
 
 - **Recommendation:** yes, as the last step, and only after the rehearsal in [appendix G](G-import-and-cutover.md#the-organization-rename) passes.
 - **Why:** the repository then reads `tbhbdev/tbhbdev`, which matches the tool. After the imports, few places still spell the old login, so the last step is the cheapest moment the rename will ever have. The new login read as unclaimed on 2026-11-25 (the brief says).
-- **If yes:** the step runs under the organization admin grant: the rehearsal, the rename, a free placeholder organization on the old login at once, and then the reference classes in appendix G.
+- **If yes:** `tbhb-agent` carries out the step under the organization admin grant, and `tbhb` answers for it through this decision. The step is the rehearsal, the rename, a free placeholder organization on the old login at once, and then the reference classes in appendix G.
 - **If no:** the organization stays `tbhb-dev`, the repository stays `tbhb-dev/tbhbdev`, and plan step 14 is dropped.
 - **Reversible:** partly. The login can go back while the placeholder holds the old one, and every reference then changes twice. The old login is open to anyone between the rename and the placeholder's creation.
 
-### D25. Does the relevance pass close issues by the criteria in appendix I, with a second run checking each close list?
+### D25. Does the relevance pass sort both issue sources by the criteria in appendix I?
 
 - **Recommendation:** yes.
-- **Why:** a wrongly closed issue is lost once its repository is archived, so a close needs the same separation as a merge: the run that proposes a close list doesn't confirm it. The criteria are in [appendix I](I-issues-and-projects.md#the-relevance-pass).
-- **If yes:** one run sorts each open issue of a moved-in repository into close, public, or private. A second, independent run checks the close list before anything is closed.
-- **If no:** name the criteria or the check. If the operator reads each close list, each archive waits on the operator's time.
+- **Why:** the criteria decide which work is dropped, and a wrongly closed issue is lost once its repository is archived. The two sources are the operator's tracker files and the open GitHub issues of each moved-in repository, and [appendix I](I-issues-and-projects.md#the-relevance-pass) proposes one set of criteria for both.
+- **If yes:** each issue from either source is sorted into close, public, or private by that table. Each close carries a one-line reason, and each kept issue carries one area label.
+- **If no:** name the criteria, for one source or for both.
 - **Reversible:** yes for a wrongly kept issue, which closes later. A wrongly closed issue reopens only until its repository is archived.
 
 ### D26. Does the private Project hold issues from both repositories?
@@ -106,12 +106,20 @@ Back to [the design](README.md).
 - **If no:** the private Project holds only the companion's issues, and reading all work takes two boards.
 - **Reversible:** yes. Add or remove the items with one command.
 
+### D34. Does `tbhb-agent` sort the issues from both sources, with a fresh `tbhb-agent` run confirming each close list?
+
+- **Recommendation:** yes.
+- **Why:** triage decides what work survives, so the operator names who does it. A close needs the same separation as a merge: whoever proposes a close list doesn't confirm it. This design assigns the duty to no one until the operator answers.
+- **If yes:** `tbhb-agent` sorts the tracker files and each moved-in repository's open issues, in an agent run. A fresh `tbhb-agent` run that shares no context with the first, on another provider, confirms each close list before anything closes.
+- **If no:** name the identity that sorts and the identity that confirms, for each source. If `tbhb` confirms each close list, each archive waits on the operator's time.
+- **Reversible:** yes. A later list can go to another identity. A close already made follows D25.
+
 ## Decided
 
 ### D33. Project records live in each project's own docs folder, and a record pull request takes a lighter CI lane
 
 - **Decided:** 2026-11-25, by the operator.
-- **Rule:** needs, requirements, and knowledge articles live in each project's own `docs/` folder, such as `factory/tbhbdev/docs/needs`, `factory/tbhbdev/docs/requirements`, and `factory/tbhbdev/docs/kb`, and not in the top-level `docs/`. A pull request whose diff touches only those paths is a record pull request, and a path check decides that. It runs only the Bazel record-check targets of the projects it touches, not the full build and test. Any other file in the diff, or a change to a check's definition, sends it through the full lane. `conclusion` stays the one required check, and the rulesets don't change ([appendix F](F-ci.md#the-record-lane)).
+- **Rule:** needs, requirements, and knowledge articles live in each project's own `docs/` folder, such as `factory/tbhbdev/docs/needs`, `factory/tbhbdev/docs/requirements`, and `factory/tbhbdev/docs/kb`, and not in the top-level `docs/`. A pull request whose diff touches only those paths is a record pull request, and a path check decides that. It runs only the Bazel record-check targets of the projects it touches, not the full build and test. The scans that guard what a pull request publishes still run, and the private-name scan among them runs only if D6 is yes, which is this design's reading and not the operator's wording. Any other file in the diff, or a change to a check's definition, sends it through the full lane. `conclusion` stays the one required check, and the rulesets don't change ([appendix F](F-ci.md#the-record-lane)).
 - **Undo:** remove the path check from the workflow, and every pull request takes the full lane again.
 - **Record:** the third fix brief for this design's pull request, 2026-11-25.
 
@@ -152,10 +160,10 @@ Back to [the design](README.md).
 
 ### D28. Issues live in two repositories, with two Projects and one area label each
 
-- **Decided:** 2026-11-25, by the operator. The label rule is the operator's later ruling of the same day, which replaced labels generated from owner files. Labels still come from the tree and never from an `OWNERS` file.
-- **Rule:** issues live in the monorepo and in the companion, and both have Issues and Projects on. A public roadmap Project holds only the monorepo's issues, and a private Project exists beside it. Each issue carries exactly one area label: `area/<top>/<name>` for a direct child of `factory/`, `products/`, `lib/`, or `docs/`, or one of `area/repo`, `area/third_party`, and `area/none`. Each repository computes its labels from its own tree on every push to `main`, and the companion adds the public set, so no private project's name becomes a public label. The issue commands and a sync check enforce the one-label rule. Existing issues get a relevance pass before they move ([appendix I](I-issues-and-projects.md)).
+- **Decided:** 2026-11-25, by the operator. The label rule is the operator's later ruling of the same day, which replaced labels generated from owner files. Labels still come from the tree: an `OWNERS` file only marks its folder as a project, and nothing inside it becomes a label.
+- **Rule:** issues live in the monorepo and in the companion, and both have Issues and Projects on. A public roadmap Project holds only the monorepo's issues, and a private Project exists beside it. Each issue carries exactly one area label: `area/<top>/<name>` for a folder under `factory/`, `products/`, `lib/`, or `docs/` that holds an `OWNERS` file, or one of `area/repo`, `area/third_party`, and `area/none`. The monorepo computes the set from its tree on every push to `main`, and the companion creates the same set from the commit it pins, so no private project's name becomes a label. The issue commands and a sync check enforce the one-label rule. Existing issues get a relevance pass before they move ([appendix I](I-issues-and-projects.md)).
 - **Undo:** change the label generator or the Projects. Imported issues stay where they landed.
-- **Record:** the operator's brief of 2026-11-25, addendum 5, and the second fix brief for this design's pull request.
+- **Record:** the operator's brief of 2026-11-25, addendum 5, and the second and sixth fix briefs for this design's pull request.
 
 ### D27. A clean break, starting with scaffolding, then renovate-config, then rules
 
@@ -230,9 +238,9 @@ Back to [the design](README.md).
 ### D14. Five top-level folders, a flat `factory/`, and three dependency rules
 
 - **Decided:** 2026-11-25, by the operator. The flat `factory/` is the operator's later ruling of the same day, which replaced the first sketch's extra level of folders.
-- **Rule:** top-level folders are `factory/`, `products/`, `lib/`, `docs/`, and `third_party/`. `factory/` is one boundary with no grouping folders: each project is one folder directly under it, and one source repository becomes one folder. Each project's `README.md` and `OWNERS` file describe the project, and neither sorts it into a category. The top-level `docs/` holds the wiki, research, and spikes, and each project's own records live in the project (D33). Products depend on `lib/` and published modules only, the factory never depends on a product, and Bazel visibility enforces both. The companion mirrors the public paths.
+- **Rule:** top-level folders are `factory/`, `products/`, `lib/`, `docs/`, and `third_party/`. `factory/` is one boundary with no grouping folders: each project is one folder directly under it, and one source repository becomes one folder. Each project's `README.md` and `OWNERS` file describe the project, and neither sorts it into a category. The top-level `docs/` holds the wiki, research, and spikes, and each project's own records live in the project (D33). Products depend on `lib/` only and are built with the rules, the factory never depends on a product, and Bazel visibility and the layering test enforce both. The companion mirrors the public paths.
 - **Undo:** move folders by pull request. The rules live in build files and one test.
-- **Record:** the operator's brief of 2026-11-25, and the second and third fix briefs for this design's pull request.
+- **Record:** the operator's brief of 2026-11-25, and the second, third, and sixth fix briefs for this design's pull request.
 
 ### D13. Gazelle writes build files, coverage stays at 100% branch, and CI runs affected targets
 
@@ -275,5 +283,6 @@ Back to [the design](README.md).
 | D8 | The worktree record changes to fit a bare mirror | yes |
 | D9 | Import pull requests skip the size limit | yes |
 | D24 | The organization is renamed as the last step | yes, after the rehearsal |
-| D25 | The relevance pass closes by appendix I's criteria, with a second run checking each close list | yes |
+| D25 | The relevance pass sorts both issue sources by appendix I's criteria | yes |
 | D26 | The private Project holds issues from both repositories | yes |
+| D34 | `tbhb-agent` sorts the issues, and a fresh `tbhb-agent` run confirms each close list | yes |
