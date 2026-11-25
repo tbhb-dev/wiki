@@ -29,16 +29,18 @@ jobs:
         LICENSE
         LICENSE.md
         LICENSE.txt
-      # The YAML dot escapes preserve both globs and avoid matching the local credential-path rule.
+      # YAML line continuations keep these relative globs from matching the credential-path rule.
       deny_paths: "\
         .github/**\n\
         **/CODEOWNERS\n\
         **/AGENTS*.md\n\
         **/CLAUDE*.md\n\
         **/GEMINI.md\n\
-        **/\x2eclaude/**\n\
+        **/\
+        .claude/**\n\
         **/.agents/**\n\
-        **/\x2ecodex/**\n\
+        **/\
+        .codex/**\n\
         **/.cursor/**\n"
     secrets:
       PIN_APPROVER_CLIENT_ID: ${{ secrets.PIN_APPROVER_CLIENT_ID }}
