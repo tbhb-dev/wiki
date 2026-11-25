@@ -27,7 +27,8 @@ Each claim carries one label. **Proven** means a test run or merged pull request
 | GitHub REST rate limits cap content-creating requests at 80 per minute and 500 per hour | existing | [GitHub Docs, Rate limits for the REST API](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api) |
 | Any user or token with `issues: write` or triage permission on a repository can add or remove any label through the REST or GraphQL API, because GitHub offers no per-label write ACL | existing | [GitHub Docs, Manage labels](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/managing-labels) |
 | An environment branch policy restricted to `main` denies non-default branch runs before assigning a runner or exposing secrets | proven | [Renovate auto-approval environment probe](../renovate-auto-approval/A-evidence.md#the-environment-probe) |
-| Round-trip latency for `tbhb-dev/event-gateway` to receive a `projects_v2_item` webhook and revert a field value via GraphQL | unverified | Measured in plan step 5 |
+| GitHub Projects v2 exposes no synchronous pre-move hook that rejects an invalid board drag before the field value changes | unverified | Checked in plan step 5 |
+| Round-trip latency (estimated at 2 to 5 seconds from a direct gateway worker or 10 to 30 seconds via Stage 1 `repository_dispatch`) for `tbhb-dev/event-gateway` to receive a `projects_v2_item` webhook and revert a field value via GraphQL | unverified | Measured in plan step 5 |
 
 ## Schemas and templates in pm
 
@@ -53,7 +54,7 @@ Read from `tbhb-dev/tools` at commit `c23b698` (`tbhb-dev/tools#394`):
 | `tbhbdev.content` runs the gitleaks secret scan and private-detail checks before writing to GitHub, and exposes `create_issue`, `link_sub_issue`, `link_dependency`, and `add_to_project` | existing | `src/tbhbdev/content.py` in `tbhb-dev/tools` at `c23b698` |
 | `tbhbdev alpha issue create` in `src/tbhbdev/alpha/close.py` requires an active agent session trailer, calls `validate_issue()` synchronously, and refuses any body with findings before calling `content.create_issue` | existing | `src/tbhbdev/alpha/close.py` in `tbhb-dev/tools` at `c23b698` |
 | `tbhbdev alpha agent exec` launches supervised headless agent runs by host, repository, model, effort, profile, and role | existing | `src/tbhbdev/alpha/agent/driver.py` in `tbhb-dev/tools` at `c23b698` |
-| Adding `--draft` to `tbhbdev alpha issue create` and `edit` and blocking builder runs in `tbhbdev alpha agent exec` when `check:passing` is absent | new | Proposed in this design, plan step 3 |
+| Adding `--draft` to `tbhbdev alpha issue create` and `edit` (plan step 3) and blocking builder runs in `tbhbdev alpha agent exec` after the backfill when `check:passing` is absent or does not match the live issue body (plan step 5) | new | Proposed in this design, plan steps 3 and 5 |
 
 ## Import and event gateway designs
 

@@ -42,9 +42,9 @@ Back to [the design](README.md).
 
 ### D4. Should the command-line tool require a draft flag and block builder runs on failing issues?
 
-- **Recommendation:** Yes, require `--draft` on `tbhbdev alpha issue create` and `edit` when a body fails local schema or Vale checks, while always refusing secret or private-detail hits, and make `tbhbdev alpha agent exec` refuse builder runs unless the issue has `check:passing` and no `status:unverified` or `status:needs-info` label.
-- **Why:** Requiring `--draft` catches accidental heading or prefix typos locally for callers who meant to file a complete issue, while letting anyone intentionally file an incomplete draft. Stopping builder runs at `agent exec` guarantees that a brief board race never starts code work on a failing or unverified issue.
-- **If yes:** The tools role adds `--draft` to `issue create` and `issue edit` and adds the label gate to `agent exec`, exempting `--role refiner` runs so refiners can fix failing drafts.
+- **Recommendation:** Yes, require `--draft` on `tbhbdev alpha issue create` and `edit` when a body fails local schema or Vale checks, while always refusing secret or private-detail hits, and make `tbhbdev alpha agent exec` refuse builder runs unless the issue has a `check:passing` result matching the live issue body and no `status:unverified` or `status:needs-info` label.
+- **Why:** Requiring `--draft` catches accidental heading or prefix typos locally for callers who meant to file a complete issue, while letting anyone intentionally file an incomplete draft. Stopping builder runs at `agent exec` when the label is missing or stale for the live body guarantees that a brief board race or a web edit never starts code work on a failing or unverified issue.
+- **If yes:** The tools role adds `--draft` to `issue create` and `issue edit` in step 3 and enables the fail-closed label and body-digest gate in `agent exec` in step 5 after the backfill completes, exempting `--role refiner` runs so refiners can fix failing drafts.
 - **If no:** Filing without `--draft` silently uploads broken bodies that immediately turn `check:failing` on GitHub, or builder runs rely solely on board column position.
 - **Reversible:** Yes. A two-line flag change in `tbhb-dev/tools` can switch `--draft` to the default or adjust the `agent exec` check.
 
@@ -89,6 +89,6 @@ Back to [the design](README.md).
 ### D6. May callers file draft issues that fail schema validation?
 
 - **Decided:** 2026-11-25, by the operator.
-- **Rule:** Issue validation stops being all-or-nothing at filing time. A draft issue with missing sections or incomplete information can be filed, a workflow validates it on issue and comment events against `pm`'s CUE schemas and sets status-check labels plus one updated comment listing what fails, and a failing issue cannot be worked on or move forward into `Ready`.
+- **Rule:** Issue validation stops being all-or-nothing at filing time. A draft issue with missing sections or incomplete information can be filed, a workflow validates it on issue and comment events against `pm`'s CUE schemas and sets status-check labels plus one updated comment listing what fails, and a failing issue cannot start a builder run or stay in `Ready` (any move into `Ready` is reverted after the fact).
 - **Undo:** Two-way door. Restore strict synchronous schema refusal on every issue creation and retire the check workflow.
 - **Record:** tbhb direction, 2026-11-25.
