@@ -12,19 +12,22 @@ rules:
         "*": hash-pin
   # tbhb-dev/renovate-config is pinned by commit to its main branch, which has
   # no release tags by design; Renovate bumps the pins. Only the two caller
-  # workflows reference it, and ci.yml pins tbhb-dev/rules the same way. Each
-  # move of that branch leaves the `# main` comment naming a newer commit until Renovate's bump merges, which is
+  # workflows reference it, and ci.yml and tier0-approval.yml pin
+  # tbhb-dev/rules the same way. Each move of that branch leaves the `# main`
+  # comment naming a newer commit until Renovate's bump merges, which is
   # Renovate's job to catch, not a failure for every pull request.
   stale-action-refs:
     ignore:
       - renovate.yaml
       - renovate-config-validator.yaml
       - ci.yml
+      - tier0-approval.yml
   ref-version-mismatch:
     ignore:
       - renovate.yaml
       - renovate-config-validator.yaml
       - ci.yml
+      - tier0-approval.yml
   # Off until actionlint accepts GitHub's `$/` self-repository syntax
   # (actionlint issue 711), which zizmor asks for in place of `./`.
   self-repository:
