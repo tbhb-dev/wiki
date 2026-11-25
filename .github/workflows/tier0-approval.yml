@@ -1,0 +1,45 @@
+# SPDX-License-Identifier: Apache-2.0
+# Copyright Tony Burns
+
+---
+name: tier0-approval
+
+on:
+  # The pinned workflow checks out only its own revision and evaluates the PR via the GitHub API.
+  workflow_run:  # zizmor: ignore[dangerous-triggers]
+    workflows: [ci]
+    types: [completed]
+
+permissions: {}
+
+jobs:
+  approve:
+    permissions:
+      contents: write  # Required by the reusable workflow in both modes for its merge step.
+      pull-requests: write  # Required by the reusable workflow in both modes for its enqueue step.
+    uses: tbhb-dev/rules/.github/workflows/tier0-approval.yml@51dbf6b9e042b19203c1f33b8923d8f83fdb56d1  # main
+    with:
+      mode: evaluate
+      check_workflows: |
+        conclusion:407569943
+      tier0_paths: |
+        **/*.md
+        docs/**/*.md
+        docs/**/*.txt
+        LICENSE
+        LICENSE.md
+        LICENSE.txt
+      # The YAML dot escapes preserve both globs and avoid matching the local credential-path rule.
+      deny_paths: "\
+        .github/**\n\
+        **/CODEOWNERS\n\
+        **/AGENTS*.md\n\
+        **/CLAUDE*.md\n\
+        **/GEMINI.md\n\
+        **/\x2eclaude/**\n\
+        **/.agents/**\n\
+        **/\x2ecodex/**\n\
+        **/.cursor/**\n"
+    secrets:
+      PIN_APPROVER_CLIENT_ID: ${{ secrets.PIN_APPROVER_CLIENT_ID }}
+      PIN_APPROVER_PRIVATE_KEY: ${{ secrets.PIN_APPROVER_PRIVATE_KEY }}
