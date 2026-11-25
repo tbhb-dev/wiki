@@ -20,7 +20,7 @@ Refinement gives the worker enough information to start and check the result. Th
 
 ## Scope
 
-The numbered checks apply to pm work items. Apply each check that fits the variant. Use the [service readiness checks](#service-requests-and-problems) for the records that the service-management role (`sm`) handles. Every issue follows the writing rules below, with the conflicts in existing service variants tracked in [decisions](decisions.md#d4-which-service-rules-conflict-with-the-shared-rules).
+The sixteen numbered checks apply to pm work items. Apply each check that fits the variant. Use the [service readiness checks](#service-requests-and-problems) for the records that the service-management role (`sm`) handles. Every issue follows the writing rules below, with the conflicts in existing service variants tracked in [decisions](decisions.md#d4-which-service-rules-conflict-with-the-shared-rules).
 
 ## Readiness checks
 
@@ -41,6 +41,7 @@ A Configure Unify Execute (CUE) schema checks the block model. The kernel checks
 13. **Decision work uses a Decision issue.** A Decision is a separate issue type from a Request.
 14. **Resolve factual uncertainty.** Apply the [hedge check by type](#unresolved-hedges).
 15. **Issue sections contain no procedure.** Apply the [no-procedure rule](#no-procedure) to every section.
+16. **Out of scope records a deliberate decision.** The section lists what the issue deliberately leaves out, or contains a single `None.` item because someone considered the scope and found nothing to exclude. The refiner checks that someone made this decision before the issue becomes Ready.
 
 The schema checks the draft at creation and on edits through the kernel. For issues created through the GitHub web interface, `tbhbdev pm refine --check` runs the same schema checks. See [Status transitions](D-status-transitions.md) for the sync behavior before verification.
 
@@ -94,8 +95,8 @@ Apply this readiness check to pm work items and Problems. Requests use their wor
 
 | Type | Where an unknown may live | Pass test |
 | --- | --- | --- |
-| Initiative | The open scope question stays outside the issue until a scope section exists. See [decision D5](decisions.md#d5-where-do-open-scope-questions-go). | Resolve checkable facts before readiness. |
-| Epic | The open scope question stays outside the issue until a scope section exists. See [decision D5](decisions.md#d5-where-do-open-scope-questions-go). | The item answers factual questions that a read can settle. |
+| Initiative | Keep unresolved scope questions outside the issue. Out of scope records settled exclusions. See [decision D5](decisions.md#d5-where-do-open-scope-questions-go). | Resolve checkable facts before readiness. |
+| Epic | Keep unresolved scope questions outside the issue. Out of scope records settled exclusions. See [decision D5](decisions.md#d5-where-do-open-scope-questions-go). | The item answers factual questions that a read can settle. |
 | Feature | Outside the issue until resolved. | State the intended behavior and settled facts. |
 | Defect | Context can identify an unknown cause. | The issue states observed behavior as fact and identifies the cause as unknown when necessary. |
 | Chore | Resolve factual uncertainty during refinement. | State the maintenance facts directly. |

@@ -19,12 +19,19 @@ Back to [the design](README.md).
 ### D5. Where do open scope questions go?
 
 - **Recommendation.** Add a dedicated Open scope questions section to both variants.
-- **Why.** Both variants lack a scope section, and the [hedge check](B-definition-of-ready.md#unresolved-hedges) needs a place for them.
+- **Why.** Out of scope records settled exclusions. Both variants still lack a section for unresolved scope questions, and the [hedge check](B-definition-of-ready.md#unresolved-hedges) needs a place for them.
 - **If yes.** The later pm schema change adds the section.
 - **If no.** Resolve scope questions before either type becomes ready.
 - **Reversible.** A later schema change can remove the section after the refiner resolves or moves any remaining questions.
 
 ## Decided
+
+### D6. Must refinement decide Out of scope?
+
+- **Decided.** The operator ruled on 2026-11-25.
+- **Rule.** Out of scope is required in every issue type. The last of the sixteen [readiness checks](B-definition-of-ready.md#readiness-checks) requires a deliberate decision before Ready. List deliberate exclusions, or use one `None.` item after considering what to exclude.
+- **Undo.** Change the readiness check and its rubric test together with the section requirement.
+- **Record.** The operator's Decisions entry on 2026-11-25 makes considering Out of scope part of refinement. A separate pm change updates the schemas and templates.
 
 ### D4. Which service rules conflict with the shared rules?
 
