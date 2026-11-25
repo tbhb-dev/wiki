@@ -70,6 +70,7 @@ The design relies on D1 to D4 and D6 as requirements. D5 only places the design.
 
 - **Decided:** 2026-11-22, by the operator through coordination.
 - **Amended.** On 2026-11-23, the operator moved the gate into the shared design. Requests use workflow validation, Problems have a readiness check, and Incidents and Changes skip refinement.
+- **Amended.** On 2026-11-25, the operator required Out of scope in every issue type and made its deliberate decision part of refinement. One `None.` item is valid after someone considers what to exclude. The shared gate has sixteen checks. A separate pm change updates the schemas and templates.
 - **Rule.** The [shared Definition of Ready](../issue-refinement/B-definition-of-ready.md) defines the gate for work items. It also gives the [service checks](../issue-refinement/B-definition-of-ready.md#service-requests-and-problems) and the types that skip refinement. The imports role applies the gate in staging.
 - **Undo:** remove the refinement condition from the sync job and the workflow. Two-way door.
 - **Record:** the operator's refinement ruling, relayed by coordination.

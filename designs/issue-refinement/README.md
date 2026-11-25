@@ -51,6 +51,6 @@ A refiner follows the procedure for work items. Service records use the [checks 
 
 - [Decisions](decisions.md) records one open choice and the rulings behind this design.
 - [A. Refinement procedure](A-refinement-procedure.md) gives the steps, records, evidence, and Vale pass.
-- [B. Definition of Ready](B-definition-of-ready.md) gives the readiness checks and writing rules.
+- [B. Definition of Ready](B-definition-of-ready.md) gives sixteen readiness checks and the writing rules, including the deliberate Out of scope decision.
 - [C. Writing rubric](C-writing-rubric.md) gives pass and fail tests for issue writing.
 - [D. Status transitions](D-status-transitions.md) explains how the job sets Status.

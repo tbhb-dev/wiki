@@ -61,16 +61,18 @@ The tools role defines the issue types, field and label values, and type-by-fiel
 
 | Variant | Total words | Notes |
 | --- | --- | --- |
-| Feature | 200 | Outcome, Acceptance criteria as a task list, and optional Context and Out of scope |
+| Feature | 200 | Outcome, Acceptance criteria as a task list, and Out of scope are required. Context is optional. |
 | Chore | 150 | Maintenance with an end state and no user-visible change. Work that resumes, monitors, or operates a process falls outside this variant. A Chore requires a parent. |
-| Defect | 220 | A Defect requires Outcome, Actual, Reproduction, Acceptance criteria, and Verification and can include Context and Out of scope. |
+| Defect | 220 | A Defect requires Outcome, Actual, Reproduction, Acceptance criteria, Verification, and Out of scope. Context is optional. |
 | Spike | 130 | A Spike is a time-boxed experiment, often a throwaway build, that answers a question to unblock a decision. The experiment yields an answer, while Research requires a written finding. Its sections include Question, Decision it unblocks, and Acceptance criteria. The Acceptance criteria list the deliverables. The shared taxonomy defines its time box. |
 | Research | 150 | See [Research](#research) for the proposed variant. |
 | Epic | 180 | Parent optional, so an Epic can belong to an Initiative |
 | Initiative | 180 | No parent |
 | Service Request | By variant | See the [Request workflow check](../issue-refinement/B-definition-of-ready.md#requests). |
 
-Floors are low or absent. A forced section produces filler text, so only sections that give the type its meaning need text.
+Out of scope is required in every issue type. It lists deliberate exclusions. A single `None.` item is a valid answer when someone has considered the scope and found nothing to exclude. Refinement checks that decision under [readiness check 16](../issue-refinement/B-definition-of-ready.md#readiness-checks). A separate pm change updates the schemas and templates.
+
+Floors are low or absent. Sections that give the type its meaning need text, and Out of scope records a deliberate decision.
 
 A Task always has a parent. It requires a Verification section. A Task may include a Context section of up to 60 words once the pm role changes the Task schema (proposed). Until then, the Task schema refuses a Context section.
 
@@ -78,13 +80,14 @@ A Task always has a parent. It requires a Verification section. A Task may inclu
 
 Research is an investigation that delivers a written finding as a report in the research repository or its private twin. A Spike uses a time-boxed experiment to unblock a decision, while the Research deliverable is the report.
 
-Write the six required sections in the order shown. Use at most 150 visible body words across all six sections.
+Write the seven required sections in the order shown. Use at most 150 visible body words across the seven sections.
 
 | Section | Word cap | What it states |
 | --- | --- | --- |
 | Question | 20 | State one question in one sentence ending in a question mark. |
 | Decision or work it informs | 25 | Identify the decision or work the finding informs. |
-| Scope | 45 | State what the investigation covers and what it leaves out. |
+| Scope | 45 | State what the investigation covers. |
+| Out of scope | Within the body total | List deliberate exclusions, or use one `None.` item after considering what to exclude. |
 | Deliverable location | 35 | Identify the research repository by role and give the report's path pattern, without linking to a private repository. |
 | Time box | 10 | Choose a time box from the same set that Spike uses. |
 | Verification | 15 | Identify the report in one task-list item that verifies it exists at the specified path. |

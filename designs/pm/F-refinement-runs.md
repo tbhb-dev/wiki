@@ -34,8 +34,9 @@ Write budget: <writes per hour and per minute>, shared with other runs
 
 Follow the shared procedure for each item in order, including each staged
 file. Apply the title rules under readiness check 11, the hedge check by
-type under check 14, and the no-procedure rule under check 15. Use the
-service checks for the applicable record type.
+type under check 14, the no-procedure rule under check 15, and the
+deliberate Out of scope decision under check 16. Use the service checks
+for the applicable record type.
 
 For pm batches:
 - Use the batch Chore to record review results.
@@ -72,7 +73,7 @@ A rubber-stamp Ready leaves signs, and one of them sends the reviewer to read th
 
 - More than three quarters of the drafts show a passing result for each readiness check without a fix.
 - Two or more records share the same evidence text, or cite a commit without a command.
-- A Ready item fails check 2, 3, 7, 8, 11, 14, or 15 on review.
+- A Ready item fails check 2, 3, 7, 8, 11, 14, 15, or 16 on review.
 - An item 4 pass lacks an issue search.
 
 The reviewer checks that every `ready` result records a pass or fix for each applicable check. In ordinary refinement, the reviewer also checks that the record is current. The reviewer checks the sample's evidence and inspects the whole batch if there are signs of a rubber stamp. One failed check on any reviewed item fails the batch. A failed batch gets a new refinement run.
