@@ -17,7 +17,7 @@ jobs:
     permissions:
       contents: write  # Required by the reusable workflow in both modes for its merge step.
       pull-requests: write  # Required by the reusable workflow in both modes for its enqueue step.
-    uses: tbhb-dev/rules/.github/workflows/tier0-approval.yml@51dbf6b9e042b19203c1f33b8923d8f83fdb56d1  # main
+    uses: tbhb-dev/rules/.github/workflows/tier0-approval.yml@f1e02fb9682b3e12dcb8d8ccd1a0a2e07d9939a4  # main
     with:
       mode: evaluate
       check_workflows: |
