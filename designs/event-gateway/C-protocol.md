@@ -203,7 +203,7 @@ It stays under 4 KiB, far below Temporal's 2 MiB default blob limit, whatever th
 
 A second stream, `PARKED`, on subjects `parked.<target>`, holds one record for each parked event: the target and rule names, the event's `seq`, `provider`, `event`, and `delivery`, the error text, and the time. It holds no payload, so [D3](decisions.md#d3-may-the-gateway-keep-raw-event-payloads-at-rest-for-7-days)'s 7-day limit on payloads still holds while the record keeps 30 days (`MaxAge` 30 days, file storage, one replica). `EVENTS` doesn't change.
 
-`event-gateway parked list` prints the records, and `event-gateway parked retry <target> <seq>` reads the event from `EVENTS` and calls that target's `Deliver` once, which works only while the event is within the 7-day window. Each park counts in a metric, and a Grafana alert fires on the first one.
+`event-gateway parked list` prints the records, and `event-gateway parked retry <target> <seq>` reads the event from `EVENTS` and calls that target's `Deliver` once, which works only while the event is within the 7-day window. Both subcommands talk to the running `serve` over a Unix socket, mode 0600 and owned by the service user, with no TCP port, so the store keeps one writer and the CLI adds no network surface. When `serve` isn't running, the CLI says so and exits. Opening the store read-only for `list` alone is a possible later addition, decided by the operator as not part of the first build. Each park counts in a metric, and a Grafana alert fires on the first one.
 
 ## Internal publish
 
