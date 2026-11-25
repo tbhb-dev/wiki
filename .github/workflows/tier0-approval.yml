@@ -14,6 +14,7 @@ permissions: {}
 
 jobs:
   approve:
+    if: github.event.workflow_run.event == 'pull_request'
     permissions:
       contents: write  # Required by the reusable workflow in both modes for its merge step.
       pull-requests: write  # Required by the reusable workflow in both modes for its enqueue step.
