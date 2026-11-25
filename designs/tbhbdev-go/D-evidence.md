@@ -21,7 +21,7 @@ The gh evidence is in [appendix A](A-gh-architecture.md) and [appendix B](B-gh-p
 Labels:
 
 - **existing** means a file read at the named commit.
-- **outline** means the design outline from a tools read at `75cbfd83` on 2026-11-25, which this pass didn't read again.
+- **outline** means the design outline from a tools read at `75cbfd83` on 2026-11-25, which this pass did not read again.
 - **brief** means the operator's rules as the task brief relays them.
 - **new** means this design proposes it.
 - **unverified** means nobody checked it.
@@ -34,25 +34,25 @@ Labels:
 | The design follows gh after research into its pitfalls, the pure and thin input/output (I/O) rule holds in Go, and no package takes the name `core` or `shell` | brief | the same |
 | One commit builds one release bundle | brief | the same. Since D22, one monorepo commit with the tools commit it pins |
 | Go has no `alpha`, commands get final names, and `alpha` works only through the fallthrough until each command ports | brief | the same |
-| No version mismatch ever blocks a launch, and a host that can't run a driver's launch counts as a refusal | brief | the same |
+| No version mismatch ever blocks a launch, and a host that cannot run a driver's launch counts as a refusal | brief | the same |
 | Driver and host check a protocol version and never build hashes, and a build mismatch is a logged warning | brief | the operator's requirements of 2026-11-25, relayed after the first draft |
 | tbhbdev updates itself at start when behind main, with a cached main commit, an atomic swap, no refusal on failure, and an opt-out variable | brief | the same |
 | The run request and run metadata are one versioned schema that both sides validate against, with a continuous integration (CI) check on version decisions | brief | the same |
-| The tools maintainer is building event-driven sync on merges to main | brief, unverified | the same. Its design wasn't read |
-| Go-only pull requests don't run the Python suite in pull requests or the merge queue | brief | the same |
+| The tools maintainer is building event-driven sync on merges to main | brief, unverified | the same. Its design was not read |
+| Go-only pull requests do not run the Python suite in pull requests or the merge queue | brief | the same |
 | A separate CI speed role owns CI wall time across repositories | brief | the same |
 | No decision record covered a Go port at the time of the outline's read, and the agent capacity record chose Go for new agent tooling | outline | grep of the decision folder |
 | Wave 1 is the unfinished review tooling, the launcher moves to a later wave, protocol versioning and self-update stay, and implementation waits for the operator's read of the merged design | brief | the operator's decisions of 2026-11-25 on wave order and stack (D17) |
 | Plugins use cobra, pflag, and koanf, with explicit dependencies, no package state, and a standard-library front | brief | the same (D18) |
-| Scaffolding pull requests go to the operator before merge | brief | the same (D19) |
+| Front, dispatch, and plugin plumbing pull requests go to the operator before merge | brief | the same (D19) |
 | Go validates schemas in-process with `cuelang.org/go`, embedded by `go:embed`, and never runs the `cue` binary | brief | the same (D20) |
 | After tools#399, Python gets no new review features | brief | the same relay |
 | The Go port is built in the monorepo tbhb-dev/tbhbdev, module `github.com/tbhb-dev/tbhbdev` in `go.mod` only, tools keeps the Python and the unported commands, and tools#418 waits for the move | brief | the operator's decision of 2026-11-25 on the monorepo (D22) |
-| The CLI folder inside the monorepo is open, with the two candidates the [design](README.md#the-open-cli-folder) names | brief | the same, with the operator's call pending |
+| The CLI folder inside the monorepo is `factory/tbhbdev`, and `factory/` holds no role folders | brief | the operator's decision of 2026-11-25 on the CLI folder (D27) |
 | The Python fallthrough is the `tbhbdev-py` entry point in the front's own folder | brief | the operator's decision of 2026-11-25 on the fallthrough (D25) |
 | The GitHub client stack is go-github v93 behind `internal/ghapi`, a GraphQL helper, and a standard-library JWT, with no `githubv4` or `ghinstallation` | brief | the operator's decision of 2026-11-25 on a research report into Go GitHub clients (D24) |
 | Six of the eight go-github majors from v86 to v93 broke calls this code uses, and `ghinstallation` pins go-github v88 | brief, unverified | the same research report, not read by this pass |
-| Front, dispatch, and plugin plumbing pull requests wait for the operator's go on Open, nobody approves them before that, and the gate carries over to the monorepo but not to its general scaffolding | brief | the operator's decisions of 2026-11-25 on the scaffolding gate (D19) |
+| Front, dispatch, and plugin plumbing pull requests wait for the operator's go on Open, nobody approves them before that, and the gate covers those paths under `factory/tbhbdev` in the monorepo but not the monorepo's general scaffolding | brief | the operator's decisions of 2026-11-25 on the scaffolding gate (D19) |
 
 ## The tools repository
 
@@ -108,9 +108,9 @@ The merged and open lists in [appendix H](H-waves.md#wave-1-the-review-tooling) 
 | Claim | Label | Source |
 | --- | --- | --- |
 | The merged review pull requests and their files | brief | the tools inventory of 2026-11-25 |
-| tools#399 is open and approved with merge state `DIRTY` | brief | this design's review of 2026-11-25. The inventory had read it as queued |
-| tools main has `review_post.py`, from tools#278, but `run_host.py` on main doesn't call it | existing | `git grep review_post` at `1be1910` finds only `credentials.py`, `review_post.py`, and `review.py` |
-| tools#212 and tools#215 closed unmerged, so they're no evidence for the review token or commit fetch | brief | the same review |
+| tools#399 merged on 2026-11-25 as `719b589`: the run host posts a run's draft as a `COMMENT` review and refuses a draft whose `commit_id` differs from the run request's commit | existing | tools main at `32c4042`, `run_host.py` and `agent/review_post.py` |
+| tools main has `review_post.py`, from tools#278, but `run_host.py` on main does not call it | existing | `git grep review_post` at `1be1910` finds only `credentials.py`, `review_post.py`, and `review.py` |
+| tools#212 and tools#215 closed unmerged, so they are no evidence for the review token or commit fetch | brief | the same review |
 | The tools review prompt asks for the verdict words GO and NO-GO, and `review_doc.py` accepts only those | existing | `review_prompt_data/common.txt` lines 10 and 11 and `review_doc.py` line 14 at `1be1910` |
 | Verdicts are GO or HOLD, posted as comment reviews on the exact head, and approval is the independent approver's | existing | wiki ADR 0004 and ADR 0009 |
 | The unbuilt pieces: the M4 proof, the M5 merge-gate design, the paired launch and summary, and the review debt | brief, unverified | the inventory, from the milestone plan, not checked against a tracker |

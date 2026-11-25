@@ -18,13 +18,13 @@ Back to [the design](README.md).
 
 ## Open
 
-### D1. Is the keyless attestation enough, with no signing key held by tbhb-dev, and do bundles ship as GitHub Releases?
+### D1. Do bundles publish as GitHub Releases of tbhb-dev/tbhbdev?
 
-- **Recommendation:** yes to both.
-- **Why:** D23 already decides the baseline: a keyless GitHub artifact attestation on each archive and SHA-256 checks, with the installer pinning the attestation to the tbhbdev release workflow, the `main` ref, and the expected commit. What stays open is whether tbhb-dev also holds a key, and where bundles publish. Self-update (D15) installs a new bundle on its own at start, so the check must need nothing an unattended run lacks, and an attestation needs no key to keep or rotate. Neither afakt nor awrel signs or attests today (unverified beyond the outline's grep).
-- **If yes:** the release job publishes every main commit's bundle and the `main.json` pointer as GitHub Release assets of tbhb-dev/tbhbdev, and D23's checks are the whole trust check.
-- **If no:** the operator names a held key or another channel. The admin VM role creates the key in 1Password, the release job signs with it beside the attestation, and every bundle carries the public key that its self-update checks the next bundle with, which adds a rotation runbook.
-- **Reversible:** yes. A later release can add a held signature beside the attestation, since the installer checks whatever the manifest declares.
+- **Recommendation:** yes.
+- **Why:** D23 decides the trust check, a keyless attestation and SHA-256 hashes with no held key, so the one open part is where the bundles and pointers live. Self-update (D15) and the protocol bridges (D14) fetch them unattended on every machine, so the channel sets either who can read every bundle or which read credential every machine holds, which is the operator's call. Release assets of tbhb-dev/tbhbdev follow that repository's visibility, which this design does not set, and the release job already runs where the attestation is made.
+- **If yes:** the release job publishes every main commit's bundle, the `main.json` pointer, and the per-version bridge pointers as GitHub Release assets of tbhb-dev/tbhbdev.
+- **If no:** the operator names another channel, and the installer, sync, and self-update read the pointers from there. D23's checks stay the same, since they pin the attestation and not the channel.
+- **Reversible:** yes. The pointer URL is one value in the installer's policy.
 
 ### D2. Does `tbhbdev host` retire without a port, and does `tbhbdev analytics` leave the bundle as its own Python tool, so the Python fallthrough can end?
 
@@ -44,6 +44,13 @@ Back to [the design](README.md).
 
 ## Decided
 
+### D27. The CLI folder is `factory/tbhbdev`
+
+- **Decided:** 2026-11-25, by the operator, settling the folder that D22 left open.
+- **Rule:** the CLI sits in `factory/tbhbdev` in tbhb-dev/tbhbdev, inside the module `github.com/tbhb-dev/tbhbdev`, so its packages are `github.com/tbhb-dev/tbhbdev/factory/tbhbdev/...`. `factory/` is flat and has no role folders, so there is no `factory/cli`. Every Go path, Bazel label, and lint glob in this design sits under it.
+- **Undo:** a new operator decision. A move edits the lint globs and the Bazel labels in one change.
+- **Record:** the operator's decision of 2026-11-25 on the CLI folder.
+
 ### D26. The `agent` plugin owns its word and passes unported subcommands to `tbhbdev-py`
 
 - **Decided:** 2026-11-25, by the tools maintainer role, under D10 and D25.
@@ -62,21 +69,21 @@ Back to [the design](README.md).
 ### D24. The GitHub client stack is go-github behind `internal/ghapi`
 
 - **Decided:** 2026-11-25, by the operator, on a research report into Go GitHub clients.
-- **Rule:** REST goes through `github.com/google/go-github`, pinned at one major, v93.0.0 today, and only packages under `<cli-root>/internal/ghapi` import it. It builds the one client with an injected transport, token, User-Agent, and timeout, through only the constructor options that exist in both v93 and go-github's main branch: `WithTransport`, `WithAuthToken`, `WithUserAgent`, and `WithTimeout`. A small GraphQL helper on the same client covers what REST lacks: marking a pull request ready, the merge queue state query and enqueue, and Projects v2 by node ID. It doesn't use `githubv4`. App installation tokens come from a standard-library JWT and go-github's installation calls, not `ghinstallation`, which pins go-github v88. The token code keeps today's lookup of the repository installation and then the organization one, its cache, its cooldown, and its secret-free errors. go-github majors move on tbhb-dev's schedule, since six of the eight majors from v86 to v93 broke calls this code uses, all renames or by-value changes that the compiler finds. go-arch-lint and depguard allow go-github only in `internal/ghapi` ([appendix K](K-go-stack.md#github-with-go-github)).
+- **Rule:** REST goes through `github.com/google/go-github`, pinned at one major, v93.0.0 today, and only packages under `factory/tbhbdev/internal/ghapi` import it. It builds the one client with an injected transport, token, User-Agent, and timeout, through only the constructor options that exist in both v93 and go-github's main branch: `WithTransport`, `WithAuthToken`, `WithUserAgent`, and `WithTimeout`. A small GraphQL helper on the same client covers what REST lacks: marking a pull request ready, the merge queue state query and enqueue, and Projects v2 by node ID. It does not use `githubv4`. App installation tokens come from a standard-library JWT and go-github's installation calls, not `ghinstallation`, which pins go-github v88. The token code keeps today's lookup of the repository installation and then the organization one, its cache, its cooldown, and its secret-free errors. go-github majors move on tbhb-dev's schedule, since six of the eight majors from v86 to v93 broke calls this code uses, all renames or by-value changes that the compiler finds. go-arch-lint and depguard allow go-github only in `internal/ghapi` ([appendix K](K-go-stack.md#github-with-go-github)).
 - **Undo:** a new operator decision. A swap touches only `internal/ghapi`.
 - **Record:** the operator's decisions of 2026-11-25 on the GitHub client stack.
 
 ### D23. Bundles are checked by keyless attestation and SHA-256, pinned to workflow, ref, and commit
 
-- **Decided:** 2026-11-25, by the tools maintainer role, as this design's baseline. D1 asks only whether to add a held key and where bundles publish.
-- **Rule:** the tbhb-dev/tbhbdev release job attests each archive with `actions/attest-build-provenance`, a keyless GitHub artifact attestation. Before any swap, the installer, sync, and self-update check the archive's SHA-256 hash against the pointer and every file hash against the manifest. They then verify the attestation with the signer workflow pinned to the tbhbdev release workflow, the source ref pinned to `refs/heads/main`, and the source commit pinned to the pointer's commit, which must equal the manifest's commit. A bundle whose commit is older than the installed one is never published. Any failed check warns and keeps the current build (D15).
-- **Undo:** a new design decision. Dropping a pin widens what a host trusts.
+- **Decided:** 2026-11-25, by the tools maintainer role, as this design's baseline. D1 asks only where bundles publish.
+- **Rule:** the tbhb-dev/tbhbdev release job attests each archive with `actions/attest-build-provenance`, a keyless GitHub artifact attestation. Before any swap, the installer, sync, and self-update check the archive's SHA-256 hash against the pointer and every file hash against the manifest. They then verify the attestation with the signer workflow pinned to the tbhbdev release workflow, the source ref pinned to `refs/heads/main`, and the source commit pinned to the pointer's commit, which must equal the manifest's commit. A bundle older than the installed one by release number is never published. Any failed check warns and keeps the current build (D15). tbhb-dev holds no signing key, so there is no key to keep, rotate, or reach from an unattended run.
+- **Undo:** a new design decision. Adding a held key beside the attestation needs one, and dropping a pin widens what a host trusts.
 - **Record:** this design's pull request.
 
 ### D22. The Go code lives in the monorepo tbhb-dev/tbhbdev
 
 - **Decided:** 2026-11-25, by the operator, superseding D8.
-- **Rule:** the Go port is built in tbhb-dev/tbhbdev as one module, `github.com/tbhb-dev/tbhbdev`. The module path appears only in `go.mod`, so an organization rename touches one place. The CLI sits in the folder `<cli-root>`, which stays open with two candidates ([the design](README.md#the-open-cli-folder)). tools stays the home of the Python `tbhbdev-py` and every unported command. One monorepo commit builds the bundle: the Go binaries from that commit, and the wheel from the tools commit it pins, with both commits in the manifest. The first Go slice, tools#418, waits for the move and doesn't merge into tools.
+- **Rule:** the Go port is built in tbhb-dev/tbhbdev as one module, `github.com/tbhb-dev/tbhbdev`. The module path appears only in `go.mod`, so an organization rename touches one place. The CLI sits in the folder `factory/tbhbdev` (D27). tools stays the home of the Python `tbhbdev-py` and every unported command. One monorepo commit builds the bundle: the Go binaries from that commit, and the wheel from the tools commit it pins, with both commits in the manifest. The first Go slice, tools#418, waits for the move and does not merge into tools.
 - **Undo:** a new operator decision.
 - **Record:** the operator's decision of 2026-11-25 on the monorepo.
 
@@ -90,18 +97,17 @@ Back to [the design](README.md).
 ### D20. Go validates schemas in-process with `cuelang.org/go`
 
 - **Decided:** 2026-11-25, by the operator.
-- **Rule:** the Go port never runs a `cue` binary, by name or by any path. Every schema check goes through `cuelang.org/go` in a pure package, with the schema embedded by `go:embed`, including the issue and pull request templates and the D16 run request and run metadata schema. depguard and ast-grep rules forbid running `cue` and forbid `os/exec` in pure packages, and the one process constructor refuses any program whose base name is `cue`. `cuecontext.New` reads `CUE_DEBUG` and `CUE_EXPERIMENT`, so the I/O shell clears every `CUE_` variable before the first CUE call, and a test fails when a CUE upgrade adds an environment read ([appendix K](K-go-stack.md#the-cue-boundary)). The tools `schemas/*.cue` files stay the source while Python reads them, and the monorepo embeds byte-checked copies from the pinned tools commit.
+- **Rule:** the Go port never runs a `cue` binary, by name or by any path. Every schema check goes through `cuelang.org/go` in a pure package, with the schema embedded by `go:embed`, including the issue and pull request templates and the D16 run request and run metadata schema. depguard and ast-grep rules forbid running `cue` and forbid `os/exec` in pure packages, and the one process constructor refuses any program whose base name is `cue`. `cuecontext.New` reads `CUE_DEBUG` and `CUE_EXPERIMENT`, so the I/O shell clears every `CUE_` variable before the first CUE call, and a test fails when a CUE upgrade adds an environment read to the code that validation reaches, or to the linked `pkg/tool` task code that it must not reach ([appendix K](K-go-stack.md#the-cue-boundary)). The tools `schemas/*.cue` files stay the source while Python reads them, and the monorepo embeds byte-checked copies from the pinned tools commit.
 - **Undo:** a new operator decision.
 - **Record:** the operator's decisions of 2026-11-25 on the wave order and the stack, relayed with D17 to D19.
 
-### D19. Scaffolding pull requests go to the operator before merge
+### D19. Front, dispatch, and plugin plumbing pull requests go to the operator before merge
 
-- **Decided:** 2026-11-25, by the operator.
-- **Rule:** each Go scaffolding pull request goes to the operator before it merges. These are the serial pull requests in [appendix H](H-waves.md#go-scaffolding) that set up the front, the plugin runner, the stack, the schema package, and the checks.
-- **The gate, refined the same day:** pull requests for the front, dispatch, and plugin plumbing don't merge, and nobody approves them or runs `tbhb-approve` on them, until the operator says go on Open. That covers every session and subagent, commissioned runs included. Review and CI come first, and coordination then puts the pull request on Open. A reviewer's verdict on one is a GO or HOLD comment only.
-- **In the monorepo:** the gate carries over to tbhb-dev/tbhbdev. Front, dispatch, and plugin plumbing pull requests under `<cli-root>` go to the operator before merge. The monorepo's general scaffolding, which the monorepo session owns and whose first pull request creates neither candidate CLI folder, isn't gated.
+- **Decided:** 2026-11-25, by the operator, narrowed the same day from every scaffolding pull request to this gate.
+- **Rule:** a pull request in tbhb-dev/tbhbdev that changes `factory/tbhbdev/cmd/tbhbdev`, `factory/tbhbdev/internal/dispatch/**`, or `factory/tbhbdev/internal/plugin/**`, the front, dispatch, and plugin plumbing, goes to the operator before it merges. Review and CI come first, and coordination then puts the pull request on Open. It does not merge, and nobody approves it or runs `tbhb-approve` on it, until the operator says go. That covers every session and subagent, commissioned runs included, and a reviewer's verdict on one is a GO or HOLD comment only.
+- **Not gated:** the monorepo's general scaffolding, which the monorepo session owns, and every other pull request under `factory/tbhbdev`, such as the stamp, the checks, the schema package, and the GitHub client, unless it also changes one of the gated paths. Of the six scaffolding pull requests in [appendix H](H-waves.md#go-scaffolding), the first and the third are gated.
 - **Undo:** a new operator decision.
-- **Record:** the operator's decisions of 2026-11-25, relayed with D17, D18, and D20, and the operator's later decisions that day on the gate and on its carry-over to the monorepo.
+- **Record:** the operator's decisions of 2026-11-25, relayed with D17, D18, and D20, and the operator's later decisions that day on the gate and on its scope in the monorepo.
 
 ### D18. The Go stack is cobra, pflag, and koanf, with a standard-library front
 
@@ -120,14 +126,14 @@ Back to [the design](README.md).
 ### D16. The driver-host format is one versioned schema with a CI check
 
 - **Decided:** 2026-11-25, by the operator.
-- **Rule:** the run request and the run metadata are one schema file, `schemas/agent-protocol.json` in tools, with a version, and the driver and the host both validate against it. An additive change keeps the version. A breaking change bumps it, and the host keeps serving the previous version until the next bump, which waits until every listed machine serves the version it replaces. A CI job fails when the schema changes without a matching entry in `schemas/agent-protocol.decisions.toml`, as [appendix I](I-protocol.md#the-schema-version-check) specifies. The protocol version in D14 is this schema's version. A frozen legacy version 2 shape, today's exact fields, is what a writer sends a host too old to answer the protocol query, in the envelope and in the staged request file. The host writes the chosen version as each run's first file, and every reader validates that run's files against it.
+- **Rule:** the run request and the run metadata are one schema file, `schemas/agent-protocol.json` in tools, with a version, and the driver and the host both validate against it. An additive change keeps the version. A breaking change bumps it, and the host keeps serving the previous version until the next bump, which waits until every listed machine serves the version it replaces. A CI job fails when the schema changes without a matching entry in `schemas/agent-protocol.decisions.toml`, as [appendix I](I-protocol.md#the-schema-version-check) specifies. The protocol version in D14 is this schema's version. A frozen legacy version 2 shape, today's exact fields, is what a writer sends a host too old to answer the protocol query, in the envelope and in the staged request file. The host writes the chosen version as each run's first file, and every reader validates that run's files against it. Each build serves two versions for new launches and retains every frozen schema for reading runs, and CI holds both sets apart.
 - **Undo:** a new operator decision.
 - **Record:** the operator's decision of 2026-11-25, relayed with D14 and D15.
 
-### D15. tbhbdev updates itself at start when it's behind main
+### D15. tbhbdev updates itself at start when it is behind main
 
 - **Decided:** 2026-11-25, by the operator.
-- **Rule:** at start, a pure decision compares the build's commit with a cached main commit, kept at `$XDG_CACHE_HOME/tbhbdev/main.json` with a 10-minute time to live. When the build is behind, an I/O helper downloads the bundle beside the install, checks its SHA-256 hash and provenance, renames a whole versioned directory and then a link into place, and execs the new front. No failure blocks dispatch: a missing network, a bad hash, a read-only install, or a failed exec of the helper warns and runs the current build, a failed handoff puts the old link back, and in-band update work stops at a 3-second budget, after which a detached installer finishes it. `TBHBDEV_NO_SELF_UPDATE=1` turns it off. Event-driven sync stays the main path and writes the same cache. [Appendix J](J-self-update.md) has the details.
+- **Rule:** at start, a pure decision compares the build's commit with a cached main commit, kept at `$XDG_CACHE_HOME/tbhbdev/main.json` with a 10-minute time to live. Builds are ordered by release number, the count of first-parent commits on main, never by commit time. When the build is behind, an I/O helper downloads the bundle beside the install, checks its SHA-256 hash and provenance, renames a whole versioned directory into place, proves the new front runs, moves the link, and execs the new front while it still holds the update lock. No failure blocks dispatch: a missing network, a bad hash, a read-only install, or a failed exec of the helper warns and runs the current build, a failed handoff puts the old link back, and in-band update work stops at a 3-second budget, after which a detached installer finishes it. `TBHBDEV_NO_SELF_UPDATE=1` turns it off. Event-driven sync stays the main path and writes the same cache. [Appendix J](J-self-update.md) has the details.
 - **Undo:** a new operator decision. Setting `TBHBDEV_NO_SELF_UPDATE=1` holds one machine.
 - **Record:** the operator's decision of 2026-11-25, relayed with D14 and D16.
 
@@ -135,7 +141,8 @@ Back to [the design](README.md).
 
 - **Decided:** 2026-11-25, by the operator, refining D6.
 - **Rule:** a driver and a host agree on a protocol version, the version of the D16 schema, and never compare build hashes. A build mismatch is a logged warning and never a refusal, and no version mismatch blocks a launch. This replaces the exact build match in `same_version` and tools#400's retry of it, and the transition in [appendix I](I-protocol.md#the-transition) refuses nothing with a Python driver and a Go host, with a Go driver and a Python host, or with mixed bundle versions.
-- **Before phase 1:** builds already installed can't be changed, so phase 1 ends with a rollout barrier: launches pause, every listed machine syncs, and launches resume when none runs an older build. A machine the sync can't reach is the one accepted exception to D6 until it's synced, and the operator signs the list of such machines in the barrier record.
+- **Skew wider than one version:** every install keeps a bridge bundle for each version from 2 up, so when an update of the older side fails, the launch runs through a bridge on either side ([appendix I](I-protocol.md#bridges)).
+- **Before phase 1:** builds already installed cannot be changed, so phase 1 ends with a rollout barrier: launches pause, every listed machine syncs, and launches resume when no listed machine runs an older build. A machine the sync cannot reach is fenced off the list, its driver key removed from every host, until a sync and a version check bring it back, so no listed machine keeps the old refusal.
 - **Undo:** a new operator decision.
 - **Record:** the operator's decision of 2026-11-25, relayed with D15 and D16.
 
@@ -181,7 +188,7 @@ Back to [the design](README.md).
 - **Undo:** not needed. D22 keeps one commit per bundle by pinning the tools commit in the monorepo.
 - **Record:** this design's pull request.
 
-### D7. Go-only pull requests don't run the Python suite
+### D7. Go-only pull requests do not run the Python suite
 
 - **Decided:** 2026-11-25, by the operator.
 - **Rule:** Go and Python targets sit in separate Bazel packages with disjoint inputs, with no catch-all target, so a pull request or merge queue run tests only what its change affects. Since D22 the Go code is in another repository, so a Go change never starts the tools suite, and inside the monorepo the tests that run the Python server take the pinned wheel as an input. The CI speed role owns CI wall time across repositories.
@@ -191,7 +198,7 @@ Back to [the design](README.md).
 ### D6. No version mismatch ever blocks a launch
 
 - **Decided:** 2026-11-25, by the operator.
-- **Rule:** at every step of the transition, any driver can launch on any host. A host that can't serve a driver's request counts as a refusal too.
+- **Rule:** at every step of the transition, any driver can launch on any host. A host that cannot serve a driver's request counts as a refusal too.
 - **Undo:** a new operator decision.
 - **Record:** the operator's decision of 2026-11-25.
 

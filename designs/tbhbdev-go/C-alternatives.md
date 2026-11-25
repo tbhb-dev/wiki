@@ -1,7 +1,7 @@
 ---
 type: Design Appendix
 title: tbhbdev Go port alternatives
-description: The options the tbhbdev Go port considered and didn't take, and why.
+description: The options the tbhbdev Go port considered and did not take, and why.
 tags: [tbhbdev, go, alternatives, design]
 status: draft
 parent: README.md
@@ -22,11 +22,11 @@ Keep tbhbdev in Python and finish moving decisions out of input/output (I/O) mod
 
 ## One Go binary with every command
 
-A single binary with a full command tree, as gh builds it. It's one artifact and one build, but every call pays every command's start-up cost, and gh lost 12 to 40 ms per call to dependency start-up ([appendix B](B-gh-pitfalls.md#51-dependency-start-up-costs)). It also pulls every command toward one shared dependency object, which became gh's 17-field Factory. Plugin binaries keep the hooks small and let each command port on its own.
+A single binary with a full command tree, as gh builds it. It is one artifact and one build, but every call pays every command's start-up cost, and gh lost 12 to 40 ms per call to dependency start-up ([appendix B](B-gh-pitfalls.md#51-dependency-start-up-costs)). It also pulls every command toward one shared dependency object, which became gh's 17-field Factory. Plugin binaries keep the hooks small and let each command port on its own.
 
 ## One multi-call binary
 
-One binary with links named `tbhbdev-<name>`, choosing its command from `argv[0]`, as BusyBox does. It saves disk, but every command still links every dependency, and one bad import slows all of them. The bundle's size isn't a constraint at this scale, so the saving buys nothing.
+One binary with links named `tbhbdev-<name>`, choosing its command from `argv[0]`, as BusyBox does. It saves disk, but every command still links every dependency, and one bad import slows all of them. The bundle's size is not a constraint at this scale, so the saving buys nothing.
 
 ## In-process plugins
 
@@ -58,11 +58,11 @@ Keep the version constants in `model.py` and in the Go port, with the corpus as 
 
 ## Readers that refuse unknown fields
 
-Keep today's rule that a reader refuses any field it doesn't know. Then every added field is breaking, and every change needs a bump. Lenient readers with strict writers let an additive change reach older hosts, and the strict writer still catches an undeclared field.
+Keep today's rule that a reader refuses any field it does not know. Then every added field is breaking, and every change needs a bump. Lenient readers with strict writers let an additive change reach older hosts, and the strict writer still catches an undeclared field.
 
 ## No self-update, with sync only
 
-Rely on event-driven sync to install every release. A machine that's asleep, offline, or new when sync fires stays behind until the next merge, and a gap of two breaking versions becomes possible. Self-update closes that gap at the machine's next start (D15).
+Rely on event-driven sync to install every release. A machine that is asleep, offline, or new when sync fires stays behind until the next merge, and a gap of two breaking versions becomes possible. Self-update closes that gap at the machine's next start (D15).
 
 ## Overwrite the binary in place
 
@@ -70,7 +70,7 @@ Download the new front and write it over the old file, as many single-binary upd
 
 ## Self-update in a background goroutine
 
-Check for updates while the command runs and swap afterward. gh learned that exit then waits on the check ([appendix B](B-gh-pitfalls.md#53-exit-waiting-on-background-work)), and after exec the front isn't there to finish it. The check runs first, in the foreground, under fixed deadlines.
+Check for updates while the command runs and swap afterward. gh learned that exit then waits on the check ([appendix B](B-gh-pitfalls.md#53-exit-waiting-on-background-work)), and after exec the front is not there to finish it. The check runs first, in the foreground, under fixed deadlines.
 
 ## The fallthrough found on PATH
 
@@ -90,7 +90,7 @@ Port the launcher in wave 1, as the first draft did, because its `decisions/` pa
 
 ## Cobra in the front
 
-Build the front's command tree with cobra, as gh does. The front must pass unknown names and flags through to a plugin or to Python before anything parses them, and a flag parser consumes or rejects flags it doesn't define. gh turned flag parsing off and then matched error text to work around it ([appendix B](B-gh-pitfalls.md#14-matching-the-unknown-command-error-string)), so the front stays on the standard library (D18).
+Build the front's command tree with cobra, as gh does. The front must pass unknown names and flags through to a plugin or to Python before anything parses them, and a flag parser consumes or rejects flags it does not define. gh turned flag parsing off and then matched error text to work around it ([appendix B](B-gh-pitfalls.md#14-matching-the-unknown-command-error-string)), so the front stays on the standard library (D18).
 
 ## Viper for config
 
@@ -130,4 +130,4 @@ Use `ghinstallation` to mint app installation tokens. It pins go-github v88, whi
 
 ## Following go-github's latest major
 
-Bump go-github each time it releases a major. Six of the eight majors from v86 to v93 broke calls this code uses. The compiler finds each break, but each one is a pull request at a time tbhb-dev didn't choose, so majors move on tbhb-dev's schedule, and the client uses only constructor options present in both the pinned major and go-github's main branch (D24).
+Bump go-github each time it releases a major. Six of the eight majors from v86 to v93 broke calls this code uses. The compiler finds each break, but each one is a pull request at a time tbhb-dev did not choose, so majors move on tbhb-dev's schedule, and the client uses only constructor options present in both the pinned major and go-github's main branch (D24).

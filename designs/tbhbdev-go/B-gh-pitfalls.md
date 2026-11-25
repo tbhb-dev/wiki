@@ -16,7 +16,7 @@ parent: README.md
 
 Back to [the design](README.md).
 
-A research run read the full history of cli/cli on `trunk`, with HEAD at `b546819fd547` (2026-11-24) and 12,685 commits, using `git log` message searches, pickaxe searches, blame, and the diffs. Every commit hash, date, and path below comes from that report, and the run marked as *inferred* anything a commit message or diff doesn't state. Issue numbers appear only where a commit message carries them.
+A research run read the full history of cli/cli on `trunk`, with HEAD at `b546819fd547` (2026-11-24) and 12,685 commits, using `git log` message searches, pickaxe searches, blame, and the diffs. Every commit hash, date, and path below comes from that report, and the run marked as *inferred* anything a commit message or diff does not state. Issue numbers appear only where a commit message carries them.
 
 Each entry ends with the rule it gives this design and the place the design applies it.
 
@@ -24,7 +24,7 @@ Each entry ends with the rule it gives this design and the place the design appl
 
 ### 1.1 PATH discovery dropped after six days
 
-`fce93d60809b` (2021-05-28) made every executable named `gh-*` on `PATH` into a gh command. `4bdddd72d34b` (2021-06-03) removed the `PATH` search and made local extensions explicit symbolic links. The reason isn't stated (*inferred*: unbounded, ambient discovery).
+`fce93d60809b` (2021-05-28) made every executable named `gh-*` on `PATH` into a gh command. `4bdddd72d34b` (2021-06-03) removed the `PATH` search and made local extensions explicit symbolic links. The reason is not stated (*inferred*: unbounded, ambient discovery).
 
 **Rule:** plugins come from the bundle's own directory, never from `PATH`. **Applied in:** [E, dispatch](E-plugin-contract.md#dispatch), and D3 for anything outside the bundle.
 
@@ -36,7 +36,7 @@ Each entry ends with the rule it gives this design and the place the design appl
 
 ### 1.3 A new built-in silently shadowed an extension
 
-`10b4a1f4272c` (2026-01-19) made root registration skip any extension whose name a built-in already resolves, after the built-in `copilot` command arrived the same day (`39880650d5c0`; the link is *inferred*). The user gets no warning.
+`10b4a1f4272c` (2026-01-19) made root registration skip any extension whose name a built-in already resolves, after the built-in `copilot` command arrived the same day (`39880650d5c0`, a link that is *inferred*). The user gets no warning.
 
 **Rule:** routing is one pure function over built-ins, bundle plugins, outside plugins, and the fallthrough, with a fixed order, and a collision is reported, never skipped. A Go plugin may shadow a Python top-level name only when it covers every subcommand of it. **Applied in:** [E, dispatch](E-plugin-contract.md#dispatch), and [G](G-names-and-migration.md#collisions-with-python-names).
 
@@ -54,11 +54,11 @@ Each entry ends with the rule it gives this design and the place the design appl
 
 ### 1.6 Five years without a dispatch contract
 
-`408534a1be91` (2026-08-05) set `GH_EXTENSION=1` for extensions, and `30419651a944` (2026-08-28) added `GH_PATH`. Until then an extension couldn't tell gh started it, or call the same gh back.
+`408534a1be91` (2026-08-05) set `GH_EXTENSION=1` for extensions, and `30419651a944` (2026-08-28) added `GH_PATH`. Until then an extension could not tell gh started it, or call the same gh back.
 
 **Rule:** the contract's environment is in version 1, carries its own version number, and has a test per variable. **Applied in:** [E, the contract](E-plugin-contract.md#the-plugin-contract).
 
-### 1.7 State keyed by a name that isn't unique
+### 1.7 State keyed by a name that is not unique
 
 `97630fe73c1c` (2024-12-08) and `0a1c9be65699` (2025-01-10) cleared per-extension update state on install and removal, because state keyed by name could pass from a removed `a/gh-foo` to a new `b/gh-foo`.
 
@@ -88,7 +88,7 @@ Each entry ends with the rule it gives this design and the place the design appl
 
 `82d19b73d63d` (2021-01-20) stopped telling source builds to upgrade to a release they were already past, since `v1.4.0-34-g<sha>` sorted below `v1.4.0`.
 
-**Rule:** build comparison is a pure function with table tests, and only logging uses it, never a refusal. Self-update compares commit times from the stamp, never describe strings. **Applied in:** [I, the transition](I-protocol.md#the-transition), and [J, the decision](J-self-update.md#the-decision).
+**Rule:** build comparison is a pure function with table tests, and only logging uses it, never a refusal. Self-update compares release numbers from the stamp, never describe strings or commit times. **Applied in:** [I, the transition](I-protocol.md#the-transition), and [J, the decision](J-self-update.md#the-decision).
 
 ### 2.4 An update checker that fought package managers
 
@@ -100,7 +100,7 @@ Each entry ends with the rule it gives this design and the place the design appl
 
 `47d77bd51b58` (2024-11-02) checked extension releases after each run, `b8ef951de1cf` (2024-11-13) cut the wait from 3 s to 1 s, and `bc8c46b0b1c1` (2025-01-13) made it non-blocking.
 
-**Rule:** the front does no network work, and after exec it isn't there to do any. Self-update's network work runs before the command, in its own helper, under fixed deadlines. **Applied in:** D9, [E, dispatch](E-plugin-contract.md#dispatch), and [J](J-self-update.md#failures).
+**Rule:** the front does no network work, and after exec it is not there to do any. Self-update's network work runs before the command, in its own helper, under fixed deadlines. **Applied in:** D9, [E, dispatch](E-plugin-contract.md#dispatch), and [J](J-self-update.md#failures).
 
 ### 2.6 Shared code for checks that diverged
 
@@ -278,7 +278,7 @@ Each entry ends with the rule it gives this design and the place the design appl
 
 `4bd0435c38b0` (2020-07-14), `acaaa28fd727` (2020-07-15), and `1ec47d8191ca` (2021-06-21) ran scripts through Git for Windows' `sh.exe`. `42ce8faafa85` (2021-10-19) and `6b7889be6e48` (2021-11-12) ran binaries directly and fixed `.exe` names, and `3946606e5e20` (2021-08-11) used path files instead of symbolic links on Windows.
 
-**Rule:** Windows is out of scope (D9), and the front runs the bundle's Python by its interpreter, not by a script's first line. **Applied in:** [E, the fallthrough](E-plugin-contract.md#the-python-fallthrough).
+**Rule:** Windows is out of scope (D9), and the front execs the bundle's `tbhbdev-py` entry point by its absolute path in the front's own folder (D25). It never names an interpreter, never runs `python3 -m tbhbdev`, and never searches `PATH`. **Applied in:** [E, the fallthrough](E-plugin-contract.md#the-python-fallthrough).
 
 ### 7.3 Exit codes from the wrong process
 

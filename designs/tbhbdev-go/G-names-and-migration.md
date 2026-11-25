@@ -16,16 +16,16 @@ parent: README.md
 
 Back to [the design](README.md).
 
-Go has no `alpha` (D5). Each command takes its final name when it ports, and `tbhbdev alpha <command>` keeps working through the Python fallthrough until then. The commands below come from the `alpha` usage text at tools `938f65f` (existing, a local clone older than the outline's basis), and the review subcommands from `review.py` at `bf420ff`. `guard-ssh-agent`, `agent log`, `agent diff`, and `pr rebase` come from tools main at `1be1910`. A command added since then gets a row before its wave starts, and the bundle test below fails on a Python subcommand with no row.
+Go has no `alpha` (D5). Each command takes its final name when it ports, and `tbhbdev alpha <command>` keeps working through the Python fallthrough until then. The commands below come from the `alpha` usage text at tools `938f65f` (existing, a local clone older than the outline's basis), and the review subcommands from `review.py` at `bf420ff`. `guard-ssh-agent`, `agent log`, `agent diff`, and `pr rebase` come from tools main at `1be1910`, and the `alpha issue` verbs from tools main at `32c4042`. A command added since then gets a row before its wave starts, and the bundle test below fails on a Python subcommand with no row.
 
 ## The name map
 
-One file in the monorepo, `<cli-root>/names.toml`, holds this map with the first bundle version that carries each final name (new). Each bundle ships it, so the installer, the Python forwarders through `TBHBDEV_BUNDLE`, the caller check, and the `agent` plugin's passthrough list read the same file, and this table mirrors it.
+One file in the monorepo, `factory/tbhbdev/names.toml`, holds this map with the first bundle version that carries each final name (new). Each bundle ships it, so the installer, the Python forwarders through `TBHBDEV_BUNDLE`, the caller check, and the `agent` plugin's passthrough list read the same file, and this table mirrors it.
 
 | Today | Final name | Plugin binary | Wave |
 | --- | --- | --- | --- |
 | `alpha review draft`, `check`, `policy`, `post`, `dismiss`, `reply` | `review draft`, `check`, `policy`, `post`, `dismiss`, `reply` | `tbhbdev-review` | 1 |
-| `alpha agent exec`, `wait`, `status`, `kill`, `clean`, `keep`, `log`, `diff` | `agent exec`, `wait`, `status`, `kill`, `clean`, `keep`, `log`, `diff` | `tbhbdev-agent` | 2 |
+| `alpha agent exec`, `wait`, `status`, `kill`, `clean`, `keep`, `log`, `diff`, and `protocol`, which phase 1 adds | `agent exec`, `wait`, `status`, `kill`, `clean`, `keep`, `log`, `diff`, `protocol` | `tbhbdev-agent` | 2 |
 | `alpha agent ssh-serve` | `agent ssh-serve` | `tbhbdev-agent` | 2 |
 | `alpha agent-env` | `agent env` | `tbhbdev-agent`, by passthrough to `tbhbdev-py` from wave 2 (D26) | 3 |
 | `alpha gh-shim` | `agent gh-shim` | `tbhbdev-agent`, by passthrough to `tbhbdev-py` from wave 2 (D26) | 3 |
@@ -46,14 +46,17 @@ One file in the monorepo, `<cli-root>/names.toml`, holds this map with the first
 | `alpha gh-app` | `gh-app` | `tbhbdev-gh-app` | 3 |
 | `alpha repo bootstrap` | `repo bootstrap` | `tbhbdev-repo` | 3 |
 | `alpha loop` | `loop` | `tbhbdev-loop` | 3 |
-| `alpha issue close` | `issue close` | `tbhbdev-issue` | 4 |
+| `alpha issue close`, `create`, `link-sub`, `unlink-sub`, `block`, `unblock` | `issue close`, `create`, `link-sub`, `unlink-sub`, `block`, `unblock` | `tbhbdev-issue` | 4 |
+| `issue import`, a top-level Python name | `issue import` | `tbhbdev-issue` | 4 |
 | `alpha brief new`, `check` | `brief new`, `check` | `tbhbdev-brief` | 4 |
 | `alpha install` | `install` | `tbhbdev-install` | 4 |
 | `alpha version-check` | `install check` | `tbhbdev-install` | 4 |
 
-The top-level names `admin`, `secret`, `adr`, `agy`, and `issue` keep their names and port in wave 4 ([appendix H](H-waves.md)). `cue` doesn't port, since Go runs no `cue` binary (D20), and `analytics` and `host` follow D2.
+Issue status is set only by the issue commands, through a state machine in code that refuses a disallowed transition, and only one agent run works on an issue at a time (decided by the operator).
 
-From wave 1, the Python package also answers the top-level name `agent` with the `alpha agent` code, plus `agent env` and `agent gh-shim` with the `alpha agent-env` and `alpha gh-shim` code. The Go review code then starts runs by the final name, and the Go `agent` plugin takes that name in wave 2 ([appendix H](H-waves.md#review-runs-before-the-launcher-ports)).
+The top-level names `admin`, `secret`, `adr`, `agy`, and `issue` keep their names and port in wave 4 ([appendix H](H-waves.md)). `cue` does not port, since Go runs no `cue` binary (D20), and `analytics` and `host` follow D2.
+
+From the phase 1 release, the Python package also answers the top-level name `agent` with the `alpha agent` code, plus `agent env` and `agent gh-shim` with the `alpha agent-env` and `alpha gh-shim` code. Phase 1 needs it for `agent protocol`, which drivers in both languages call by the final name ([appendix I](I-protocol.md#choosing-a-version-per-launch)). The Go review code then starts runs by the final name, and the Go `agent` plugin takes that name in wave 2 ([appendix H](H-waves.md#review-runs-before-the-launcher-ports)).
 
 The wave 2 plugin owns the whole word `agent` before `env` and `gh-shim` port in wave 3. Its root command lists those two as passthrough subcommands, read from `names.toml`, and execs `$TBHBDEV_BUNDLE/bin/tbhbdev-py agent <subcommand> <argv>` for them, so no `agent` subcommand loses its answer (D26).
 
@@ -63,15 +66,15 @@ The harness hooks share one binary, `tbhbdev-hook`, because they run on every to
 
 A Go plugin takes a name before Python does. Three rules keep that from hiding a Python command:
 
-- **Built-in Python names.** A Go plugin for `admin`, `secret`, `issue`, `agent`, or another top-level Python name ships only when it covers every Python subcommand of that name, in Go or by passthrough to `tbhbdev-py`. `tbhbdev-issue` therefore ports `import` and `close` together, and `tbhbdev-agent` answers every subcommand that Python's `agent` answers, with `env` and `gh-shim` passed through until wave 3. A bundle test compares the Go plugin's subcommands and passthrough list with the Python ones from the pinned tools commit.
-- **Entry-point plugins from other repositories.** graph and the private ITSM repository add names through `tbhbdev.plugins`. The bundle can't see those, so the fleet check lists each host's entry-point names and reports any that a bundle plugin shadows. Until wave 4 that is a new report in `tbhbdev alpha version-check`, added before the first Go plugin ships.
+- **Built-in Python names.** A Go plugin for `admin`, `secret`, `issue`, `agent`, or another top-level Python name ships only when it covers every Python subcommand of that name, in Go or by passthrough to `tbhbdev-py`. `tbhbdev-issue` therefore ports `import` with every `alpha issue` verb, `close`, `create`, `link-sub`, `unlink-sub`, `block`, and `unblock`, together, and `tbhbdev-agent` answers every subcommand that Python's `agent` answers, with `env` and `gh-shim` passed through until wave 3. A bundle test compares the Go plugin's subcommands and passthrough list with the Python ones from the pinned tools commit.
+- **Entry-point plugins from other repositories.** graph and the private ITSM repository add names through `tbhbdev.plugins`. The bundle cannot see those, so the fleet check lists each host's entry-point names and reports any that a bundle plugin shadows. Until wave 4 that is a new report in `tbhbdev alpha version-check`, added before the first Go plugin ships.
 - **Reserved words.** `alpha`, `help`, and `version` never name a Go plugin, and the bundle build fails on them.
 
 ## The forwarder
 
 When a Go command has shipped in one bundle, the next bundle turns its Python `alpha` entry into a forwarder. The first callers of the Go command are then the ones that chose its final name.
 
-1. The forwarder runs only when `TBHBDEV_PATH` is set and `TBHBDEV_FORWARDED` isn't. Otherwise it runs the Python code, so Python started outside a bundle still works.
+1. The forwarder runs only when `TBHBDEV_PATH` is set and `TBHBDEV_FORWARDED` is not. Otherwise it runs the Python code, so Python started outside a bundle still works.
 2. It appends one line to `$XDG_STATE_HOME/tbhbdev/alpha-calls.log` with the time, the `alpha` name, and the parent process name.
 3. It sets `TBHBDEV_FORWARDED=1` and replaces itself with `TBHBDEV_PATH` and the final name's argv.
 

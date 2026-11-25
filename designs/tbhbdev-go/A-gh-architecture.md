@@ -16,7 +16,7 @@ parent: README.md
 
 Back to [the design](README.md).
 
-This appendix summarizes a read of the cli/cli source at commit `b546819fd547ef8c97da470bb00f2aaad4165c84` (2026-11-24, module `github.com/cli/cli/v2`). A research run read the code, not the docs, and counted with grep over non-test files, so counts are approximate. Every path and number below comes from that run's report. This design didn't read cli/cli again, so treat each as the research run's finding.
+This appendix summarizes a read of the cli/cli source at commit `b546819fd547ef8c97da470bb00f2aaad4165c84` (2026-11-24, module `github.com/cli/cli/v2`). A research run read the code, not the docs, and counted with grep over non-test files, so counts are approximate. Every path and number below comes from that run's report. This design did not read cli/cli again, so treat each as the research run's finding.
 
 ## Entry and exit codes
 
@@ -32,8 +32,8 @@ Before any command runs, `Main` loads config, builds the terminal streams, resol
 
 `pkg/cmdutil.Factory` has 17 fields (`pkg/cmdutil/factory.go:17-52`): three plain values, six eager objects, and eight function-valued "lazy" fields. `pkg/cmd/factory/default.go:29` builds it.
 
-- The laziness is mostly nominal. `extensionManager(f)` (`default.go:343`) calls `f.Config()` and `f.HttpClient()` during construction, so both run on every call, and HTTP clients aren't memoized.
-- It's mutable shared state. `root.go:165` copies the whole Factory to change `BaseRepo`, and `cmdutil.EnableRepoOverride` (`pkg/cmdutil/repo_override.go:65-72`) rewrites `f.BaseRepo` in a pre-run hook.
+- The laziness is mostly nominal. `extensionManager(f)` (`default.go:343`) calls `f.Config()` and `f.HttpClient()` during construction, so both run on every call, and HTTP clients are not memoized.
+- It is mutable shared state. `root.go:165` copies the whole Factory to change `BaseRepo`, and `cmdutil.EnableRepoOverride` (`pkg/cmdutil/repo_override.go:65-72`) rewrites `f.BaseRepo` in a pre-run hook.
 - Every one of 216 `NewCmd*` constructors receives the whole pointer, while 9 fields are each used by 6 or fewer leaf directories.
 - Package globals sit beside it: `factory.SSOURL()` reads `ssoHeader` (`default.go:26`), and `root.HasFailed()` reads a flag the help function sets (`pkg/cmd/root/help.go:54`).
 - A counter-example inside gh: `pkg/cmd/codespace/common.go:40` takes narrow dependencies explicitly.
@@ -50,7 +50,7 @@ Before any command runs, `Main` loads config, builds the terminal streams, resol
 
 - **Discovery** (`pkg/cmd/extension/manager.go`): only entries prefixed `gh-` in `config.DataDir()/extensions`. No `PATH` search. Three on-disk shapes exist: a directory with `manifest.yml` for binaries, a git clone, and a symbolic link or path-in-file for local installs.
 - **Dispatch** (`Manager.Dispatch`, `manager.go:93-138`): argv goes through verbatim, since the command sets `DisableFlagParsing: true` (`pkg/cmd/root/extension.go:77`). The child gets `GH_EXTENSION=1` and `GH_PATH`, inherits the streams, and runs under `cmd.Run()`, with no signal forwarding.
-- **Exit codes:** `pkg/cmd/root/extension.go:43-51` wraps the child's `*exec.ExitError`. `gh extension exec` (`pkg/cmd/extension/command.go:559-564`) doesn't wrap it, so that path exits 1 and loses the child's code.
+- **Exit codes:** `pkg/cmd/root/extension.go:43-51` wraps the child's `*exec.ExitError`. `gh extension exec` (`pkg/cmd/extension/command.go:559-564`) does not wrap it, so that path exits 1 and loses the child's code.
 - **Names** (`pkg/cmd/root/root.go:195-252`): built-ins register first, and an extension whose name a built-in already takes is skipped without a word. An install-time check (`checkValidExtension`, `command.go:694`) refuses names that clash at install time.
 - **Completion:** extension names complete, and their arguments get nothing.
 - **Startup cost:** every call lists the extension directory and builds a command for each extension.
@@ -90,7 +90,7 @@ The extension manager is the good counter-example. `manager.go:45` injects `look
 
 `script/build.go:53-65` builds with `-ldflags "-X .../internal/build.Version=<v> -X .../internal/build.Date=<date>"`, taking the version from `GH_VERSION`, then `git describe`, then the short commit. `internal/build/build.go` falls back to `debug.ReadBuildInfo()` for `go install` builds. `.goreleaser.yml` stamps the same symbols for every platform.
 
-The update checker (`internal/update/update.go`) runs only in builds with the `updateable` tag, which the Homebrew formula sets. It checks at most once a day and never when output isn't a terminal.
+The update checker (`internal/update/update.go`) runs only in builds with the `updateable` tag, which the Homebrew formula sets. It checks at most once a day and never when output is not a terminal.
 
 **For tbhbdev:** one stamp package for every binary, as awrel's `buildmeta` already does with Bazel `x_defs`, and a release test that each binary reports the bundle version. The update check at start is one cache read and a pure decision, with any network work in a separate helper ([appendix J](J-self-update.md)).
 

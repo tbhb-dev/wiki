@@ -16,16 +16,16 @@ parent: README.md
 
 Back to [the design](README.md).
 
-Everything here is new unless it names an existing file. [Appendix D](D-evidence.md) cites the existing behavior. Every Go path here sits under `<cli-root>` in tbhb-dev/tbhbdev ([the design](README.md#the-open-cli-folder)).
+Everything here is new unless it names an existing file. [Appendix D](D-evidence.md) cites the existing behavior. Every Go path here sits under `factory/tbhbdev` in tbhb-dev/tbhbdev (D27).
 
 ## Dispatch
 
-The front is `<cli-root>/cmd/tbhbdev`. Its `main` is one line that calls `front.Main` in `<cli-root>/internal/dispatch/io/front` and exits with the result, as gh's `cmd/gh/main.go` does.
+The front is `factory/tbhbdev/cmd/tbhbdev`. Its `main` is one line that calls `front.Main` in `factory/tbhbdev/internal/dispatch/io/front` and exits with the result, as gh's `cmd/gh/main.go` does.
 
 1. **Find the bundle.** `os.Executable`, then `filepath.EvalSymlinks`, gives the front's real path. Its directory's parent is the bundle root.
 2. **Lease the bundle.** Before it reads any file in the bundle, the front opens `<bundle>/.in-use` and takes a shared lock on it, without close-on-exec. If the bundle was pruned in between, it resolves the link once more and retries once ([appendix J](J-self-update.md#runs-in-progress)).
 3. **Read the manifest.** One read of `<bundle>/manifest.json`. A missing or unreadable manifest exits 125 with one line on standard error.
-4. **Check for an update.** Unless the first word is `version`, `--version`, or `help`, the front reads the self-update cache and calls the pure `selfupdate.Decide`. Anything but `Run` execs the bundle's self-update helper, which does the network work under its budget ([appendix J](J-self-update.md)). If that exec fails, the front logs one warning and goes on to route the current build.
+4. **Check for an update.** Unless the first word is `version`, `--version`, or `help`, the front reads the self-update cache and calls the pure `selfupdate.Decide`. Anything but `Run` execs the bundle's self-update helper, which does the network work under its budget ([appendix J](J-self-update.md)). If that exec fails, the front logs one warning and goes on to route the current build. A front started by the helper after a swap closes the update lock it inherited, named by `TBHBDEV_UPDATE_LOCK_FD`, at this step, so no plugin holds it.
 5. **Route.** `dispatch.Resolve(argv, manifest, outside)` is pure and returns one route: a built-in, a bundle plugin, an outside plugin (only if D3 passes), or `tbhbdev-py`. The first word of argv picks it.
 6. **Exec.** The front adds the contract variables to the environment and calls `syscall.Exec` on the route's absolute path. A failed exec exits 126.
 
@@ -39,9 +39,9 @@ The front is `<cli-root>/cmd/tbhbdev`. Its `main` is one line that calls `front.
 | an outside plugin name (D3) | the listed absolute path | Read only when no bundle plugin matches |
 | anything else | `<bundle>/bin/tbhbdev-py` | Full argv, verbatim |
 
-The front takes no flags of its own before the command word and links no flag library, so a flag such as `--repo` always reaches the plugin as typed ([appendix K](K-go-stack.md#why-the-front-doesnt-use-cobra)). It starts no goroutine, reads no config, makes no network call, and runs no migration, and it reads only the manifest and the self-update cache. A failed self-update never stops it from routing.
+The front takes no flags of its own before the command word and links no flag library, so a flag such as `--repo` always reaches the plugin as typed ([appendix K](K-go-stack.md#why-the-front-does-not-use-cobra)). It starts no goroutine, reads no config, makes no network call, and runs no migration, and it reads only the manifest and the self-update cache. A failed self-update never stops it from routing.
 
-It doesn't hash or verify plugins at run time, because the installer did that once.
+It does not hash or verify plugins at run time, because the installer did that once.
 
 ## The plugin contract
 
@@ -51,7 +51,7 @@ Contract version 1. A plugin is any executable the manifest lists, written in Go
 | --- | --- |
 | Name | `tbhbdev-<name>`, where `<name>` matches `[a-z][a-z0-9-]*` and is one top-level command word |
 | argv | `argv[0]` is the plugin's path, and the rest is the user's argv after `<name>`, unparsed, `--help` included |
-| Reserved arguments | A lone `--version` prints the stamp. A first argument of `__complete` is kept for shell completion, and a plugin that doesn't support it exits 2 |
+| Reserved arguments | A lone `--version` prints the stamp. A first argument of `__complete` is kept for shell completion, and a plugin that does not support it exits 2 |
 | Environment | Inherited unchanged, plus the variables below. A plugin reads them through `plugin.FromEnviron`, never by `os.Getenv` in pure code |
 | Standard streams and descriptors | Inherited through exec: standard input, output, error, and every other open descriptor, such as the push-token pipe |
 | Signals | Delivered straight to the plugin, since it holds the front's process ID |
@@ -77,13 +77,13 @@ The plugin's status is the process's status, because the front no longer exists 
 | --- | --- |
 | 125 | The front failed before routing: no manifest, or a malformed one |
 | 126 | The route's file exists but exec failed |
-| 127 | No route: the name isn't a plugin and the bundle has no Python fallthrough |
+| 127 | No route: the name is not a plugin and the bundle has no Python fallthrough |
 
 A plugin never exits 125, 126, or 127, and a test over each plugin's exit-code table checks it.
 
 ### The version stamp
 
-`<cli-root>/internal/buildinfo` holds `Version`, `Commit`, `CommitTime`, and `Date`, set by Bazel `x_defs` from the `STABLE_BUILD_SCM_*` workspace status keys, as awrel's `internal/buildmeta` does (existing). Every binary links it, and nothing else in the module holds a version string.
+`factory/tbhbdev/internal/buildinfo` holds `Version`, `Commit`, `CommitTime`, and `Date`, set by Bazel `x_defs` from the `STABLE_BUILD_SCM_*` workspace status keys, as awrel's `internal/buildmeta` does (existing). Every binary links it, and nothing else in the module holds a version string.
 
 The Python wheel in the bundle comes from the tools commit that the monorepo pins, so it keeps its own tools version. `tbhbdev version` prints the bundle version and monorepo commit, then the tools commit of `tbhbdev-py`, from the manifest. A release test runs every Go binary in the bundle with `--version` and fails unless each prints the bundle version, and runs `bin/tbhbdev-py --version` and fails unless it names the pinned tools commit.
 
@@ -96,7 +96,9 @@ The Python wheel in the bundle comes from the tools commit that the monorepo pin
   "contract": 1,
   "version": "<bundle version>",
   "commit": "<full commit>",
+  "release": 1234,
   "channel": "main",
+  "protocol": [3, 2],
   "plugins": [
     {"name": "agent", "kind": "go", "file": "bin/tbhbdev-agent", "sha256": "<hex>"}
   ],
@@ -107,13 +109,13 @@ The Python wheel in the bundle comes from the tools commit that the monorepo pin
 }
 ```
 
-Each name appears once, and the build fails on a duplicate, on `alpha`, `help`, `version`, or `self-update`, or on a Go plugin that shadows a Python top-level name without covering it ([appendix G](G-names-and-migration.md#collisions-with-python-names)). Every entry states its kind, and the installer never infers one. `channel` is `main` only for bundles the tbhb-dev/tbhbdev release job builds from main, and self-update acts only on those. `commit` is the monorepo commit, and D23's attestation check pins it.
+Each name appears once, and the build fails on a duplicate, on `alpha`, `help`, `version`, or `self-update`, or on a Go plugin that shadows a Python top-level name without covering it ([appendix G](G-names-and-migration.md#collisions-with-python-names)). Every entry states its kind, and the installer never infers one. `channel` is `main` only for bundles the tbhb-dev/tbhbdev release job builds from main, and self-update acts only on those. `commit` is the monorepo commit, and D23's attestation check pins it. `release` is the count of first-parent commits on main up to that commit, which orders bundles for self-update ([appendix J](J-self-update.md#release-order)), and `protocol` lists the two versions the build serves, from which the installer finds the bridges it keeps ([appendix I](I-protocol.md#bridges)).
 
 ## The Python fallthrough
 
 The bundle carries the tools wheel from the commit that the monorepo pins, and the installer installs it into `<bundle>/py/` with uv as a relocatable environment, so the directory still works after its rename into place (`uv venv --relocatable`, unverified against the pinned uv). The wheel's `tbhbdev-py` entry point, the same code as its `tbhbdev` script, sits in the front's own folder as `<bundle>/bin/tbhbdev-py`, a relative link to `../py/bin/tbhbdev-py` (D25).
 
-The front execs `<bundle>/bin/tbhbdev-py <argv>` by absolute path with `TBHBDEV_PROG=tbhbdev`. It never runs `python3 -m tbhbdev`, and never searches `PATH`. The wheel's `tbhbdev` script stays inside `py/bin`, off `PATH`, so it can't shadow the front.
+The front execs `<bundle>/bin/tbhbdev-py <argv>` by absolute path with `TBHBDEV_PROG=tbhbdev`. It never runs `python3 -m tbhbdev`, and never searches `PATH`. The wheel's `tbhbdev` script stays inside `py/bin`, off `PATH`, so it cannot shadow the front.
 
 The Python dispatcher works as it does today, including the `tbhbdev.plugins` entry points that graph and the ITSM repository use. Python reads `TBHBDEV_PROG` for usage messages (plan step 2). Entry-point plugins that also supply config files keep doing so on the Python side, and how they reach Go commands is part of D3.
 
@@ -133,7 +135,7 @@ Platforms: darwin-arm64, linux-amd64, and linux-arm64 (unverified against the ho
 
 ## The library surface
 
-Each package below sits under `<cli-root>`, and is pure unless its path has `io/`. Names follow D11, and none is `core` or `shell`.
+Each package below sits under `factory/tbhbdev`, and is pure unless its path has `io/`. Names follow D11, and none is `core` or `shell`.
 
 | Package | Holds | Used by |
 | --- | --- | --- |
@@ -157,7 +159,7 @@ Each package below sits under `<cli-root>`, and is pure unless its path has `io/
 
 Domain packages follow the same split, such as `internal/agent/argv`, `internal/agent/request`, `internal/agent/remote`, and `internal/agent/runstate` as pure packages, and `internal/agent/io/sshcall`, `internal/agent/io/procgroup`, `internal/agent/io/runfiles`, and `internal/agent/io/app` as input/output (I/O). Shared plain types from the Python `model.py` go in `internal/agent/model`.
 
-There's no shared dependency object. A plugin's `io/app` builds the adapters it uses, resolves context such as the repository and host once, and passes each cobra command only what it uses ([appendix K](K-go-stack.md#explicit-dependencies-and-no-shared-object)). Settings and credentials are separate adapters. Telemetry writes to the state directory in-process and starts no child.
+There is no shared dependency object. A plugin's `io/app` builds the adapters it uses, resolves context such as the repository and host once, and passes each cobra command only what it uses ([appendix K](K-go-stack.md#explicit-dependencies-and-no-shared-object)). Settings and credentials are separate adapters. Telemetry writes to the state directory in-process and starts no child.
 
 ## Versions
 
