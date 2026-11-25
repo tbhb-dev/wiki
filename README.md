@@ -10,7 +10,7 @@ The [model roster](models/README.md) is current guidance, not a draft: which mod
 
 The [runbooks](runbooks/README.md) are current procedures with a template, a writer checklist, and a reviewer checklist.
 
-The [designs](designs/README.md) conventions give a template, a writer checklist, and a reviewer checklist for design documents.
+The [design conventions](designs/README.md) provide a template, a writer checklist, and a reviewer checklist for design documents.
 
 ## Workflow
 
