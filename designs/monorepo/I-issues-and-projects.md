@@ -67,7 +67,7 @@ Five rules come with the move (D32). The issue commands in `factory/tbhbdev` enf
 
 No existing issue moves as it is. Two sets get a relevance pass first (D28):
 
-- **The tracker files.** The operator's file tracker held 804 issue files. The pass over them kept 742 (the brief says; this pass didn't count them and can't derive the figure).
+- **The tracker files.** The operator's file tracker held 804 issue files, which is the file count at the time of writing (the brief says; unverified). This design fixes no count of the issues that stay, because the relevance pass produces it.
 - **Open GitHub issues in the repositories that move in.** Their count wasn't read, because this pass had no access to the GitHub API (unverified).
 
 D25 asks the operator to confirm the criteria and the check on each close list. The proposed criteria sort each issue into one of three outcomes, with a one-line reason on each close and one area label on each kept issue:
@@ -102,7 +102,7 @@ A source repository doesn't always map to one label, so the pass also picks each
 | An open issue in a private repository, kept private | The companion | `gh issue transfer`, then the area label |
 | An open issue in a private repository, kept public | The monorepo | A new issue with the private details removed. GitHub doesn't transfer an issue from a private repository to a public one (per docs) |
 
-The 742 kept tracker issues import in plan step 5. That's after this design merges and after the scaffolding has created the labels, and it doesn't wait for any code import. The scaffolding creates the folder, the `README.md`, and the `OWNERS` file of every planned project, so every area label exists before its code arrives.
+The kept tracker issues import in plan step 5, and the import takes whatever the final relevance pass keeps. That's after this design merges and after the scaffolding has created the labels, and it doesn't wait for any code import. The scaffolding creates the folder, the `README.md`, and the `OWNERS` file of every planned project, so every area label exists before its code arrives.
 
 The import paces its writes under GitHub's limits on content creation, and it records the new issue's number against each tracker file. A second run skips a file that already has a number.
 
