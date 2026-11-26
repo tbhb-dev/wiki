@@ -22,10 +22,10 @@ The companion is `tbhbdev-private`, and it's the only private repository in the 
 
 | Source today | Public monorepo | Private companion |
 | --- | --- | --- |
-| ops | Ansible playbooks and the task sets they include, service definitions, dashboards, the ops packages, OpenTofu modules, and the schema for inventory and values | The inventory, group and host variables, OpenTofu variable files and backend settings, and the overlay network's configuration |
+| ops | Ansible playbooks, service definitions, dashboards, ops packages, OpenTofu modules, and schemas under `ops/` | Inventory, group and host variables, OpenTofu variable files and backend settings, and overlay network configuration under `ops/` |
 | agent-config | Agent and ops configuration, routing, schemas, and docs | The operator-account folder |
 | agent-memories | Memories marked public | Every other memory |
-| wiki, research, spikes, evals, tools | The public repositories as they are | Their private counterparts, at `docs/wiki`, `docs/research`, `docs/spikes`, `factory/evals`, and the tool's folder |
+| wiki, research, spikes, evals, tools | The public repositories as they are | Their private counterparts, at `docs/wiki`, `docs/research`, `docs/spikes`, `factory/evals`, and `factory/cli` |
 | sm | Code and docs that pass the scan | Anything the scan holds back |
 | New | A stub of the companion with fake values | The private-name list, and each import's scan report |
 
@@ -35,7 +35,7 @@ Secrets stay out of both repositories. They remain in 1Password and reach a proc
 
 A memory is public only when its front matter says `visibility: public` and it passes the scan. The default is private, so a forgotten field keeps a memory out.
 
-A project's needs, requirements, and knowledge articles follow the same split. The public ones sit in the project's own `docs/` folder in the monorepo, such as `factory/tbhbdev/docs/kb`, and one that needs a private detail sits at the same path in the companion (D33).
+A project's needs, requirements, and knowledge articles follow the same split. The public ones sit in the project's own `docs/` folder in the monorepo, such as `factory/cli/docs/kb`, and one that needs a private detail sits at the same path in the companion (D33).
 
 ## Who carries out each duty in each repository
 
@@ -63,12 +63,7 @@ bazel_dep(name = "tbhb_private")
 local_path_override(module_name = "tbhb_private", path = "third_party/private_stub")
 ```
 
-```sh
-# on a host that deploys, with the companion checked out beside the monorepo
-bazel run //factory/ops:deploy --override_module=tbhb_private=../tbhbdev-private
-```
-
-Public targets refer to `@tbhb_private//factory/ops:inventory` and get the stub unless a command overrides it. Whether the command-line override wins over the one in `MODULE.bazel` is unverified, and plan step 2 tests it.
+Bazel targets that use the module get the stub by default. For a host with a companion checkout, plan step 2 tests whether the command-line flag `--override_module=tbhb_private=<companion-checkout>` takes precedence over the override in `MODULE.bazel`.
 
 The public repository owns the schema for every private value. The stub must validate against it in public CI, and the companion's values must validate against it in the companion's CI. A schema change that breaks the real values fails in the companion before a deploy can use it.
 
@@ -77,7 +72,7 @@ The public repository owns the schema for every private value. The stub must val
 The rule is that the public repository builds and tests, and the companion deploys.
 
 1. The companion pins one monorepo commit in a single file. This is the only first-party pin left in the factory, and it points at the new repository, never at an old one.
-2. The companion's workflow checks out both repositories, passes the override, and runs the deploy target on private runners.
+2. The companion's workflow checks out both repositories on private runners. Under the recommendation to keep `ops/` outside Bazel, the workflow runs the public deployment tools against the companion's `ops/`. Bazel deploys that use the private module pass the override.
 3. Deploy logs stay in the private repository. Public CI logs never print a real value, because public CI never has one.
 
 A deploy that needs only secrets, such as a Cloudflare Worker, can run from the public repository under a protected environment limited to `main`. A deploy that needs any inventory or host value runs from the companion.

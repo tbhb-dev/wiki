@@ -66,7 +66,7 @@ Today a self-hosted Renovate runs once for each repository, from a reusable work
 | --- | --- |
 | Internal pins | None exist inside the monorepo, so Renovate has none to move. The companion's one pin on a monorepo commit is the exception, and the companion's own run moves it |
 | One version | The single root for each language is the enforcement. Renovate has no second manifest to update differently |
-| Runs | One root workflow, written inline, on today's schedule and the same App token. The root `renovate.json5` loads the presets from `factory/renovate-config` in the same repository |
+| Runs | One root workflow, written inline, on today's schedule and the same App token. The root `renovate.json5` loads the presets from `lib/renovate-config` in the same repository. Products can use the same presets |
 | Grouping | One group for each lock file holds its minor, patch, and digest updates, opened once a day. Each major version gets its own pull request, and a security update opens at once |
 | Automerge | A green non-major update needs only CI under the review tier record, and it still needs an approval to enter the queue. [Approval and owner notices](#approval-and-owner-notices) says who gives it. Renovate's platform automerge then adds it to the merge queue, so it lands through the same queue as every change |
 | Limits | At most 10 Renovate pull requests are open at once, which keeps the bot well inside the 1,000 open pull requests GitHub recommends for a branch |

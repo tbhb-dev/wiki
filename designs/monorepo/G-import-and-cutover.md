@@ -39,12 +39,14 @@ One gate applies to the port and to nothing else here. A Go port pull request fo
 | Wave | What lands | Why here |
 | --- | --- | --- |
 | 0 | The scaffolding of both repositories | The shared roots, the inline CI workflow, the rulesets, a folder, a `README.md`, and an `OWNERS` file for every planned project, the tier 2 path map, the area labels, and the two Projects exist before any code |
-| 1 | renovate-config | Renovate arrives with it: the presets, the root `renovate.json5`, and the root Renovate workflow. Every later import's dependencies are then kept current from its first day |
+| 1 | renovate-config into `lib/renovate-config` | Renovate arrives with it: the presets, the root `renovate.json5`, and the root Renovate workflow. Every later import's dependencies are then kept current from its first day |
 | 2 | rules | Everything else loads them, and the lint gates arrive with them. After this wave an imported project reads the rules from the tree |
-| 3 | tools | The import tool, the launcher, and the review tool live here, and the later waves use them from the monorepo |
+| 3 | tools into `factory/cli` | The import tool, the launcher, and the review tool live here, and the later waves use them from the monorepo |
 | 4 | wiki, research, spikes | Prose, with tier 0 review and few build targets. They exercise the queue at volume with little risk |
-| 5 | design, evals, pm, telemetry, dashboard, event-gateway, agent-capacity, work, dotfiles, runner-smoke, github-metrics, bazel-r2-cache, go.tbhb.dev, and the Ansible collections | Independent projects, smallest first |
-| 6 | agent-memories, sm, agent-config, ops | Private-origin, after the scan tooling has run on real hosts for some weeks. ops is last because it's the largest and holds the most private values |
+| 5 | design, evals, pm, telemetry, dashboard, event-gateway, agent-capacity, work, dotfiles, runner-smoke into `ops/runner-smoke`, github-metrics, bazel-r2-cache, go.tbhb.dev, and the Ansible collections into `ops/ansible/collections` | Independent projects, smallest first |
+| 6 | agent-memories, sm, agent-config, ops into `ops/` in each repository | Private-origin, after the scan tooling has run on real hosts for some weeks. ops is last because it's the largest and holds the most private values |
+
+Wave 5 populates the runner-smoke and Ansible collections project folders. In wave 6, the ops import adds the rest of the public operations files alongside those projects and puts its private values in the companion's `ops/`.
 
 The break is clean (D27). Neither new repository ever calls a workflow in an old repository, pins one, or extends a preset from one. The scaffolding's workflow therefore uses only inline steps and third-party actions pinned by commit hash, and renovate-config's lint targets wait one wave for the rules.
 
@@ -79,7 +81,7 @@ For a private-origin repository, step 5 builds the signed copy commit in a priva
 | Renovate | One root `renovate.json5` and one root workflow, from wave 1 ([appendix H](H-dependencies-and-renovate.md#renovate)) |
 | Tier 0 approval | One root workflow, written inline, with the path lists in [appendix C](C-layout-and-ownership.md#the-tier-0-workflow) |
 | Reusable workflows | The monorepo calls none. The ones standalone repositories need are published from the root `.github/workflows` ([appendix F](F-ci.md#what-stays-for-standalone-repositories)) |
-| Deploy workflows | Deploys that need private values move to the companion. Others run on each push to `main` and deploy when `bazel-diff` marks their target as affected, with no path filter |
+| Deploy workflows | Deploys that need private values move to the companion. Ops deploys that need private values read them from the companion's `ops/`. Under the recommendation to keep `ops/` outside Bazel, its workflows use the deployment tools directly. Public Bazel deploys run on a push to `main` when `bazel-diff` marks their target as affected, with no path filter |
 | Scheduled jobs, such as nightly mutation tests | One root workflow each, with a matrix over projects |
 | Trackers | Each tracker row that names a repository gets the new path. The wiki's own links keep working inside `docs/wiki` because they're relative |
 

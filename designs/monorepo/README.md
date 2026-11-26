@@ -32,8 +32,8 @@ No design questions remain open. Before publishing each private-origin import, t
 
 When this is built, these parts exist:
 
-- **The monorepo.** One new public repository, working name `tbhb-dev/tbhbdev`, holds the factory under `factory/`, shared code under `lib/`, prose under `docs/`, and room for products under `products/` (new). Each factory project is one folder directly under `factory/`, with an `OWNERS` file that names its owners and describes it, and its own `docs/` folder for its needs, requirements, and knowledge articles. [Appendix C](C-layout-and-ownership.md) has the tree.
-- **The private companion.** One new private repository, `tbhbdev-private`, mirrors the public paths and holds only private values: the ops inventory and host variables, the operator-account folder, private memories, and private prose (new). It depends on the monorepo, and the monorepo's files never name it. [Appendix D](D-public-private.md) has the split.
+- **The monorepo.** One new public repository, working name `tbhb-dev/tbhbdev`, holds the factory under `factory/`, operations under `ops/`, shared code under `lib/`, prose under `docs/`, and room for products under `products/` (new). The command-line tool is a project at `factory/cli`. Each factory project is one folder directly under `factory/`, with an `OWNERS` file that names its owners and describes it, and its own `docs/` folder for its needs, requirements, and knowledge articles. [Appendix C](C-layout-and-ownership.md) has the tree.
+- **The private companion.** One new private repository mirrors the public paths. It holds the ops inventory and host variables in `ops/`, plus the operator-account folder, private memories, and private prose (new). It depends on the monorepo, and the monorepo's files never name it. [Appendix D](D-public-private.md) has the split.
 - **One Bazel workspace, with one dependency root per language.** One root module, one manifest and one lock file for each language, and build files that gazelle writes for Go and Python (new). One Renovate run keeps the roots current. [Appendix H](H-dependencies-and-renovate.md) has both.
 - **Layering that the build enforces.** Bazel visibility and one query test keep products off factory internals, the factory off products, and `lib/` off both (new).
 - **Separation of duties.** Build, review, approve, and merge stay apart, and the design names the identity or the App that carries out each: `tbhb`, `tbhb-agent`, the reviews App, and the tier 0 workflow. The author never approves their own change, an independent reviewer judges the exact head, and the changed paths set the review tier (existing tiers, new path map).
@@ -48,14 +48,15 @@ Work stopped on the [design for an in-house merge queue](../merge-queue/README.m
 
 ### The tree and its rules
 
-Folders group files by project. Each factory project has its own folder directly under `factory/`. The design reserves `products/<name>/` for future products.
+Folders group files by project. Each factory project has its own folder directly under `factory/`. The design reserves `products/<name>/` for future products. Operations use `ops/`, with runner-smoke at `ops/runner-smoke` and the Ansible collections at `ops/ansible/collections`.
 
 Bazel visibility and layering queries enforce these rules.
 
 1. A product’s dependencies come from `lib/`. Its build files load the build rules in `lib/rules` as `@tbhb_rules` labels, and it reaches any other published module through a `lib/` project.
 2. Nothing under `factory/` or `lib/` depends on a product.
 3. `lib/` depends only on `lib/` and third-party code.
-4. The factory publishes nothing for use outside `factory/`. Code used by both the factory and products, or by standalone repositories, goes in `lib/`.
+4. The factory publishes nothing for use outside `factory/`. Anything products need goes in `lib/`, including the shared Renovate presets at `lib/renovate-config`. Code used by standalone repositories also goes in `lib/`.
+5. No Bazel target depends on `ops/`. The recommendation is for `ops/` to use its own deployment tools outside Bazel.
 
 Each project's targets default to visibility inside that project. A gazelle directive at the top of each tree sets the default, and a query test fails when any path crosses a layer.
 
@@ -78,7 +79,7 @@ GitHub Apps can't hold different permissions per folder, so each agent App reach
 
 ### Public and private
 
-The public build passes with no companion present. A stub module in `third_party/` stands in for the companion and holds fake values that match the real schema. A deploy passes `--override_module` to swap in the real companion checkout.
+The public build passes with no companion present. A stub module in `third_party/` stands in for the companion and holds fake values that match the real schema. Bazel consumers of companion values pass `--override_module` to swap in the real checkout. Under the ops recommendation, its deploys read the companion's `ops/` directly.
 
 The public repository builds and tests. Any deploy that needs inventory or host values runs from the companion's workflows on private runners, at a pinned monorepo commit. Secrets stay in 1Password, as today.
 
@@ -98,7 +99,7 @@ Worktrees share one object store, one Bazel disk cache, and one repository cache
 
 A pull request runs one workflow. A plan job hashes the build graph at the base and the head and lists the affected targets. Test jobs run those targets, a coverage job checks 100% branch coverage across each affected project's test targets combined, and repository checks run beside them.
 
-A path check comes before the plan. When a diff touches only needs, requirements, or knowledge articles in a project's own `docs/` folder, the workflow runs that project's record check and skips the build and test. Any other file sends the change through the full lane, and `conclusion` stays the one required check.
+A path check comes before the plan. When a diff touches only needs, requirements, or knowledge articles in projects covered by the record lane, the workflow runs their record checks and skips the build and test. Any other file sends the change through the full lane, and `conclusion` stays the one required check.
 
 The merge queue runs the same workflow on each candidate. A push to `main` runs every target, which also fills the remote cache and saves the graph hashes for later plans. Standard hosted runners cost nothing on a public repository (per docs), so the design uses nothing else.
 
@@ -106,7 +107,7 @@ A change to the build rules affects every target. Sharding across runners handle
 
 ### Import and cutover
 
-The scaffolding of both repositories comes first, then renovate-config, which brings Renovate, then rules, then the command-line tool, prose, and services. The four private-origin repositories come last. Neither new repository ever calls or pins an old one, and a repository that hasn't moved keeps the pins it holds.
+The scaffolding of both repositories comes first, then `lib/renovate-config`, which brings Renovate, then rules, then `factory/cli`, prose, and services. The four private-origin repositories come last. Neither new repository ever calls or pins an old one, and a repository that hasn't moved keeps the pins it holds.
 
 Each import sorts the old repository's issues, freezes it, and lands one pull request with one copy commit. The old repository is archived once it has no open issue and no open pull request. [Appendix G](G-import-and-cutover.md) has the order, the per-repository steps, the before and after numbers, and the organization rename that ends the migration after a passing rehearsal.
 
@@ -138,9 +139,9 @@ Each import sorts the old repository's issues, freezes it, and lands one pull re
 | 4 | The scaffolding of the monorepo and the companion: dependency roots, the inline CI workflow, a folder, a `README.md`, and an `OWNERS` file for every planned project, the tier 2 path map, the area labels, both Projects, the layering test, and the rulesets without the queue rule | `bazelisk test //...` passes on `main`, the ruleset read matches the checked-in file, both repositories' `area/` labels match the full set from the monorepo tree, and the `OWNERS` test passes | `tbhb-agent`, under the organization admin grant for repository creation |
 | 5 | Tracker issues sorted using appendix I, with each retained issue imported and added to its Projects | A fresh run confirms each close list, and the sync check passes for area labels and Project membership | `tbhb-agent`, in separate sorting and confirmation runs on different providers |
 | 6 | The import tool, its `import` check, the private-origin pre-push gate, and the archive gate | A scratch import passes the check, a changed file or an old-repository pin makes it fail, and a missing or stale private review verdict blocks a scratch push | `tbhb-agent` |
-| 7 | renovate-config imported, with the root Renovate workflow running | Renovate opens a grouped update in the monorepo, and a search for old-repository callers and pins returns nothing | `tbhb-agent` |
+| 7 | renovate-config imported into `lib/renovate-config`, with the root Renovate workflow running | Renovate opens a grouped update in the monorepo, and a search for old-repository callers and pins returns nothing | `tbhb-agent` |
 | 8 | Rules imported, with the lint gates | `bazelisk test //...` passes on `main` with the rules loaded from the tree, and the root `AGENTS.md` holds the rewritten tier 2 rows | `tbhb-agent` |
-| 9 | Tools imported, then the launcher's mirror, worktree, cone, and cleanup changes, with a tier 2 pull request that amends [decision record 0025](../../adrs/0025-clone-main-worktrees-stay-clean-and-on-main.md) for the launcher's worktrees (D8) | Two runs on one host share one mirror, a finished run leaves no worktree after the reaper runs, and the amendment has merged | `tbhb-agent` |
+| 9 | Tools imported into `factory/cli`, then the launcher's mirror, worktree, cone, and cleanup changes, with a tier 2 pull request that amends [decision record 0025](../../adrs/0025-clone-main-worktrees-stay-clean-and-on-main.md) for the launcher's worktrees (D8) | Two runs on one host share one mirror, a finished run leaves no worktree after the reaper runs, and the amendment has merged | `tbhb-agent` |
 | 10 | The merge queue rule on `main`, and affected-target CI as the required path | A queued pull request merges through a `merge_group` run that tests fewer targets than `//...` | `tbhb-agent` |
 | 11 | Public repositories imported in the order in appendix G, including github-metrics, bazel-r2-cache, go.tbhb.dev, and the Ansible collections, with issues sorted and moved and queue wait and CI time measured after each | Each old repository has no open issue or pull request and is archived, and appendix A holds the measurements | `tbhb-agent`, with separate sorting and confirmation runs (D34) |
 | 12 | Private-origin repositories split, scanned, reviewed before push, and imported in one copy commit each with no history. After these imports merge, mark the design for that queue superseded (D7) | The companion stores each complete report, passing scans and comparison, and two clear verdicts for the exact import commit and report before the push | `tbhb-agent`, with two independent tier 2 review runs |

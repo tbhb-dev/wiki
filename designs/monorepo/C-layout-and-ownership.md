@@ -24,23 +24,24 @@ AGENTS.md           agent instructions, and the tier 2 path map
 BUILD.bazel         root targets, including the layering test
 .github/            workflows and rulesets
 factory/
-  tbhbdev/          the command-line tool, with its OWNERS file and its docs/
-  renovate-config/  runner-smoke/
+  cli/              the command-line tool, with its OWNERS file and its docs/
   agent-config/     agent-memories/       agent-capacity/
   event-gateway/    telemetry/            dashboard/
   pm/               sm/                   work/
-  evals/            ops/                  dotfiles/
+  evals/            dotfiles/
   github-metrics/   bazel-r2-cache/       go-vanity/
-  ansible-collections/
+ops/
+  ansible/collections/
+  runner-smoke/
 products/           <name>/, empty today
-lib/                design/  rules/, and shared code as it appears
+lib/                design/  rules/  renovate-config/, and shared code as it appears
 docs/               wiki/  research/  spikes/, and no project's own records
 third_party/        vendored code, patches, and the private stub module
 ```
 
-`factory/` is one boundary and has no levels inside it (D14). Each factory project has one folder directly under `factory/`. Bazel limits products to dependencies in `lib/` and confines factory targets to `factory/`. Factory projects must stay independent of products. Code used by both the factory and products, or by standalone repositories, goes in `lib/`. Reusable GitHub workflows stay in `.github/workflows/` as repository infrastructure outside factory projects.
+`factory/` is flat (D14). Each factory project has one folder directly under `factory/`. Bazel limits products to dependencies in `lib/` and confines factory targets to `factory/`. Factory projects must stay independent of products. Reusable GitHub workflows stay in `.github/workflows/` as repository infrastructure outside factory projects.
 
-A project is a folder under `factory/`, `products/`, `lib/`, or `docs/` with an `OWNERS` file (D36). Every factory project sits directly under `factory/`. Each project folder has a `README.md`, an `OWNERS` file, and its own `docs/` folder. [OWNERS files](#owners-files) and [the top-level docs folder](#what-the-top-level-docs-folder-holds) describe the last two.
+An `OWNERS` file marks a project under `factory/`, `products/`, `lib/`, or `docs/`, and at `ops/` or any folder below it (D36). Ops, runner-smoke, and the Ansible collections each have their own project folder. Each project folder has a `README.md`, an `OWNERS` file, and its own `docs/` folder. [OWNERS files](#owners-files) and [the top-level docs folder](#what-the-top-level-docs-folder-holds) describe the last two.
 
 The starting sketch had different locations for these projects and the stub.
 
@@ -73,14 +74,14 @@ An owner answers for the project: a question that a diff can't settle goes to an
 A project's needs, requirements, and knowledge articles live in the project's own `docs/` folder, not in the top-level `docs/` (D33):
 
 ```text
-factory/tbhbdev/docs/needs/
-factory/tbhbdev/docs/requirements/
-factory/tbhbdev/docs/kb/
+factory/cli/docs/needs/
+factory/cli/docs/requirements/
+factory/cli/docs/kb/
 ```
 
 The top-level `docs/` keeps prose that belongs to no single project: the wiki's designs, decision records, runbooks, and model notes, plus research and spikes. Those three are projects too, so the wiki's own records sit at `docs/wiki/docs/needs`, `docs/wiki/docs/requirements`, and `docs/wiki/docs/kb`.
 
-A project's `docs/` folder is part of the project. It isn't a project itself, so it gets no area label, no `OWNERS` file, and no coverage figure of its own. A pull request that changes only Markdown files in those three folders is a record pull request, and it takes the lighter CI lane in [appendix F](F-ci.md#the-record-lane).
+A project's `docs/` folder is part of the project. It isn't a project itself, so it gets no area label, no `OWNERS` file, and no coverage figure of its own. A pull request that changes only Markdown files in those three folders takes the lighter CI lane for the projects covered by [appendix F](F-ci.md#the-record-lane).
 
 Each import's path map puts a source repository's needs, requirements, and knowledge articles in its project's three folders. Which repositories hold such records today wasn't read in this pass (unverified).
 
@@ -90,23 +91,23 @@ Every repository arrives as one copy commit with no history (D10). One source re
 
 | Repository | Path | Left out of the public copy |
 | --- | --- | --- |
-| renovate-config | `factory/renovate-config` | root configuration |
+| renovate-config | `lib/renovate-config` | root configuration |
 | rules | `lib/rules` | root configuration. Keep the nested module files in `lib/rules` and move reusable workflows to `.github/workflows/` |
-| runner-smoke | `factory/runner-smoke` | root configuration |
-| tools | `factory/tbhbdev` (D23) | root configuration |
+| runner-smoke | `ops/runner-smoke` | root configuration |
+| tools | `factory/cli` (D23) | root configuration |
 | agent-config | `factory/agent-config` | the operator-account folder |
 | agent-memories | `factory/agent-memories` | every memory not marked public |
 | agent-capacity | `factory/agent-capacity` | root configuration |
 | event-gateway, telemetry, dashboard | `factory/<name>` | root configuration |
 | pm, sm, work | `factory/<name>` | root configuration, and what sm's scan holds back. Nobody read work in this pass |
 | evals | `factory/evals` | root configuration |
-| ops | `factory/ops` | inventory, host values, and variable files |
+| ops | `ops/` | inventory, host values, and variable files, which go in the companion's `ops/` |
 | dotfiles | `factory/dotfiles` | root configuration |
 | design | `lib/design` | root configuration |
 | wiki, research, spikes | `docs/<name>` | root configuration |
 | github-metrics, bazel-r2-cache | `factory/<name>` | root configuration |
 | go.tbhb.dev | `factory/go-vanity` | root configuration |
-| Ansible collections | `factory/ansible-collections` | root configuration |
+| Ansible collections | `ops/ansible/collections` | root configuration |
 
 "Root configuration" means each repository's own module file, lock files, lint settings, Renovate file, and workflows, which the shared roots and the root workflows replace. gomodscan stays standalone, and awrel stays out because it will retire soon (D1). The four open source tools and the graph repository are out of scope and don't move (D11). The private counterparts of wiki, research, spikes, evals, and tools go to the companion at the mirrored paths.
 
@@ -114,12 +115,15 @@ Every repository arrives as one copy commit with no history (D10). One source re
 
 | From | May depend on | Never on |
 | --- | --- | --- |
-| `products/<name>` | itself and `lib/`, built with the rules | `factory/`, `third_party/`, another product, and a published module named directly |
-| `factory/<project>` | itself, `lib/`, `third_party/`, published modules, and targets another factory project exports | `products/` |
-| `lib/<name>` | `lib/`, `third_party/`, and published modules | `factory/`, `products/` |
-| `docs/` | `lib/`, the rules | `products/`, `factory/` |
+| `products/<name>` | itself and `lib/`, built with the rules | `factory/`, `ops/`, `third_party/`, another product, and a published module named directly |
+| `factory/<project>` | itself, `lib/`, `third_party/`, published modules, and targets another factory project exports | `products/`, `ops/` |
+| `lib/<name>` | `lib/`, `third_party/`, and published modules | `factory/`, `products/`, `ops/` |
+| `docs/` | `lib/`, the rules | `products/`, `factory/`, `ops/` |
+| `ops/` | Nothing (recommendation) | All Bazel targets (recommendation) |
 
-A published module is one that resolves through a shared dependency root at a version: a Bazel module, or a package from a language's registry. The factory and `lib/` may declare dependencies on published modules. Products use published modules and vendored code through `lib/` (D35). Product build files load the nested build rules in `lib/rules` as `@tbhb_rules` labels. The factory publishes nothing for use outside `factory/`. Code used by both the factory and products, or by standalone repositories, goes in `lib/`.
+No Bazel target may depend on `ops/`. The recommendation is for `ops/` to have no Bazel dependencies and run outside Bazel. Deployment tools can use the Ansible collections, private values from the companion's `ops/`, and built artifacts such as service images.
+
+A published module is one that resolves through a shared dependency root at a version: a Bazel module, or a package from a language's registry. The factory and `lib/` may declare dependencies on published modules. Products use published modules and vendored code through `lib/` (D35). Product build files load the nested build rules in `lib/rules` as `@tbhb_rules` labels. The factory publishes nothing for use outside `factory/`. Anything products need goes in `lib/`. Code used by standalone repositories also goes there.
 
 Two mechanisms enforce the table.
 
@@ -151,6 +155,8 @@ bazel query 'deps(//products/P/...) intersect (//products/...:* except //product
 ```
 
 The fifth query finds a product's direct dependency on anything but a product or `lib/`, which covers `third_party/` and every published module, and the `:*` patterns count source files as well as rule targets. It leaves out implicit dependencies, so the rules' own toolchains don't count, and whether that flag excludes exactly those is unverified until plan step 4 writes the test. The sixth query runs once for each product folder and finds a dependency from one product to another, whatever a visibility line says. A visibility query also runs for each package outside `factory/`, including every package in `products/` and `lib/`. For a package at `products/example`, it runs `bazel query 'visible(//products/example:*, //factory/...:*)'` and fails if any factory target is visible there. The test also rejects factory visibility declarations that grant access outside `factory/`, including public visibility when there are no outside targets yet.
+
+If the recommendation to run `ops/` outside Bazel is adopted, the layering test also rejects Bazel packages under `ops/`.
 
 The rules never appear in these queries, because they're separate modules with `@tbhb_rules` labels. That's what lets a product use them and still leave the monorepo later. [Appendix H](H-dependencies-and-renovate.md#extracting-a-product) has the extraction steps, and the first rule above is what keeps them short.
 
@@ -222,9 +228,9 @@ The import of rules rewrites that table's rows to their new paths. Prefix each p
 | `.github/rulesets/**`, `.github/workflows/ci.yml` | The same paths at the monorepo root. `ci.yml` holds the record lane's path check, so this row covers it | 3 |
 | none, because the rule is new | The record-check rule under `lib/rules`, at the path its pull request gives it | 3 |
 | `lint/repo_checks.*`, `lint/private/required_status_checks/**`, `lint/private/review_policy/**`, `lint/private/pr_size*` | The same paths under `lib/rules/` | 3 |
-| `MODULE.bazel`, for the block that pins the review policy's source | Expected to need no row, because that source is in the tree at `factory/tbhbdev` and has its own rows | none |
+| `MODULE.bazel`, for the block that pins the review policy's source | Expected to need no row, because that source is in the tree at `factory/cli` and has its own rows | none |
 
-Each later import adds rows for its own class 2 and class 3 paths, such as the review and merge code under `factory/tbhbdev` and the harness configuration under `factory/agent-config`. The map lists paths only. The decision record's content triggers, such as a credential, a deployment, or a destructive deletion, set tier 2 wherever they appear, with or without a row.
+Each later import adds rows for its own class 2 and class 3 paths, such as the review and merge code under `factory/cli` and the harness configuration under `factory/agent-config`. The map lists paths only. The decision record's content triggers, such as a credential, a deployment, or a destructive deletion, set tier 2 wherever they appear, with or without a row.
 
 The map is separate from area labels. It says how heavily a change is reviewed, and an area label says which project an issue belongs to ([appendix I](I-issues-and-projects.md#area-labels)). Neither is derived from the other.
 
