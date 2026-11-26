@@ -33,7 +33,7 @@ One root gives each external dependency one version across the repository. An up
 
 Three details complete the table:
 
-- **Go has no `go.work`.** The root module's path sits on the vanity domain, so the organization's name isn't in any import. Keeping each project's old module path was the one case for a workspace file, and the clean break rewrites those paths at import anyway.
+- **Go has no `go.work`.** The root module path is `github.com/tbhb-dev/tbhbdev`. Keeping each project's old module path was the one case for a workspace file, and the clean break rewrites those paths at import anyway.
 - **Swift code inside the repository is plain `swift_library` targets.** Only external packages go through the root package file, and Swift builds need macOS runners ([appendix F](F-ci.md#runner-sizing)). Whether the dashboard's apps build under Bazel today wasn't read in this pass (unverified).
 - **The nested rules modules declare dependencies too.** They stay loadable alone (D15), and a test fails when one declares a version that differs from the root's.
 

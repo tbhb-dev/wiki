@@ -125,7 +125,7 @@ Renaming `tbhb-dev` to `tbhbdev` is the last migration step, after the last arch
 | Webhook payloads and anything keyed on `owner/repo`, such as event gateway routes and allow lists | Carry the new name from the rename on | unverified | Key on repository ID, or edit in the same change |
 | OpenID Connect (OIDC) subject claims in cloud trust policies, such as the remote cache's | Carry the new name | unverified | Trust the owner ID claim, or edit the policy first |
 | Team mentions, written `@<organization>/<team>`, in issues, pull requests, and prose | Not redirected | per docs, and whether the organization has a team is unverified | Edit the ones in files before the rename, and mention again in open issues after it |
-| Go module paths | Unchanged, because they use the vanity domain | existing | Point the vanity service at the new name |
+| Go module paths | The monorepo uses `github.com/tbhb-dev/tbhbdev`. Standalone modules on the vanity domain keep their paths | design | Update the monorepo's `go.mod` and imports at the rename if it still uses the GitHub path. Point the vanity service at the new name for standalone modules |
 | Package and container namespaces, badges, and prose | Not redirected | unverified | A search of both repositories for the old login must return nothing |
 
 The rename follows this order.
