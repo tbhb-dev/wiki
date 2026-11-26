@@ -35,21 +35,21 @@ Each issue carries exactly one area label (D28). An `OWNERS` file marks a projec
 | --- | --- |
 | `area/factory/<project>` | folder under `factory/` that holds an `OWNERS` file |
 | `area/ops` | `ops/` itself |
-| `area/ops/<path>` | project folder under `ops/` that holds an `OWNERS` file, such as `ops/runner-smoke` or `ops/ansible/collections` |
+| `area/ops/<path>` | project folder under `ops/` that holds an `OWNERS` file, such as `ops/ansible/collections` |
 | `area/products/<name>` | folder under `products/` that holds an `OWNERS` file |
 | `area/lib/<name>` | folder under `lib/` that holds an `OWNERS` file |
 | `area/docs/<name>` | folder under `docs/` that holds an `OWNERS` file |
-| `area/repo` | the repository, once: CI, `.github/`, rulesets, `MODULE.bazel`, and the language roots |
+| `area/repo` | the repository, once: CI, `.github/`, rulesets, `scripts/`, `MODULE.bazel`, and the language roots |
 | `area/third_party` | the repository, once: everything under `third_party/` |
 | `area/none` | the repository, once: an issue that belongs to no project |
 
 An issue about the event gateway's retry logic is `area/factory/event-gateway`. An issue about the command-line tool is `area/factory/cli`.
 
-A project's label covers the project's own records. An issue about a need, a requirement, or a knowledge article under `factory/cli/docs` uses `area/factory/cli` (D33). The `area/docs/<name>` labels cover only the wiki, research, and spikes, and a project's `docs/` folder never gets a label of its own.
+A project's label covers issues about its records. For example, an issue about a command-line tool requirement in `factory/docs/requirements/` uses `area/factory/cli`. A factory record that concerns multiple projects uses `area/repo`. The sample projects in `ops/runner-smoke/` use `area/ops`, and their root workflows use `area/repo`. The `area/docs/<name>` labels cover only the wiki, research, and spikes.
 
 - **Computed on every push to `main`.** A workflow in the monorepo finds the project folders with an `OWNERS` file and creates each missing label. It needs no checked-in file, so a new project folder gets its label with the commit that adds it.
 - **One identical set in both repositories.** The monorepo's tree is the only source. The companion's workflow reads the same list from the monorepo commit it pins and creates the same labels, with `area/repo`, `area/third_party`, and `area/none` among them. The companion's own tree adds none, so no private name becomes a label in either repository.
-- **The nearest folder with an `OWNERS` file decides.** A path takes the label of the nearest folder at or above it that holds an `OWNERS` file in the monorepo, and a companion path is read at its mirrored public path. An issue with no such folder is `area/repo` when it concerns the root and `area/none` otherwise. A companion test fails for an `OWNERS` file at a path the monorepo doesn't have.
+- **The nearest `OWNERS` file identifies the project for a path.** A companion path is read at its mirrored public path. For the shared `factory/docs/` tree, the issue's subject supplies the project, as in the example above. An issue with no project is `area/repo` when it concerns the root or several projects and `area/none` otherwise. A companion test fails for an `OWNERS` file at a path the monorepo doesn't have.
 - **Bounded.** GitHub caps a label's name at 50 characters (per docs, unverified here), so a test fails for a project folder whose label would be longer.
 - **Kept while in use.** When a project folder goes away, keep its retired label in both repositories until no open issue in either carries it. The sync check fails for each of those issues until it's relabeled.
 - **Separate from review and from CI.** An area label doesn't set a review tier, names no approver, and doesn't pick the record lane. The tier 2 path map does the first, the reviews App and the tier 0 workflow approve by tier, and a path check on the diff does the third ([appendix C](C-layout-and-ownership.md#separation-of-duties)).

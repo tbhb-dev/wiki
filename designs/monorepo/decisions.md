@@ -10,7 +10,7 @@ parent: README.md
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
-<!-- cspell:words monorepo bzlmod gomodscan determinator evals avirt afenc tbhbdev cutover -->
+<!-- cspell:words monorepo bzlmod gomodscan determinator evals avirt afenc tbhbdev cutover msys -->
 
 # One public monorepo for the factory decisions
 
@@ -21,6 +21,36 @@ Back to [the design](README.md).
 None.
 
 ## Decided
+
+### D37. Factory projects share one documents folder
+
+- **Rule:** Store the factory's knowledge articles in `factory/docs/kb/`, needs in `factory/docs/needs/`, and requirements in `factory/docs/requirements/`. Use this shared tree for all factory records and give no factory project a documents folder of its own. This updates D33 for the factory.
+- **Undo:** Move the records to project folders and update the record lane's path check.
+- **Record:** Operator ruling of 2026-11-26.
+
+### D38. Repository-wide helpers go in `scripts/`
+
+- **Rule:** The top-level `scripts/` holds helpers for internal use across the repository. It has no project of its own and publishes nothing. The name avoids the confusion with the old tools repository that `tools/` would cause.
+- **Undo:** Rename the folder.
+- **Record:** Operator ruling of 2026-11-26.
+
+### D39. Runner-smoke becomes repository infrastructure
+
+- **Rule:** Move all four workflows to the root `.github/workflows/` and all six sample projects to `ops/runner-smoke/`. List `ops/runner-smoke/` in `.bazelignore`. Drop the source repository's boilerplate, `msys2-install`, and the Windows legs. The fixture folder belongs to `ops/` and has no project of its own.
+- **Undo:** Restore the source repository from its archive and move the smoke checks back.
+- **Record:** Operator ruling of 2026-11-26.
+
+### D40. Renovate-config workflows live at the root
+
+- **Rule:** Move all three workflows to the root `.github/workflows/`. Keep the presets, pin script, and its tests in `lib/renovate-config`.
+- **Undo:** Restore the source repository from its archive and move the configuration and workflows back.
+- **Record:** Operator ruling of 2026-11-26.
+
+### D41. Import each project before porting it or splitting its build
+
+- **Rule:** Start with scaffolding, then import renovate-config, then rules, then the command-line tool at `factory/cli` and ops in parallel, then the rest. Import each project as it is and port to Go after import. Immediately after each project import, split its build into fine-grained targets in a separate change. Use Gazelle where a Gazelle extension exists. The import commit keeps the source build granularity so `verify` can compare the import with its source. [Appendix G](G-import-and-cutover.md)
+- **Undo:** Reorder pending imports or revert a build split or port independently of its import.
+- **Record:** Operator ruling of 2026-11-26.
 
 ### D7. Stop work on the in-house queue
 
@@ -120,10 +150,10 @@ None.
 - **Undo:** Change the generator and relabel the affected issues.
 - **Record:** the decision by the orchestrator on 2026-11-26.
 
-### D33. Project records live in each project's own docs folder, and a record pull request takes a lighter CI lane
+### D33. A record pull request takes a lighter CI lane
 
-- **Decided:** 2026-11-25, by the operator.
-- **Rule:** needs, requirements, and knowledge articles live in each project's own `docs/` folder, such as `factory/cli/docs/needs`, `factory/cli/docs/requirements`, and `factory/cli/docs/kb`, and not in the top-level `docs/`. A path check decides whether a pull request touches only records of projects covered by the record lane. If it does, CI runs only the Bazel record-check targets of the projects it touches. The scans that guard what a pull request publishes still run, and the private-name scan runs wherever D6 supplies the secret. Any other file in the diff, or a change to a check's definition, sends it through the full lane. `conclusion` stays the one required check, and the rulesets don't change ([appendix F](F-ci.md#the-record-lane)).
+- **Decided:** 2026-11-25, by the operator. D37 changed the factory paths on 2026-11-26.
+- **Rule:** Factory records share `factory/docs/` (D37). Other projects keep needs, requirements, and knowledge articles in their own `docs/` folders. When a pull request touches only eligible Markdown records, CI runs the Bazel record checks for the changed paths. The scans that guard publication still run, and the private-name scan runs wherever D6 supplies the secret. Any other file in the diff sends it through the full lane. `conclusion` stays the one required check ([appendix F](F-ci.md#the-record-lane)).
 - **Undo:** remove the path check from the workflow, and every pull request takes the full lane again.
 - **Record:** the third fix brief for this design's pull request, 2026-11-25.
 
@@ -169,10 +199,10 @@ None.
 - **Undo:** change the label generator or the Projects. Imported issues stay where they landed.
 - **Record:** the operator's brief of 2026-11-25, addendum 5, and the second fix brief for this design's pull request.
 
-### D27. A clean break, starting with scaffolding, then renovate-config, then rules
+### D27. The new repositories have no dependency on the old repositories
 
 - **Decided:** 2026-11-25, by the operator.
-- **Rule:** neither new repository calls, pins, or extends an old repository, and their CI is written inline. The import order is the scaffolding, then renovate-config, which brings Renovate, then rules, then the rest. A repository that hasn't moved yet keeps the pins it holds until its own import.
+- **Rule:** Neither new repository calls, pins, or extends an old repository, and their CI is written inline. A repository that hasn't moved yet keeps the pins it holds until its own import. D41 sets the import order.
 - **Undo:** none needed. A stop after any import leaves the old repositories working ([appendix G](G-import-and-cutover.md#stopping-partway)).
 - **Record:** the operator's brief of 2026-11-25, addendum 5.
 
@@ -239,10 +269,10 @@ None.
 - **Undo:** fold them into the root module, which rewrites every load statement and cuts off standalone consumers.
 - **Record:** this design's pull request.
 
-### D14. Six top-level folders, a flat `factory/`, and dependency rules
+### D14. Top-level folders, a flat `factory/`, and dependency rules
 
 - **Decided:** 2026-11-26, by the operator. The operator set the flat `factory/` layout on 2026-11-25. D35 amended the dependency rules on 2026-11-26.
-- **Rule:** The six top-level folders are `factory/`, `ops/`, `products/`, `lib/`, `docs/`, and `third_party/`. `factory/` stays flat, with one folder directly under it per project. The public operations files go in `ops/` and private values go in the companion's `ops/`. Runner-smoke goes in `ops/runner-smoke` and the Ansible collections go in `ops/ansible/collections`. Each project's `README.md` and `OWNERS` file describe the project, and neither sorts it into a category. The top-level `docs/` holds the wiki, research, and spikes, and each project's own records live in the project (D33). Products get their dependencies from `lib/`. Their build files load the rules from `lib/rules`. The factory never depends on a product and publishes nothing for use outside `factory/`. Anything products need goes in `lib/`, including the shared presets in `lib/renovate-config`. Code used by standalone repositories also goes in `lib/`. Bazel visibility keeps all `factory/` targets unavailable to `products/` and `lib/`, and layering queries check these boundaries. The companion mirrors the public paths.
+- **Rule:** The layout uses `factory/`, `ops/`, `products/`, `lib/`, `docs/`, `scripts/` (D38), and `third_party/`. `factory/` stays flat, with one folder directly under it per project and a shared `factory/docs/` (D37). The public operations files go in `ops/` and private values go in the companion's `ops/`. The Ansible collections go in `ops/ansible/collections`, and the runner-smoke samples go in `ops/runner-smoke/` (D39). Each project's `README.md` and `OWNERS` file describe the project, and neither sorts it into a category. The top-level `docs/` holds the wiki, research, and spikes. Products get their dependencies from `lib/`. Their build files load the rules from `lib/rules`. The factory never depends on a product and publishes nothing for use outside `factory/`. Anything products need goes in `lib/`, including the shared presets in `lib/renovate-config`. Code used by standalone repositories also goes in `lib/`. Bazel visibility keeps all `factory/` targets unavailable to `products/` and `lib/`, and layering queries check these boundaries. The companion mirrors the public paths.
 - **Undo:** move folders by pull request. The rules live in build files and one test.
 - **Record:** The operator's brief of 2026-11-25, the second and third fix briefs for this design's pull request, and the operator's decisions log of 2026-11-26.
 

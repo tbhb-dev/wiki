@@ -10,7 +10,7 @@ parent: README.md
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
-<!-- cspell:words monorepo somepath subpackages tbhbdev gomodscan evals bzlmod noimplicit -->
+<!-- cspell:words monorepo somepath subpackages tbhbdev gomodscan evals bzlmod noimplicit msys -->
 
 # One public monorepo for the factory layout and ownership
 
@@ -22,9 +22,12 @@ Back to [the design](README.md).
 MODULE.bazel  go.mod  pyproject.toml  pnpm-workspace.yaml  renovate.json5
 AGENTS.md           agent instructions, and the tier 2 path map
 BUILD.bazel         root targets, including the layering test
-.github/            workflows and rulesets
+.github/
+  workflows/        repository workflows, including runner-smoke and Renovate
+  rulesets/         repository rulesets
 factory/
-  cli/              the command-line tool, with its OWNERS file and its docs/
+  cli/              the command-line tool, with its OWNERS file
+  docs/             kb/  needs/  requirements/
   agent-config/     agent-memories/       agent-capacity/
   event-gateway/    telemetry/            dashboard/
   pm/               sm/                   work/
@@ -32,16 +35,19 @@ factory/
   github-metrics/   bazel-r2-cache/       go-vanity/
 ops/
   ansible/collections/
-  runner-smoke/
+  runner-smoke/     six sample projects, excluded by .bazelignore
 products/           <name>/, empty today
 lib/                design/  rules/  renovate-config/, and shared code as it appears
-docs/               wiki/  research/  spikes/, and no project's own records
+docs/               wiki/  research/  spikes/
+scripts/            internal repository-wide helpers
 third_party/        vendored code, patches, and the private stub module
 ```
 
 `factory/` is flat (D14). Each factory project has one folder directly under `factory/`. Bazel limits products to dependencies in `lib/` and confines factory targets to `factory/`. Factory projects must stay independent of products. Reusable GitHub workflows stay in `.github/workflows/` as repository infrastructure outside factory projects.
 
-An `OWNERS` file marks a project under `factory/`, `products/`, `lib/`, or `docs/`, and at `ops/` or any folder below it (D36). Ops, runner-smoke, and the Ansible collections each have their own project folder. Each project folder has a `README.md`, an `OWNERS` file, and its own `docs/` folder. [OWNERS files](#owners-files) and [the top-level docs folder](#what-the-top-level-docs-folder-holds) describe the last two.
+An `OWNERS` file marks a project under `factory/`, `products/`, `lib/`, or `docs/`, and at `ops/` or any folder below it (D36). Ops and the Ansible collections each have a project folder. Every project has a `README.md` and an `OWNERS` file. Factory projects share `factory/docs/` (D37), and `ops/runner-smoke/` is fixture data owned by `ops/` (D39).
+
+The top-level `scripts/` holds helper scripts used internally across the repository. It publishes nothing and has no project of its own. The name `scripts/` avoids confusion with the old tools repository (D38).
 
 The starting sketch had different locations for these projects and the stub.
 
@@ -71,29 +77,27 @@ An owner answers for the project: a question that a diff can't settle goes to an
 
 ### What the top-level docs folder holds
 
-A project's needs, requirements, and knowledge articles live in the project's own `docs/` folder, not in the top-level `docs/` (D33):
+All factory needs, requirements, and knowledge articles share one folder (D37). Each import's path map puts factory records in the corresponding category.
 
 ```text
-factory/cli/docs/needs/
-factory/cli/docs/requirements/
-factory/cli/docs/kb/
+factory/docs/kb/
+factory/docs/needs/
+factory/docs/requirements/
 ```
 
-The top-level `docs/` keeps prose that belongs to no single project: the wiki's designs, decision records, runbooks, and model notes, plus research and spikes. Those three are projects too, so the wiki's own records sit at `docs/wiki/docs/needs`, `docs/wiki/docs/requirements`, and `docs/wiki/docs/kb`.
+The top-level `docs/` keeps the wiki's designs, decision records, runbooks, and model notes, plus research and spikes. Outside the factory, each project's records go in its own `docs/` folder (D33). The wiki's records, for example, sit at `docs/wiki/docs/needs`, `docs/wiki/docs/requirements`, and `docs/wiki/docs/kb`.
 
-A project's `docs/` folder is part of the project. It isn't a project itself, so it gets no area label, no `OWNERS` file, and no coverage figure of its own. A pull request that changes only Markdown files in those three folders takes the lighter CI lane for the projects covered by [appendix F](F-ci.md#the-record-lane).
-
-Each import's path map puts a source repository's needs, requirements, and knowledge articles in its project's three folders. Which repositories hold such records today wasn't read in this pass (unverified).
+Record folders have no area label, `OWNERS` file, or coverage figure of their own. A pull request that changes only Markdown records at eligible paths takes the lighter CI lane in [appendix F](F-ci.md#the-record-lane).
 
 ## Where each repository goes
 
-Every repository arrives as one copy commit with no history (D10). One source repository becomes one folder. The last column says what the copy leaves out.
+Every repository arrives as one copy commit with no history (D10). The table gives its destinations and what the copy leaves out.
 
 | Repository | Path | Left out of the public copy |
 | --- | --- | --- |
-| renovate-config | `lib/renovate-config` | root configuration |
+| renovate-config | Presets, the pin script, and its tests in `lib/renovate-config`. All three workflows in `.github/workflows/` (D40) | Superseded repository configuration |
 | rules | `lib/rules` | root configuration. Keep the nested module files in `lib/rules` and move reusable workflows to `.github/workflows/` |
-| runner-smoke | `ops/runner-smoke` | root configuration |
+| runner-smoke | All four workflows in `.github/workflows/`. All six sample projects in `ops/runner-smoke/`, listed in `.bazelignore` (D39) | Repository boilerplate, `msys2-install`, and the Windows legs |
 | tools | `factory/cli` (D23) | root configuration |
 | agent-config | `factory/agent-config` | the operator-account folder |
 | agent-memories | `factory/agent-memories` | every memory not marked public |
@@ -238,7 +242,7 @@ Text in any other file, including a nested `AGENTS.md`, can't lower a tier the m
 
 ### The tier 0 workflow
 
-The tier 0 workflow becomes one root workflow, written inline. Its auto-approval list is the prose paths under `docs/wiki`, `docs/research`, and `docs/spikes`, without `docs/wiki/designs` and `docs/wiki/adrs`. Its denial list is every glob in the tier 2 path map. It reads the changed paths from Git, not from a workflow path filter. The list doesn't grow for the record lane: a project's `docs/` folder under `factory/`, `products/`, or `lib/` stays outside it.
+The tier 0 workflow becomes one root workflow, written inline. Its auto-approval list is the prose paths under `docs/wiki`, `docs/research`, and `docs/spikes`, without `docs/wiki/designs` and `docs/wiki/adrs`. Its denial list is every glob in the tier 2 path map. It reads the changed paths from Git, not from a workflow path filter. The tier 0 list excludes `factory/docs/` and project record folders under `products/` and `lib/`.
 
 ## Mapping Apps, rulesets, and branch rules
 

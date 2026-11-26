@@ -35,7 +35,7 @@ Secrets stay out of both repositories. They remain in 1Password and reach a proc
 
 A memory is public only when its front matter says `visibility: public` and it passes the scan. The default is private, so a forgotten field keeps a memory out.
 
-A project's needs, requirements, and knowledge articles follow the same split. The public ones sit in the project's own `docs/` folder in the monorepo, such as `factory/cli/docs/kb`, and one that needs a private detail sits at the same path in the companion (D33).
+Needs, requirements, and knowledge articles follow the same split. Factory records use the three shared categories under `factory/docs/` in both repositories (D37). Other projects use their own `docs/` folders (D33). A public record goes in the monorepo, and a record that needs private details goes at the corresponding path in the companion.
 
 ## Who carries out each duty in each repository
 
