@@ -62,7 +62,7 @@ Merging the rules into the root module would replace their labels with plain `//
 
 ### Publishing the rules to a registry
 
-A private or public Bazel registry gives standalone consumers versions instead of commit pins. It adds a release step for each rules change, and the rules changed 306 times in 28 days. Revisit a registry if the rules gain users outside tbhb-dev.
+A private or public Bazel registry gives standalone consumers versions instead of commit pins. It adds a release step for each rules change, and the rules changed 306 times in 28 days. Revisit a registry if a standalone repository needs a release cadence that the monorepo can't give.
 
 ### A Go workspace file and a lock for each project
 

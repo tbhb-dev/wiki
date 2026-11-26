@@ -34,7 +34,7 @@ None.
 - **Decided:** 2026-11-26, by the orchestrator.
 - **Rule:** the launcher creates run worktrees from its bare mirror and keeps them in its state directory. The existing worktree rule still applies to people's clones. Amend [decision record 0025](../../adrs/0025-clone-main-worktrees-stay-clean-and-on-main.md) by a tier 2 pull request when the launcher changes.
 - **Undo:** amend the record and change where the launcher creates its worktrees.
-- **Record:** the decision by the orchestrator on 2026-11-26.
+- **Record:** the decision by the orchestrator on 2026-11-26. Plan step 9 amends the record.
 
 ### D9. Imports use the existing override for pull request size
 
@@ -46,7 +46,7 @@ None.
 ### D1. Four factory-only imports join, and gomodscan stays standalone
 
 - **Decided:** 2026-11-26, by the operator.
-- **Rule:** github-metrics, bazel-r2-cache, go.tbhb.dev, and the Ansible collections join in plan step 11 at the paths in [appendix C](C-layout-and-ownership.md#where-each-repository-goes). The operator's tbhb-dev is their only user, and none of the repositories in this decision has outside users. gomodscan stays standalone, and awrel stays out because it will retire soon.
+- **Rule:** github-metrics, bazel-r2-cache, go.tbhb.dev, and the Ansible collections join in plan step 11 at the paths in [appendix C](C-layout-and-ownership.md#where-each-repository-goes). gomodscan stays standalone, and awrel stays out because it's retiring.
 - **Undo:** Import a standalone repository later or extract an imported project as described in [appendix H](H-dependencies-and-renovate.md#extracting-a-product).
 - **Record:** the operator's answers of 2026-11-26.
 
@@ -74,7 +74,7 @@ None.
 ### D6. The base branch workflow holds access to the private-name secret
 
 - **Decided:** 2026-11-26, by the orchestrator.
-- **Rule:** store the list in a GitHub Actions environment secret under the organization administrator grant. Restrict access to the base branch workflow. It scans eligible pull requests and every merge queue candidate, including candidates with fork changes. Its logs give the file and line of each finding and omit the match ([appendix D](D-public-private.md#keeping-private-content-out)).
+- **Rule:** store the list in a GitHub Actions environment secret under the organization administrator grant. Put the secret in an environment whose deployment rule allows the `main` branch alone, so a `pull_request` or `merge_group` run of an agent-edited `ci.yml` can't read it. The base branch workflow reads it. It scans eligible pull requests and every merge queue candidate, including candidates with fork changes. Its logs give the file and line of each finding and omit the match ([appendix D](D-public-private.md#keeping-private-content-out)). A `merge_group` run uses the queue candidate's own workflow files and its ref isn't `main`. The environment withholds the secret from it. Plan step 2 tests whether the base branch workflow can scan a candidate. Until that passes, a candidate relies on the scan of its pull request's head and the host hooks, and the [risks table](README.md#risks-and-unknowns) records the gap.
 - **Undo:** remove the environment secret and the job. Host scanning still runs.
 - **Record:** the decision by the orchestrator on 2026-11-26.
 
@@ -109,7 +109,7 @@ None.
 ### D35. Products depend on lib only, and factory code stays within the factory
 
 - **Decided:** 2026-11-26, by the operator.
-- **Rule:** products depend on `lib/` for published modules and vendored code (D14). Product build files load the build rules from `lib/rules` (D15). The factory publishes nothing for use outside `factory/`. Code used by both the factory and products, or by standalone repositories, goes in `lib/`. Bazel visibility and the layering queries in [appendix C](C-layout-and-ownership.md#dependency-rules-in-bazel) enforce both boundaries, including that no `factory/` target is visible to `products/` or `lib/`.
+- **Rule:** products depend on `lib/` for published modules and vendored code (D14). Product build files load the build rules from `lib/rules` (D15). The factory publishes nothing for use outside `factory/`. Reusable workflows stay in `.github/workflows/` ([appendix C](C-layout-and-ownership.md#where-each-repository-goes)). Code used by both the factory and products, or by standalone repositories, goes in `lib/`. Bazel visibility and the layering queries in [appendix C](C-layout-and-ownership.md#dependency-rules-in-bazel) enforce both boundaries, including that no `factory/` target is visible to `products/` or `lib/`.
 - **Undo:** Amend D14 and change the visibility rules and layering test together.
 - **Record:** the operator's answers of 2026-11-26.
 
@@ -118,7 +118,7 @@ None.
 - **Decided:** 2026-11-26, by the orchestrator.
 - **Rule:** A project is a folder under `factory/`, `products/`, `lib/`, or `docs/` that holds an `OWNERS` file. The monorepo computes the set from its tree, and the companion creates the same set from the commit it pins. The generator uses the project paths and ignores the contents of `OWNERS` files.
 - **Undo:** Change the generator and relabel the affected issues.
-- **Record:** the operator's answers of 2026-11-26.
+- **Record:** the decision by the orchestrator on 2026-11-26.
 
 ### D33. Project records live in each project's own docs folder, and a record pull request takes a lighter CI lane
 

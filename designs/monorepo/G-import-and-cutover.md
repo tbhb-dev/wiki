@@ -89,11 +89,11 @@ For a private-origin repository, step 5 builds the signed copy commit in a priva
 | --- | --- | --- | --- |
 | Pull requests dedicated to first-party pin updates | Up to 67 a week across the 22 measured repositories | 0 inside the monorepo, plus the companion's one pin | proven count, new target |
 | Third-party update pull requests | About 50 a week in 14 repositories, 36 of them distinct | One per lock file a day, plus one per major version | proven count, new target |
-| Dependency updates as a share of landings | 25% | Under 10% | proven count, new target |
+| Dependency updates as a share of landings | About 26% | Under 10% | proven count, new target |
 | Rules versions in use at once | 7 | 1 inside the monorepo | proven count |
-| Copies of the root configuration files | About 16 files in each of the 19 repositories in the original measurement | 16 | proven count |
+| Copies of the root configuration files | About 16 files in each of the 16 repositories in the root listing | 16 | proven count |
 | Workflow files | At least 72 | About 10 | proven count, new target |
-| Renovate runs | About 144 a week for each repository, near 2,700 in all | About 144, plus the companion's | existing schedule |
+| Renovate runs | About 144 a week for each repository, near 3,500 across the 24 in-scope repositories | About 144, plus the companion's | existing schedule |
 | Pull requests for a rules change that needs a consumer fix | One in rules, then one for each consumer after its pin moves | 1 | existing process |
 | Main rulesets and App installation lists to audit | One for each repository | 2 | existing |
 | Bazel output bases on an agent host | 598 on one host, unbounded | At most the slot count | proven count |

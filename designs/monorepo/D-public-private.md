@@ -98,7 +98,7 @@ A branch pushed to a public repository is public at once, even before any review
 | Import scan and review | The import tool and two fresh agent review runs, before the first public push (D4) | Private content in a private-origin repository | new |
 | Review | The reviewer of each pull request | What a pattern can't catch | existing |
 
-The companion stores the private-name list. Under the organization administrator grant, the repository stores a copy in a GitHub Actions environment secret and restricts that environment to the base branch workflow. An agent branch that edits the scan job has no access to the secret.
+The companion stores the private-name list. Under the organization administrator grant, the repository stores a copy in a GitHub Actions environment secret and restricts that environment's deployment rule to the `main` branch and the base branch workflow. A `pull_request` or `merge_group` run of an agent-edited `ci.yml` has no access to the secret. A queue candidate's ref isn't `main`, so scanning it with the secret depends on the base branch workflow reaching the candidate, which plan step 2 tests. Until then a candidate relies on the scan of its pull request's head and the host hooks.
 
 The trusted scan reads candidate files as data and never runs their code. It prints a file and line for each finding and omits the match. It scans fork changes at the queue candidate.
 
