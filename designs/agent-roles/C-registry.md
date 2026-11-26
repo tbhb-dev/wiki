@@ -71,7 +71,7 @@ authority = ["R9", "R10", "R11", "R26", "R30"]   # operator records, or coordina
 
 [kind.builder.launch]
 harness = "codex"
-model = "gpt-6.1-sol"
+model = "gpt-6.2-sol"
 effort = "high"
 profile = "build"               # the launcher profile: build | review
 
