@@ -47,7 +47,7 @@ The duties and the identities are the same on both sides ([appendix C](C-layout-
 | Review | `tbhb-agent`, in a fresh run, with the verdict published through the reviews App | The same, on a copy clone |
 | Approve | The reviews App at tiers 1 and 2, and the tier 0 workflow at tier 0 | The same, with the tiers read from the monorepo commit the companion pins |
 | Merge | `tbhb-agent` or `tbhb`, through GitHub's merge queue | `tbhb-agent` or `tbhb`, on a branch that contains `main`'s tip |
-| Publish private-origin code | `tbhb` signs off each import's scan report, if D4 is yes | Holds the report and the sign-off |
+| Publish private-origin code | Two independent tier 2 `tbhb-agent` runs clear the import before push (D4) | Holds the report and both verdicts |
 
 Each project's `OWNERS` file exists on both sides at the same path. The companion's copy describes only what the companion holds for the project, and it names the same two identities.
 
@@ -94,11 +94,11 @@ A branch pushed to a public repository is public at once, even before any review
 | --- | --- | --- | --- |
 | gitleaks with the shared rules, including the public address rule | Host commit hook, and CI on every commit of a pull request | Secrets and public addresses | existing |
 | Private-name scan | Host commit and push hooks, reading the list from the companion checkout | Host names, overlay network names, internal addresses, private repository names, and internal paths | new |
-| The same scan in CI | A job on each pull request and each queue candidate, reading the list from a secret (D6) | A commit from a host whose hook didn't run | new |
-| Import scan and sign-off | The import tool, on a host with the list, before the first push (D4) | Private content in a private-origin repository | new |
+| The same scan in CI | A job on pull requests with access to the repository secret and on each queue candidate (D6) | A commit from a host whose hook didn't run | new |
+| Import scan and review | The import tool and two fresh agent review runs, before the first public push (D4) | Private content in a private-origin repository | new |
 | Review | The reviewer of each pull request | What a pattern can't catch | existing |
 
-The private-name list lives in the companion, because the list is itself private. A host without the companion can't run the name scan. The hook installer therefore refuses to enable pushes to the monorepo from such a host when the host also holds a private checkout.
+The private-name list lives in the companion and in one repository Actions secret set under the organization admin grant. The CI job prints a file and line for each finding and omits the match. Fork pull requests receive no secret and are scanned at the queue candidate. A host without the companion can't run the name scan. The hook installer therefore refuses to enable pushes to the monorepo from such a host when the host also holds a private checkout.
 
 Hooks come from `tbhbdev alpha install` only, as today (existing rule). The push hook is new, and it scans every commit that the push would publish.
 
@@ -106,9 +106,10 @@ Hooks come from `tbhbdev alpha install` only, as today (existing rule). The push
 
 1. In the private repository, a pull request adds a path map: which globs are public and which go to the companion. It gets its review there, before anything is copied.
 2. The import tool builds the public tree from the map, and the companion tree from the rest.
-3. It runs gitleaks and the name scan over the public tree, and writes a report: every file, every finding, and every file held back.
-4. The operator signs off the report (D4).
-5. The tool commits the public tree as one signed copy commit, as for every import, and the companion tree as one commit in the companion. No history comes along, so nothing that was removed in the past is published.
+3. The tool makes one signed public copy commit in a private workspace. It brings no source history. The companion tree goes in its own commit in the companion.
+4. The tool runs gitleaks and the private-name scan on the candidate and records the results in the companion. The report lists every public file, every finding, and every held-back file. It names the exact copy commit and the manifest digest.
+5. Before the first public push, two fresh tier 2 `tbhb-agent` runs with private access independently read every public file, verify the held-back list against the frozen source and path map, and check every finding and its disposition. Both runs use a provider other than the builder's and share no context with the builder or each other. They record verdicts for the exact commit and report in the companion.
+6. The import tool blocks the public push until both verdicts clear the same candidate and report and the scans and private comparison pass. An incomplete report, unresolved finding, or missing, failed, or stale check or verdict blocks publication. A changed commit or report goes through the gate again. The operator has no sign-off duty (D4).
 
 The private repository's open issues go through the relevance pass, and the survivors move to the companion or are filed again in public with the private details removed ([appendix I](I-issues-and-projects.md#importing-the-survivors)). The repository is archived only when none are open.
 
@@ -117,16 +118,14 @@ The private repository's open issues go through the relevance pass, and the surv
 Public CI can't read a private original, so the byte comparison happens where the original is readable, and public CI checks a manifest.
 
 - **On the host that builds the import.** The tool writes a manifest into the import commit: each public file's new path and SHA-256 hash, and the source commit's hash. It compares each public file with the original byte for byte and puts the result and the manifest's digest in the scan report.
-- **In the companion's CI.** A workflow on a private runner checks out the original at the frozen commit and the import pull request's exact head, and repeats the comparison. It also checks that every source file is in the manifest or in the held-back list, and that list never leaves the companion.
-- **In public CI.** The `import` job checks that each file the commit adds matches its manifest hash or is listed as rewritten or generated, and that no executable reference to an old repository remains. It reads no sign-off and trusts no comment.
+- **In the companion's CI.** A workflow on a private runner checks out the original at the frozen commit and the candidate from private staging, and repeats the comparison before the public push. It checks the public pull request's exact head again for approval. It also checks that every source file is in the manifest or in the held-back list, and that list never leaves the companion.
+- **In public CI.** The `import` job checks that each file the commit adds matches its manifest hash or is listed as rewritten or generated, and that no executable reference to an old repository remains. The private report and its verdicts stay in the companion.
 - **At approval.** An import is tier 2, and both review runs have the companion. Each reads the companion's check for the exact head and clears the head only when it's green, so the reviews App never approves an import whose private comparison failed or didn't run.
 
-Public CI therefore proves only that the commit matches its own manifest. The match to the private bytes is proven in the companion, and it reaches the merge through the approval, never through public CI. The operator's sign-off in the companion names the manifest's digest, if D4 is yes.
+Public CI therefore proves only that the commit matches its own manifest. The match to the private bytes is proven in the companion, and it reaches the merge through the approval, never through public CI. The two pre-push verdicts in the companion bind the reviewed commit and report.
 
 ## What becomes public that isn't today
 
 - Every future change to ops playbooks, agent configuration, and public memories, with its review discussion.
 - The pace and shape of the factory's work, in one commit log.
 - CI logs for all of the above.
-
-That's the point of the move, and it's also why D4 puts the operator in front of each first publication.

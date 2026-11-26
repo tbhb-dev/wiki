@@ -43,7 +43,7 @@ One gate applies to the port and to nothing else here. A Go port pull request fo
 | 2 | rules | Everything else loads them, and the lint gates arrive with them. After this wave an imported project reads the rules from the tree |
 | 3 | tools | The import tool, the launcher, and the review tool live here, and the later waves use them from the monorepo |
 | 4 | wiki, research, spikes | Prose, with tier 0 review and few build targets. They exercise the queue at volume with little risk |
-| 5 | design, evals, pm, telemetry, dashboard, event-gateway, agent-capacity, work, dotfiles, runner-smoke, and any D1 additions | Independent projects, smallest first |
+| 5 | design, evals, pm, telemetry, dashboard, event-gateway, agent-capacity, work, dotfiles, runner-smoke, github-metrics, bazel-r2-cache, go.tbhb.dev, and the Ansible collections | Independent projects, smallest first |
 | 6 | agent-memories, sm, agent-config, ops | Private-origin, after the scan tooling has run on real hosts for some weeks. ops is last because it's the largest and holds the most private values |
 
 The break is clean (D27). Neither new repository ever calls a workflow in an old repository, pins one, or extends a preset from one. The scaffolding's workflow therefore uses only inline steps and third-party actions pinned by commit hash, and renovate-config's lint targets wait one wave for the rules.
@@ -54,7 +54,7 @@ Between waves, plan step 11 measures queue wait and CI time. A wave doesn't star
 
 ## Importing one repository
 
-1. **Sort the issues.** The relevance pass in [appendix I](I-issues-and-projects.md#the-relevance-pass) starts, carried out by the identities D34 names. It doesn't block the import, and it does block the archive.
+1. **Sort the issues.** The relevance pass in [appendix I](I-issues-and-projects.md#the-relevance-pass) starts with a `tbhb-agent` sorting run. A fresh `tbhb-agent` run on another provider confirms each close list before any issue on it closes (D34). It doesn't block the import, and it does block the archive.
 2. **Announce and drain.** `tbhb-agent` posts a freeze time in the old repository. Open pull requests merge or close before it, and agents get no new briefs for that repository.
 3. **Freeze.** `tbhb-agent` removes the Apps' write access to the old repository, under the organization admin grant, and the import names the frozen commit.
 4. **Map.** A path map lists every file at that commit as copied to a new path, dropped, or rewritten. Dropped files are the root configuration that the shared roots replace. Rewritten files are those that called, pinned, or imported an old repository.
@@ -63,7 +63,7 @@ Between waves, plan step 11 measures queue wait and CI time. A wave doesn't star
 7. **Review.** GitHub's diff view shows at most 300 files (per docs), so the reviewer works from a local checkout of the exact head. The `import` job's summary lists the dropped, rewritten, and generated files, and the reviewer reads each of those (D9).
 8. **Archive.** Once the repository has no open issue and no open pull request, its README gets one line that points to the new path, and it becomes an archive. `tbhbdev alpha monorepo archive` refuses while either count is above 0.
 
-A private-origin repository adds the split, the scan, and the operator's sign-off from [appendix D](D-public-private.md#importing-a-private-origin-repository) between steps 4 and 5.
+For a private-origin repository, step 5 builds the signed copy commit in a private workspace. The split, scans, and two independent reviews in [appendix D](D-public-private.md#importing-a-private-origin-repository) clear that exact commit before the import tool pushes it and opens the public pull request.
 
 "Executable reference" means a workflow `uses:` line, a Bazel override or module dependency, a Renovate `extends` entry, a Go import path, or a clone address in a script. Prose that names an old repository as a dated record, such as a decision record or this design, stays as written. Agent instruction files are rewritten to the new paths in the import commit.
 
@@ -115,7 +115,7 @@ Plan step 1 fills the last row with one read of the Actions API for each reposit
 
 ## The organization rename
 
-If D24 is yes, renaming `tbhb-dev` to `tbhbdev` is the last migration step, after the last archive and the after numbers. The clean break is what makes it small: by then the monorepo's own files hold no workflow call or pin that spells the organization.
+Renaming `tbhb-dev` to `tbhbdev` is the last migration step, after the last archive and the after numbers (D24). The rename proceeds only after the rehearsal passes. The clean break is what makes it small: by then the monorepo's own files hold no workflow call or pin that spells the organization.
 
 | Reference class | Behavior after a rename | Label | Fix |
 | --- | --- | --- | --- |
@@ -131,7 +131,7 @@ If D24 is yes, renaming `tbhb-dev` to `tbhbdev` is the last migration step, afte
 | Go module paths | Unchanged, because they use the vanity domain | existing | Point the vanity service at the new name |
 | Package and container namespaces, badges, and prose | Not redirected | unverified | A search of both repositories for the old login must return nothing |
 
-The step runs in this order:
+The rename follows this order.
 
 1. **Rehearse.** `tbhb-agent`, under the organization admin grant, creates a free throwaway organization with one repository, one action, one App installation, one webhook, and one team that an issue mentions, then renames it. The rehearsal's record says what each class above did, team mentions among them.
 2. **Prepare.** Every "edit" fix above is ready as a pull request, and settings that can key on an ID already do.

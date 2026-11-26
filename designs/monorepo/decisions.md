@@ -18,46 +18,6 @@ Back to [the design](README.md).
 
 ## Open
 
-### D1. Do github-metrics, bazel-r2-cache, and go.tbhb.dev join, while awrel, gomodscan, and the Ansible collections stay standalone?
-
-- **Recommendation:** yes.
-- **Why:** the first three serve only the factory, so they gain from one build and lose nothing. awrel, gomodscan, and the Ansible collections are tools that other people install by a public path and a version, like the four standalone open source tools.
-- **If yes:** the three join in plan step 11 at the paths in [appendix C](C-layout-and-ownership.md#where-each-repository-goes). awrel keeps its own repository, releases, and pins.
-- **If no:** name the repositories to flip. Bringing awrel in puts its packages under the monorepo's one Go module, so its install path and its version tags change for every outside user.
-- **Reversible:** yes. A repository can join later by the same import, and a folder can leave by the extraction in [appendix H](H-dependencies-and-renovate.md#extracting-a-product).
-
-### D2. May each agent App reach every path of the monorepo?
-
-- **Recommendation:** yes.
-- **Why:** a GitHub App's permissions apply to a whole repository (per docs). Today an App installed on only some repositories can't touch the others, and one repository removes that limit. Push rules that restrict file paths don't exist for public repositories (per docs).
-- **If yes:** path limits rest on the main ruleset: the `conclusion` check, and an independent approval at the tier the changed paths set ([appendix C](C-layout-and-ownership.md#separation-of-duties)). An agent can still push a branch that touches any path, and it can't merge one without both.
-- **If no:** sensitive folders, such as agent configuration and ops, stay in their own repositories, and the pins between them stay.
-- **Reversible:** yes, by extracting a folder to its own repository.
-
-### D3. May agent runs on one host share one writable Git object store?
-
-- **Recommendation:** yes.
-- **Why:** the launcher copies a full clone per run today, on purpose, so runs share no objects. Worktrees from one mirror share objects and refs, which makes a run cost its sparse files instead of the whole history. The monorepo's objects are all public, so the exposure is to a run that changes another run's refs, not to a run that reads them.
-- **If yes:** reviews check out a commit hash fetched from GitHub and never a local branch name, the launcher alone prunes and collects garbage, and an extended reference-transaction hook refuses updates to another run's branch. A hook can't stop a process that bypasses Git, so a run's commits that aren't pushed yet have no second copy. The companion keeps copy clones, because its objects are private.
-- **If no:** each run gets a partial, sparse copy clone from a full host mirror. That keeps today's isolation and the sparse view, and each run copies every commit and tree, which grows with history ([appendix B](B-alternatives.md#partial-copy-clones)).
-- **Reversible:** yes. The launcher keeps both modes behind one setting.
-
-### D4. Does the operator sign off each private-origin import before it's pushed?
-
-- **Recommendation:** yes, once each for ops, agent-config, agent-memories, and sm.
-- **Why:** publication is a one-way door. Each import is one copy commit with no history, so the operator reads a file list and a scan report instead of a history.
-- **If yes:** the import tool writes the report on a host that holds the private-name list, and the push waits for the sign-off in the companion. The report lists every public file, every finding, and every file held back.
-- **If no:** the two tier 2 review runs that `tbhb-agent` starts on the import pull request read the report in the operator's place, and the operator learns of a leak after the fact.
-- **Reversible:** no. A pushed commit counts as published even when it's deleted later.
-
-### D6. May the public repository hold the private-name list as an Actions secret?
-
-- **Recommendation:** yes.
-- **Why:** host hooks are the first barrier, and a host with a broken hook has none. A CI job that scans each pull request and each queue candidate catches that case before `main`. The list itself is private, so the job needs it as a secret.
-- **If yes:** the list is stored once as a repository secret, which takes the organization admin grant. The scan job prints only a file and a line, never the match. Fork pull requests get no secret, so the queue candidate is their scan.
-- **If no:** scanning stays on hosts only. A leak pushed from a host with a broken hook is found by a person or not at all.
-- **Reversible:** yes. Delete the secret and the job.
-
 ### D7. Does work on the in-house merge queue stop now?
 
 - **Recommendation:** yes, and its design is marked superseded once plan step 12 lands.
@@ -82,60 +42,89 @@ Back to [the design](README.md).
 - **If no:** no import splits, because D10 makes each one a single copy commit. An import over the limit waits until its source is cut down in the old repository to fit one commit, or until the operator names another path. Tools alone has about 105,000 lines of Python, so it can't import under this answer.
 - **Reversible:** yes. Remove the exemption after the last import.
 
-### D24. Is the organization renamed from `tbhb-dev` to `tbhbdev` as the last migration step?
-
-- **Recommendation:** yes, as the last step, and only after the rehearsal in [appendix G](G-import-and-cutover.md#the-organization-rename) passes.
-- **Why:** the repository then reads `tbhbdev/tbhbdev`, which matches the tool. After the imports, few places still spell the old login, so the last step is the cheapest moment the rename will ever have. The new login read as unclaimed on 2026-11-25 (the brief says).
-- **If yes:** `tbhb-agent` carries out the step under the organization admin grant, and `tbhb` answers for it through this decision. The step is the rehearsal, the rename, a free placeholder organization on the old login at once, and then the reference classes in appendix G.
-- **If no:** the organization stays `tbhb-dev`, the repository stays `tbhb-dev/tbhbdev`, and plan step 14 is dropped.
-- **Reversible:** partly. The login can go back while the placeholder holds the old one, and every reference then changes twice. The old login is open to anyone between the rename and the placeholder's creation.
-
-### D25. Does the relevance pass sort both issue sources by the criteria in appendix I?
-
-- **Recommendation:** yes.
-- **Why:** the criteria decide which work is dropped, and a wrongly closed issue is lost once its repository is archived. The two sources are the operator's tracker files and the open GitHub issues of each moved-in repository, and [appendix I](I-issues-and-projects.md#the-relevance-pass) proposes one set of criteria for both.
-- **If yes:** each issue from either source is sorted into close, public, or private by that table. Each close carries a one-line reason, and each kept issue carries one area label.
-- **If no:** name the criteria, for one source or for both.
-- **Reversible:** yes for a wrongly kept issue, which closes later. A wrongly closed issue reopens only until its repository is archived.
-
-### D26. Does the private Project hold issues from both repositories?
-
-- **Recommendation:** yes.
-- **Why:** the public roadmap Project holds only the monorepo's issues, by the operator's decision. One private Project that holds both gives one board for all work, and the roadmap stays the public subset of it.
-- **If yes:** the issue commands add every new issue to the private Project, and every monorepo issue to the roadmap as well.
-- **If no:** the private Project holds only the companion's issues, and reading all work takes two boards.
-- **Reversible:** yes. Add or remove the items with one command.
-
-### D34. Does `tbhb-agent` sort the issues from both sources, with a fresh `tbhb-agent` run confirming each close list?
-
-- **Recommendation:** yes.
-- **Why:** triage decides what work survives, so the operator names who does it. A close needs the same separation as a merge: whoever proposes a close list doesn't confirm it. This design assigns the duty to no one until the operator answers.
-- **If yes:** `tbhb-agent` sorts the tracker files and each moved-in repository's open issues, in an agent run. A fresh `tbhb-agent` run that shares no context with the first, on another provider, confirms each close list before anything closes.
-- **If no:** name the identity that sorts and the identity that confirms, for each source. If `tbhb` confirms each close list, each archive waits on the operator's time.
-- **Reversible:** yes. A later list can go to another identity. A close already made follows D25.
-
-### D35. May D14's product rule change to `lib/` only?
-
-- **Recommendation:** yes.
-- **Why:** the third review found that appendix C lets a product name a published package directly, against the `lib/`-only boundary the tree states. D14 as decided says "`lib/` and published modules only", and only the operator changes it.
-- **If yes:** D14's sentence reads "Products depend on `lib/` only and are built with the rules." A product reaches any other published module through a `lib/` project, and the fifth layering query enforces it.
-- **If no:** D14 stands. A product may name a published module, and the fifth query checks `third_party/` only.
-- **Reversible:** yes, by a build file and test change.
-
-### D36. May D28's label rule change to one identical set in both repositories?
-
-- **Recommendation:** yes.
-- **Why:** the third review found that labels taken from each repository's direct children can differ between the two. D28 as decided has each repository compute labels from its own tree, and never from an `OWNERS` file.
-- **If yes:** D28's sentences read "A project is a folder under `factory/`, `products/`, `lib/`, or `docs/` that holds an `OWNERS` file. The monorepo computes the set from its tree, and the companion creates the same set from the commit it pins." Nothing inside an `OWNERS` file becomes a label.
-- **If no:** D28 stands. Each repository lists its own direct children, and the companion adds a label for each folder only it has.
-- **Reversible:** yes. Change the generator and relabel.
-
 ## Decided
+
+### D1. Four factory-only imports join, and gomodscan stays standalone
+
+- **Decided:** 2026-11-26, by the operator.
+- **Rule:** github-metrics, bazel-r2-cache, go.tbhb.dev, and the Ansible collections join in plan step 11 at the paths in [appendix C](C-layout-and-ownership.md#where-each-repository-goes). The operator's tbhb-dev is their only user, and none of the repositories in this decision has outside users. gomodscan stays standalone, and awrel stays out because it will retire soon.
+- **Undo:** Import a standalone repository later or extract an imported project as described in [appendix H](H-dependencies-and-renovate.md#extracting-a-product).
+- **Record:** the operator's answers of 2026-11-26.
+
+### D2. Each agent App reaches every path of the monorepo
+
+- **Decided:** 2026-11-26, by the operator.
+- **Rule:** Each agent App is installed on the whole repository. An agent can push a branch that touches any path. Merging requires a green `conclusion` and independent approval at the tier the changed paths and content set ([appendix C](C-layout-and-ownership.md#separation-of-duties)).
+- **Undo:** Extract a project to a separate repository and restrict which Apps are installed there.
+- **Record:** the operator's answers of 2026-11-26.
+
+### D3. Agent runs on one host share a writable Git object store
+
+- **Decided:** 2026-11-26, by the operator.
+- **Rule:** Public runs use worktrees from the host's bare mirror. Reviews check out a commit hash fetched from GitHub. The launcher alone prunes and collects garbage, and the reference-transaction hook rejects updates to another run's branch. Direct writes to the mirror can bypass hooks, and commits a run has yet to push have no second copy. The companion keeps copy clones.
+- **Undo:** Switch the launcher to partial, sparse copy clones ([appendix B](B-alternatives.md#partial-copy-clones)).
+- **Record:** the operator's answers of 2026-11-26.
+
+### D4. Independent agent reviews clear each private-origin import before push
+
+- **Decided:** 2026-11-26, by the operator.
+- **Rule:** Two independent tier 2 `tbhb-agent` review runs with private access check every public file, every finding, and every held-back file before the first public push. The import tool requires both clear verdicts for the exact copy commit and report. A missing or stale verdict, failed scan or comparison, incomplete report, or unresolved finding blocks the push. The operator has no sign-off duty. The import remains one signed copy commit with no source history ([appendix D](D-public-private.md#importing-a-private-origin-repository)).
+- **Undo:** Change the gate for future imports. A public push cannot be undone.
+- **Record:** the operator's answers of 2026-11-26.
+
+### D6. The private-name list is a repository Actions secret
+
+- **Decided:** 2026-11-26, by the orchestrator.
+- **Rule:** Store the list once under the organization admin grant. The CI scan runs on pull requests with access to the secret and on every merge queue candidate. Its logs show only the file and line of each finding. Fork pull requests receive no secret and are scanned at the queue candidate.
+- **Undo:** Remove the repository secret and the job. Host scanning still runs.
+- **Record:** the operator's answers of 2026-11-26.
+
+### D24. The organization rename is the last migration step
+
+- **Decided:** 2026-11-26, by the operator.
+- **Rule:** After the rehearsal in [appendix G](G-import-and-cutover.md#the-organization-rename) passes, `tbhb-agent` uses the organization admin grant to rename `tbhb-dev` to `tbhbdev`, immediately claims the old login with a free placeholder organization, and checks the affected references.
+- **Undo:** Restore the old login while the placeholder holds it, and update every affected reference again.
+- **Record:** the operator's answers of 2026-11-26.
+
+### D25. Both issue sources use the same relevance criteria
+
+- **Decided:** 2026-11-26, by the operator.
+- **Rule:** Apply [appendix I's relevance pass](I-issues-and-projects.md#the-relevance-pass) to the operator's tracker files and every moved-in repository's open GitHub issues. Each issue is closed, kept in public, or kept in private. Each close carries a one-line reason, and each kept issue carries one area label.
+- **Undo:** Close a wrongly kept issue later. Reopen a wrongly closed issue before its source repository is archived.
+- **Record:** the operator's answers of 2026-11-26.
+
+### D26. The private Project holds both repositories' issues
+
+- **Decided:** 2026-11-26, by the operator.
+- **Rule:** The main private Project holds every issue from the monorepo and the companion. The public roadmap Project holds only the monorepo's issues. The issue commands add each new issue to the private Project and add each monorepo issue to the roadmap as well.
+- **Undo:** Change Project membership and update the issue commands.
+- **Record:** the operator's answers of 2026-11-26.
+
+### D34. Separate agent runs sort issues and confirm close lists
+
+- **Decided:** 2026-11-26, by the operator.
+- **Rule:** `tbhb-agent` sorts both issue sources. A fresh `tbhb-agent` run on another provider, with no context from the first run, confirms each close list before any issue on it closes.
+- **Undo:** Reassign later lists. D25 governs reopening a closed issue.
+- **Record:** the operator's answers of 2026-11-26.
+
+### D35. Products depend on lib only, and factory code stays within the factory
+
+- **Decided:** 2026-11-26, by the operator.
+- **Rule:** D14 reads "Products depend on `lib/` only and are built with the rules." Products reach published modules and vendored code through `lib/`. The factory publishes nothing for use outside `factory/`. Code used by both the factory and products goes in `lib/`. Bazel visibility and the layering queries in [appendix C](C-layout-and-ownership.md#dependency-rules-in-bazel) enforce both boundaries, including that no `factory/` target is visible to `products/` or `lib/`.
+- **Undo:** Amend D14 and change the visibility rules and layering test together.
+- **Record:** the operator's answers of 2026-11-26.
+
+### D36. Both repositories use one identical area label set
+
+- **Decided:** 2026-11-26, by the orchestrator.
+- **Rule:** A project is a folder under `factory/`, `products/`, `lib/`, or `docs/` that holds an `OWNERS` file. The monorepo computes the set from its tree, and the companion creates the same set from the commit it pins. The generator uses the project paths and ignores the contents of `OWNERS` files.
+- **Undo:** Change the generator and relabel the affected issues.
+- **Record:** the operator's answers of 2026-11-26.
 
 ### D33. Project records live in each project's own docs folder, and a record pull request takes a lighter CI lane
 
 - **Decided:** 2026-11-25, by the operator.
-- **Rule:** needs, requirements, and knowledge articles live in each project's own `docs/` folder, such as `factory/tbhbdev/docs/needs`, `factory/tbhbdev/docs/requirements`, and `factory/tbhbdev/docs/kb`, and not in the top-level `docs/`. A pull request whose diff touches only those paths is a record pull request, and a path check decides that. It runs only the Bazel record-check targets of the projects it touches, not the full build and test. The scans that guard what a pull request publishes still run, and the private-name scan among them runs only if D6 is yes, which is this design's reading and not the operator's wording. Any other file in the diff, or a change to a check's definition, sends it through the full lane. `conclusion` stays the one required check, and the rulesets don't change ([appendix F](F-ci.md#the-record-lane)).
+- **Rule:** needs, requirements, and knowledge articles live in each project's own `docs/` folder, such as `factory/tbhbdev/docs/needs`, `factory/tbhbdev/docs/requirements`, and `factory/tbhbdev/docs/kb`, and not in the top-level `docs/`. A pull request whose diff touches only those paths is a record pull request, and a path check decides that. It runs only the Bazel record-check targets of the projects it touches, not the full build and test. The scans that guard what a pull request publishes still run, and the private-name scan runs wherever D6 supplies the secret. Any other file in the diff, or a change to a check's definition, sends it through the full lane. `conclusion` stays the one required check, and the rulesets don't change ([appendix F](F-ci.md#the-record-lane)).
 - **Undo:** remove the path check from the workflow, and every pull request takes the full lane again.
 - **Record:** the third fix brief for this design's pull request, 2026-11-25.
 
@@ -176,8 +165,8 @@ Back to [the design](README.md).
 
 ### D28. Issues live in two repositories, with two Projects and one area label each
 
-- **Decided:** 2026-11-25, by the operator. The label rule is the operator's later ruling of the same day, which replaced labels generated from owner files. Labels still come from the tree and never from an `OWNERS` file.
-- **Rule:** issues live in the monorepo and in the companion, and both have Issues and Projects on. A public roadmap Project holds only the monorepo's issues, and a private Project exists beside it. Each issue carries exactly one area label: `area/<top>/<name>` for a direct child of `factory/`, `products/`, `lib/`, or `docs/`, or one of `area/repo`, `area/third_party`, and `area/none`. Each repository computes its labels from its own tree on every push to `main`, and the companion adds the public set, so no private project's name becomes a public label. The issue commands and a sync check enforce the one-label rule. Existing issues get a relevance pass before they move ([appendix I](I-issues-and-projects.md)).
+- **Decided:** 2026-11-25, by the operator. D26 and D36 amend the Project and label rules on 2026-11-26.
+- **Rule:** issues live in the monorepo and in the companion, and both have Issues and Projects on. The main private Project holds issues from both repositories, and the public roadmap holds the monorepo's public issues. Each issue carries exactly one area label, either `area/<project-path>` or one of `area/repo`, `area/third_party`, and `area/none`. A project is a folder under `factory/`, `products/`, `lib/`, or `docs/` that holds an `OWNERS` file. The monorepo computes the set from its tree, and the companion creates the same set from the commit it pins. The issue commands and a sync check enforce the one-label rule. Existing issues get a relevance pass before they move ([appendix I](I-issues-and-projects.md)).
 - **Undo:** change the label generator or the Projects. Imported issues stay where they landed.
 - **Record:** the operator's brief of 2026-11-25, addendum 5, and the second fix brief for this design's pull request.
 
@@ -251,10 +240,10 @@ Back to [the design](README.md).
 - **Undo:** fold them into the root module, which rewrites every load statement and cuts off standalone consumers.
 - **Record:** this design's pull request.
 
-### D14. Five top-level folders, a flat `factory/`, and three dependency rules
+### D14. Five top-level folders, a flat `factory/`, and dependency rules
 
-- **Decided:** 2026-11-25, by the operator. The flat `factory/` is the operator's later ruling of the same day, which replaced the first sketch's extra level of folders.
-- **Rule:** top-level folders are `factory/`, `products/`, `lib/`, `docs/`, and `third_party/`. `factory/` is one boundary with no grouping folders: each project is one folder directly under it, and one source repository becomes one folder. Each project's `README.md` and `OWNERS` file describe the project, and neither sorts it into a category. The top-level `docs/` holds the wiki, research, and spikes, and each project's own records live in the project (D33). Products depend on `lib/` and published modules only, the factory never depends on a product, and Bazel visibility enforces both. The companion mirrors the public paths.
+- **Decided:** 2026-11-25, by the operator. The flat `factory/` is the operator's later ruling of the same day, which replaced the first sketch's extra level of folders. D35 amends the dependency rules on 2026-11-26.
+- **Rule:** top-level folders are `factory/`, `products/`, `lib/`, `docs/`, and `third_party/`. `factory/` is one boundary with no grouping folders: each project is one folder directly under it, and one source repository becomes one folder. Each project's `README.md` and `OWNERS` file describe the project, and neither sorts it into a category. The top-level `docs/` holds the wiki, research, and spikes, and each project's own records live in the project (D33). Products depend on `lib/` only and are built with the rules. The factory never depends on a product and publishes nothing for use outside `factory/`. Code used by both the factory and products goes in `lib/`. Bazel visibility keeps all `factory/` targets unavailable to `products/` and `lib/`, and layering queries check these boundaries. The companion mirrors the public paths.
 - **Undo:** move folders by pull request. The rules live in build files and one test.
 - **Record:** the operator's brief of 2026-11-25, and the second and third fix briefs for this design's pull request.
 
@@ -288,19 +277,8 @@ Back to [the design](README.md).
 
 ## Open items at a glance
 
-| Item | Question | Recommendation |
-| --- | --- | --- |
-| D1 | Three factory-only repositories join, and awrel, gomodscan, and the Ansible collections stay out | yes |
-| D2 | Each agent App reaches every path | yes |
-| D3 | Runs on a host share one Git object store | yes |
-| D4 | The operator signs off each private-origin import | yes |
-| D6 | The private-name list is an Actions secret in the public repository | yes |
-| D7 | Work on the in-house merge queue stops | yes |
-| D8 | The worktree record changes to fit a bare mirror | yes |
-| D9 | Import pull requests skip the size limit | yes |
-| D24 | The organization is renamed as the last step | yes, after the rehearsal |
-| D25 | The relevance pass sorts both issue sources by appendix I's criteria | yes |
-| D26 | The private Project holds issues from both repositories | yes |
-| D34 | `tbhb-agent` sorts the issues, and a fresh `tbhb-agent` run confirms each close list | yes |
-| D35 | D14's product rule changes to `lib/` only | yes |
-| D36 | D28's label rule changes to one identical set in both repositories | yes |
+| Scope | Open items |
+| --- | --- |
+| Decisions answered on 2026-11-26 | None |
+
+D7, D8, and D9 were outside that round and remain in [Open](#open).

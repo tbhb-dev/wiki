@@ -30,15 +30,17 @@ factory/
   event-gateway/    telemetry/            dashboard/
   pm/               sm/                   work/
   evals/            ops/                  dotfiles/
+  github-metrics/   bazel-r2-cache/       go-vanity/
+  ansible-collections/
 products/           <name>/, empty today
 lib/                design/, and shared code as it appears
 docs/               wiki/  research/  spikes/, and no project's own records
 third_party/        vendored code, patches, and the private stub module
 ```
 
-`factory/` is one boundary and has no levels inside it (D14). Every factory project is one folder directly under `factory/`, and the path says nothing about what kind of project it is. The boundary is what the build enforces: a product depends on `lib/` only, and the factory never depends on a product.
+`factory/` is one boundary and has no levels inside it (D14). Every factory project is one folder directly under `factory/`, and the path says nothing about what kind of project it is. The boundary is what the build enforces: a product depends on `lib/` only, the factory never depends on a product, and factory targets stay within `factory/`. Code shared by a product and the factory goes in `lib/`.
 
-A project is a direct child of `factory/`, `products/`, `lib/`, or `docs/`. Each project folder has a `README.md`, an `OWNERS` file, and its own `docs/` folder. [OWNERS files](#owners-files) and [the top-level docs folder](#what-the-top-level-docs-folder-holds) describe the last two.
+A project is a folder under `factory/`, `products/`, `lib/`, or `docs/` with an `OWNERS` file (D36). Every factory project sits directly under `factory/`. Each project folder has a `README.md`, an `OWNERS` file, and its own `docs/` folder. [OWNERS files](#owners-files) and [the top-level docs folder](#what-the-top-level-docs-folder-holds) describe the last two.
 
 Two placements differ from the starting sketch in the brief:
 
@@ -101,21 +103,22 @@ Every repository arrives as one copy commit with no history (D10). One source re
 | dotfiles | `factory/dotfiles` | root configuration |
 | design | `lib/design` | root configuration |
 | wiki, research, spikes | `docs/<name>` | root configuration |
-| github-metrics, bazel-r2-cache | `factory/<name>` | root configuration, if D1 is yes |
-| go.tbhb.dev | `factory/go-vanity` | root configuration, if D1 is yes |
+| github-metrics, bazel-r2-cache | `factory/<name>` | root configuration |
+| go.tbhb.dev | `factory/go-vanity` | root configuration |
+| Ansible collections | `factory/ansible-collections` | root configuration |
 
-"Root configuration" means each repository's own module file, lock files, lint settings, Renovate file, and workflows, which the shared roots and the root workflows replace. awrel, gomodscan, and the Ansible collections stay standalone under D1's recommendation. The four open source tools and the graph repository are out of scope and don't move (D11). The private counterparts of wiki, research, spikes, evals, and tools go to the companion at the mirrored paths.
+"Root configuration" means each repository's own module file, lock files, lint settings, Renovate file, and workflows, which the shared roots and the root workflows replace. gomodscan stays standalone, and awrel stays out because it will retire soon (D1). The four open source tools and the graph repository are out of scope and don't move (D11). The private counterparts of wiki, research, spikes, evals, and tools go to the companion at the mirrored paths.
 
 ## Dependency rules in Bazel
 
 | From | May depend on | Never on |
 | --- | --- | --- |
-| `products/<name>` | itself and `lib/`, built with the rules (pending D35) | `factory/`, `third_party/`, another product, and a published module named directly |
+| `products/<name>` | itself and `lib/`, built with the rules | `factory/`, `third_party/`, another product, and a published module named directly |
 | `factory/<project>` | itself, `lib/`, `third_party/`, published modules, and targets another factory project exports | `products/` |
 | `lib/<name>` | `lib/`, `third_party/`, and published modules | `factory/`, `products/` |
-| `docs/` | `lib/`, the rules | `products/`, factory internals |
+| `docs/` | `lib/`, the rules | `products/`, `factory/` |
 
-A published module is one that resolves through a shared dependency root at a version: a Bazel module, or a package from a language's registry. The factory and `lib/` may name one, and a product may not, pending D35: it reaches a published module or vendored code only through a `lib/` project that wraps it. The one exception is what builds a product: its build files load the build rules as `@tbhb_rules` labels, and the language rule sets those load.
+A published module is one that resolves through a shared dependency root at a version: a Bazel module, or a package from a language's registry. The factory and `lib/` may name published modules, and products reach them or vendored code through `lib/` (D35). Product build files load the build rules as `@tbhb_rules` labels. The factory publishes nothing for use outside `factory/`. Code shared by the factory and products goes in `lib/`.
 
 Two mechanisms enforce the table.
 
@@ -132,7 +135,7 @@ Two mechanisms enforce the table.
 # gazelle:default_visibility //products/<name>:__subpackages__
 ```
 
-A factory project exports a target to other factory projects by naming `//factory:__subpackages__` on that target by hand. Go's own `internal/` rule still applies below each project.
+A factory project exports a target to other factory projects by naming `//factory:__subpackages__` on that target by hand. Every `factory/` target's Bazel visibility stays inside `factory/`, including for targets with no current consumers. Go's own `internal/` rule still applies below each project.
 
 **A layering test.** Anyone can widen a visibility line, so one test in the root `BUILD.bazel` runs these queries and fails when any returns a result:
 
@@ -146,7 +149,7 @@ bazel query --noimplicit_deps 'deps(//products/..., 1) except (//products/...:* 
 bazel query 'deps(//products/P/...) intersect (//products/...:* except //products/P/...:*)'
 ```
 
-The fifth query, pending D35, finds a product's direct dependency on anything but a product or `lib/`, which covers `third_party/` and every published module, and the `:*` patterns count source files as well as rule targets. It leaves out implicit dependencies, so the rules' own toolchains don't count, and whether that flag excludes exactly those is unverified until plan step 4 writes the test. The last query runs once for each product folder and finds a dependency from one product to another, whatever a visibility line says.
+The fifth query finds a product's direct dependency on anything but a product or `lib/`, which covers `third_party/` and every published module, and the `:*` patterns count source files as well as rule targets. It leaves out implicit dependencies, so the rules' own toolchains don't count, and whether that flag excludes exactly those is unverified until plan step 4 writes the test. The sixth query runs once for each product folder and finds a dependency from one product to another, whatever a visibility line says. A visibility query also runs for each package outside `factory/`, including every package in `products/` and `lib/`. For a package at `products/example`, it runs `bazel query 'visible(//products/example:*, //factory/...:*)'` and fails if any factory target is visible there. The test also rejects factory visibility declarations that grant access outside `factory/`, including public visibility when there are no outside targets yet.
 
 The rules never appear in these queries, because they're separate modules with `@tbhb_rules` labels. That's what lets a product use them and still leave the monorepo later. [Appendix H](H-dependencies-and-renovate.md#extracting-a-product) has the extraction steps, and the first rule above is what keeps them short.
 
@@ -179,11 +182,12 @@ These rules replace what repository boundaries did. No path has its own approver
 
 No file routes a review to a name. `tbhb-agent` starts every review as a fresh run, and the changed paths set how many runs there are and which providers they use. A reviewer's question about a project's direction goes to an identity in that project's `OWNERS` file, and the answer is a comment, never an approval.
 
-Three kinds of change wait for `tbhb` under rules that already exist, and none of the three depends on who owns a path:
+Two kinds of change wait for `tbhb` under rules that already exist. Neither depends on who owns a path:
 
 - **A decision record change.** It needs the operator's approval after its two reviews (existing, the review tier record).
-- **A private-origin import.** The operator signs off the scan report before the push, if D4 is yes.
 - **A Go port pull request for the front, dispatch, or plugin plumbing.** The operator reads it before merge (D29).
+
+A private-origin import first needs two independent `tbhb-agent` reviews in a private workspace before any public push (D4). [Appendix D](D-public-private.md#importing-a-private-origin-repository) gives the gate.
 
 ## Review tiers
 

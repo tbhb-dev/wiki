@@ -10,7 +10,7 @@ parent: README.md
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
-<!-- cspell:words monorepo lcov zizmor bzlmod Buildbarn rdeps cutover -->
+<!-- cspell:words monorepo lcov zizmor bzlmod Buildbarn rdeps cutover gomodscan -->
 
 # One public monorepo for the factory CI
 
@@ -27,7 +27,7 @@ Back to [the design](README.md).
 | `test` | One matrix entry per shard: `bazelisk test --config=ci --target_pattern_file=<shard>` | `plan` |
 | `coverage` | For each affected project, runs coverage over all of the project's test targets and checks the combined figure | `plan` |
 | `repo` | Gazelle diff, `bazel mod tidy`, gitleaks over the pull request's commits, commit identity, pull request size, the pull request body check, workflow lint, and the layering test | none |
-| `names` | The private-name scan, if D6 is yes | none |
+| `names` | The private-name scan with the repository Actions secret, on pull requests with secret access and on queue candidates (D6) | none |
 | `import` | On an import pull request, checks the copy against its source and its path map ([appendix G](G-import-and-cutover.md#importing-one-repository)) | none |
 | `rules` | Runs the nested rules workspace's own tests when a file under `factory/rules` changed, if plan step 2 shows the root can't run them | `plan` |
 | `conclusion` | Fails unless every job above passed or was skipped on purpose | all |
@@ -45,7 +45,7 @@ A project's needs, requirements, and knowledge articles live in its own `docs/` 
 - **A check's definition is never a record.** Each project declares its record check in its top-level `BUILD.bazel`, such as `//factory/tbhbdev:record_check`, and the rule behind it lives under `factory/rules`. Neither sits in a record folder, and neither does `ci.yml`, which holds the path check. A change to any of them therefore takes the full lane, and the tier 2 path map covers the rule and the workflow.
 - **The lane runs one target for each project touched.** The `records` job runs `bazelisk test` on the record-check target of each project in the diff. The target checks that project's records: their front matter against the schema, their links, and their prose.
 - **It skips the full build and test.** `test`, `coverage`, and `rules` are skipped on purpose, and so are the parts of `repo` that build: the gazelle diff, `bazel mod tidy`, and the layering test.
-- **The scans stay.** gitleaks, the `names` scan if D6 is yes, commit identity, pull request size, and the body check still run, because they guard what a public pull request publishes and none of them builds anything. Keeping them is this design's reading of D33, and the operator can drop them.
+- **The scans stay.** gitleaks, the `names` scan where D6 supplies the secret, commit identity, pull request size, and the body check still run, because they guard what a public pull request publishes and none of them builds anything. The names job reports only a file and line for each finding. A fork gets no secret, so its changes go through the names scan as a queue candidate.
 
 `conclusion` reports the record lane like any other run, so it stays the one required check and the rulesets don't change. A record pull request still needs the independent approval its tier sets.
 
@@ -139,6 +139,6 @@ The companion has no queue. Its ruleset requires the branch to contain `main`'s 
 
 ## What stays for standalone repositories
 
-The monorepo calls no reusable workflow, its own included. The four open source tools and any repository D1 leaves out keep calling the reusable workflows and composite actions at the pins they hold, in the archived rules repository, until each one's own cutover.
+The monorepo calls no reusable workflow, its own included. The four open source tools and gomodscan keep calling the reusable workflows and composite actions at the pins they hold, in the archived rules repository, until each one's own cutover.
 
 For that cutover, the rules' reusable workflows are also published from the monorepo's root `.github/workflows` folder, where a reusable workflow must sit (per docs). A standalone repository then changes its pin to the monorepo. Composite actions work from any folder.

@@ -62,7 +62,7 @@ Folding the rules into the root module makes every label a plain `//factory/rule
 
 ### Publishing the rules to a registry
 
-A private or public Bazel registry gives standalone consumers versions instead of commit pins. It adds a release step for each rules change, and the rules changed 306 times in 28 days. It becomes worth it when outside users appear, and nothing in this design blocks it.
+A private or public Bazel registry gives standalone consumers versions instead of commit pins. It adds a release step for each rules change, and the rules changed 306 times in 28 days. Revisit a registry if the rules gain users outside tbhb-dev.
 
 ### A Go workspace file and a lock for each project
 

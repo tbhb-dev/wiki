@@ -20,7 +20,7 @@ The operator asked directly how agent runs work on a large repository. This appe
 
 ## Where this starts
 
-The brief describes today's runs as worktrees cut from a host clone. The launcher's code does something else: it keeps a bare mirror per host and copies a full clone from it for every run, so that runs share no objects (proven, [appendix A](A-evidence.md#agent-runs-today)). The proposal below is therefore a larger change than the brief implies, and D3 asks the operator about the part that shares objects.
+The brief describes today's runs as worktrees cut from a host clone. The launcher's code does something else: it keeps a bare mirror per host and copies a full clone from it for every run, so that runs share no objects (proven, [appendix A](A-evidence.md#agent-runs-today)). D3 authorizes the public runs to share the bare mirror's writable object store. Companion runs keep copy clones.
 
 The monorepo starts at about 5,100 files and 23 MB. At that size a full copy per run costs under a second and little disk. The proposal still matters now for two reasons. Cleanup is broken today, and a narrow view keeps an agent's searches and edits inside its task.
 
@@ -133,6 +133,6 @@ Worktrees write their objects and their branch refs into the mirror. A run can t
 - Review runs check out a commit hash from GitHub, never a local branch.
 - The reference-transaction hook and the guard from the worktree record gain two rules: no ref update outside the run's own branch, and no pruning command from a run (new).
 
-These are guards against mistakes, not isolation. A process that writes the mirror's files directly passes every hook, and a run's commits that it has not pushed then have no second copy. D3 puts that trade to the operator.
+These are guards against mistakes, not isolation. A process that writes the mirror's files directly passes every hook, and a run's commits that it has not pushed then have no second copy.
 
 The record that says a clone's main worktree stays clean assumes a clone with a main worktree. A bare mirror has none, which satisfies the rule's intent and not its wording, so D8 asks to amend it.
