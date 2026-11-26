@@ -32,7 +32,7 @@ Nothing is open.
 ### D2. Host retires, analytics stays, and the Python fallthrough ends after the kept commands port
 
 - **Decided:** 2026-11-26, by coord, as a two-way door.
-- **Rule:** `tbhbdev host` is retired without a port. `tbhbdev analytics` stays in the bundle and runs through the Python fallthrough until it ports in a later wave. The fallthrough stays until every kept command has a Go version, then goes in its own pull request. Library-only modules stay in Python until their callers in other repositories move.
+- **Rule:** `tbhbdev host` is retired. Remove `host` from the `tbhbdev-py` command list. `tbhbdev analytics` stays in the bundle and runs through the Python fallthrough until it ports in a later wave. The fallthrough stays until every kept command has a Go version, then goes in its own pull request. Any library-only module with callers in other repositories stays in Python until those callers move.
 - **Undo:** Make a new decision any time before the Python code is deleted.
 - **Record:** On 2026-11-08, tbhb retired `tbhbdev host` entirely and moved its work to ops' Ansible. On 2026-11-09, tbhb confirmed that `tbhbdev analytics migrate` stays in tbhbdev. Coord decided when to remove the fallthrough on 2026-11-26.
 
@@ -61,14 +61,14 @@ Nothing is open.
 ### D25. The Python fallthrough is `tbhbdev-py` in the front's own folder
 
 - **Decided:** 2026-11-25, by tbhb.
-- **Rule:** the tools wheel gets a second entry point, `tbhbdev-py`, with the same code as `tbhbdev`. The installer puts it in the bundle's `bin/` beside the front, and the front execs it by absolute path. It never runs `python3 -m tbhbdev` and never searches `PATH`.
+- **Rule:** the Python CLI wheel gets a second entry point, `tbhbdev-py`, with the same code as the Python `tbhbdev`. The installer puts it in the bundle's `bin/` beside the front, and the front execs it by absolute path. It never runs `python3 -m tbhbdev` and never searches `PATH`.
 - **Undo:** a new decision by tbhb.
 - **Record:** tbhb's decision of 2026-11-25 on the fallthrough.
 
 ### D24. The GitHub client stack is go-github behind `internal/ghapi`
 
 - **Decided:** 2026-11-25, by tbhb, on a research report into Go GitHub clients.
-- **Rule:** REST goes through `github.com/google/go-github`, pinned at one major, v93.0.0 today, and only packages under `factory/cli/internal/ghapi` import it. It builds the one client with an injected transport, token, User-Agent, and timeout, through only the constructor options that exist in both v93 and go-github's main branch: `WithTransport`, `WithAuthToken`, `WithUserAgent`, and `WithTimeout`. A small GraphQL helper on the same client covers what REST lacks: marking a pull request ready, the merge queue state query and enqueue, and Projects v2 by node ID. It does not use `githubv4`. App installation tokens come from a standard-library JWT and go-github's installation calls, not `ghinstallation`, which pins go-github v88. The token code keeps today's lookup of the repository installation and then the organization one, its cache, its cooldown, and its secret-free errors. go-github majors move on tbhb-dev's schedule, since six of the eight majors from v86 to v93 broke calls this code uses, all renames or by-value changes that the compiler finds. go-arch-lint and depguard allow go-github only in `internal/ghapi` ([appendix K](K-go-stack.md#github-with-go-github)).
+- **Rule:** REST goes through `github.com/google/go-github`, pinned at one major, v93.0.0 today, and only packages under `factory/cli/internal/ghapi` import it. It builds the one client with an injected transport, token, User-Agent, and timeout, through only the constructor options that exist in both v93 and go-github's main branch: `WithTransport`, `WithAuthToken`, `WithUserAgent`, and `WithTimeout`. A small GraphQL helper on the same client covers what REST lacks: marking a pull request ready, the merge queue state query and enqueue, and Projects v2 by node ID. It does not use `githubv4`. App installation tokens come from a standard-library JWT and go-github's installation calls, not `ghinstallation`, which pins go-github v88. The token code keeps today's lookup of the repository installation and then the organization one, its cache, its cooldown, and its secret-free errors. go-github majors move on tbhb-dev's schedule. go-arch-lint and depguard allow go-github only in `internal/ghapi` ([appendix K](K-go-stack.md#github-with-go-github)).
 - **Undo:** a new decision by tbhb. A swap touches only `internal/ghapi`.
 - **Record:** tbhb's decisions of 2026-11-25 on the GitHub client stack.
 
@@ -82,7 +82,7 @@ Nothing is open.
 ### D22. The Go code lives in the monorepo tbhb-dev/tbhbdev
 
 - **Decided:** 2026-11-25, by tbhb, superseding D8.
-- **Rule:** the Go port is built in tbhb-dev/tbhbdev as one module, `github.com/tbhb-dev/tbhbdev`. The module path appears only in `go.mod`, so an organization rename touches one place. The CLI sits in the folder `factory/cli` (D27). The Python CLI and its unported commands move into the same folder on import (D27). One monorepo commit builds the bundle: the Go binary from that commit, and the wheel from the tools commit it pins, with both commits in the manifest. The first Go slice, tools#418, waits for the move and does not merge into tools.
+- **Rule:** the Go port is built in tbhb-dev/tbhbdev as one module, `github.com/tbhb-dev/tbhbdev`. The module path is declared in `go.mod` and used in Go imports, including the front's dispatch import in [tbhb-dev/tbhbdev#12](https://github.com/tbhb-dev/tbhbdev/blob/d3c0b84727eb0e9b5de38b523fc96fe1b29a7323/factory/cli/cmd/tbhbdev/main.go#L14). The monorepo imports the Python CLI and its unported commands into `factory/cli` (D27). It builds the Go binary and the `tbhbdev-py` fallback wheel from that folder at the same monorepo commit and records the commit in the manifest. The build follows the [monorepo clean break](../monorepo/decisions.md#d27-the-new-repositories-have-no-dependency-on-the-old-repositories) with no tools pin. The first Go slice, tools#418, waits for the move and does not merge into tools.
 - **Undo:** a new decision by tbhb.
 - **Record:** tbhb's decision of 2026-11-25 on the monorepo.
 
@@ -96,7 +96,7 @@ Nothing is open.
 ### D20. Go validates schemas in-process with `cuelang.org/go`
 
 - **Decided:** 2026-11-25, by tbhb.
-- **Rule:** the Go port never runs a `cue` binary, by name or by any path. Every schema check goes through `cuelang.org/go` in a pure package, with the schema embedded by `go:embed`, including the issue and pull request templates and the D16 run request and run metadata schema. depguard and ast-grep rules forbid running `cue` and forbid `os/exec` in pure packages, and the one process constructor refuses any program whose base name is `cue`. `cuecontext.New` reads `CUE_DEBUG` and `CUE_EXPERIMENT`, so the I/O shell clears every `CUE_` variable before the first CUE call, and a test fails when a CUE upgrade adds an environment read to the code that validation reaches, or to the linked `pkg/tool` task code that it must not reach ([appendix K](K-go-stack.md#the-cue-boundary)). The tools `schemas/*.cue` files stay the source while Python reads them, and the monorepo embeds byte-checked copies from the pinned tools commit.
+- **Rule:** the Go port never runs a `cue` binary, by name or by any path. Every schema check goes through `cuelang.org/go` in a pure package, with the schema embedded by `go:embed`, including the issue and pull request templates and the D16 run request and run metadata schema. depguard and ast-grep rules forbid running `cue` and forbid `os/exec` in pure packages, and the one process constructor refuses any program whose base name is `cue`. `cuecontext.New` reads `CUE_DEBUG` and `CUE_EXPERIMENT`, so the I/O shell clears every `CUE_` variable before the first CUE call, and a test fails when a CUE upgrade adds an environment read to the code that validation reaches, or to the linked `pkg/tool` task code that it must not reach ([appendix K](K-go-stack.md#the-cue-boundary)). After import, the monorepo embeds byte-checked copies of the Python CLI's local `schemas/*.cue` files.
 - **Undo:** a new decision by tbhb.
 - **Record:** tbhb's decisions of 2026-11-25 on the wave order and the stack, relayed with D17 to D19.
 
@@ -125,7 +125,7 @@ Nothing is open.
 ### D16. The driver-host format is one versioned schema with a CI check
 
 - **Decided:** 2026-11-25, by tbhb.
-- **Rule:** the run request and the run metadata are one schema file, `schemas/agent-protocol.json` in tools, with a version, and the driver and the host both validate against it. An additive change keeps the version. A breaking change bumps it, and the host keeps serving the previous version until the next bump, which waits until every listed machine serves the version it replaces. A CI job fails when the schema changes without a matching entry in `schemas/agent-protocol.decisions.toml`, as [appendix I](I-protocol.md#the-schema-version-check) specifies. The protocol version in D14 is this schema's version. A frozen legacy version 2 shape, today's exact fields, is what a writer sends a host too old to answer the protocol query, in the envelope and in the staged request file. The host writes the chosen version as each run's first file, and every reader validates that run's files against it. Each build serves two versions for new launches and retains every frozen schema for reading runs, and CI holds both sets apart.
+- **Rule:** the run request and the run metadata are one schema file, `schemas/agent-protocol.json`, with a version, and the driver and the host both validate against it. It starts in tools in phase 1 and moves with the Python CLI on import. An additive change keeps the version. A breaking change bumps it, and the host keeps serving the previous version until the next bump, which waits until every listed machine serves the version it replaces. A CI job fails when the schema changes without a matching entry in `schemas/agent-protocol.decisions.toml`, as [appendix I](I-protocol.md#the-schema-version-check) specifies. The protocol version in D14 is this schema's version. A frozen legacy version 2 shape, today's exact fields, is what a writer sends a host too old to answer the protocol query, in the envelope and in the staged request file. The host writes the chosen version as each run's first file, and every reader validates that run's files against it. Each build serves two versions for new launches and retains every frozen schema for reading runs, and CI holds both sets apart.
 - **Undo:** a new decision by tbhb.
 - **Record:** tbhb's decision of 2026-11-25, relayed with D14 and D15. The separate plugin version contract was replaced by the 2026-11-26 no-plugins decision (D3).
 
@@ -184,13 +184,13 @@ Nothing is open.
 
 - **Decided:** 2026-11-25, by tbhb-agent in this design, which tbhb approves. Superseded the same day by tbhb's D22, which moves the Go code to tbhb-dev/tbhbdev.
 - **Rule:** one commit builds the bundle with one Go binary for its own commands and the Python wheel it falls through to.
-- **Undo:** not needed. D22 keeps one commit per bundle by pinning the tools commit in the monorepo.
+- **Undo:** not needed. D22 keeps one commit per bundle by building both parts in the monorepo.
 - **Record:** this design's pull request. The per-command binaries were replaced by the 2026-11-26 no-plugins decision (D3).
 
 ### D7. Go-only pull requests do not run the Python suite
 
 - **Decided:** 2026-11-25, by tbhb.
-- **Rule:** Go and Python targets sit in separate Bazel packages with disjoint inputs, with no catch-all target, so a pull request or merge queue run tests only what its change affects. Since D22 the Go code is in another repository, so a Go change never starts the tools suite, and inside the monorepo the tests that run the Python server take the pinned wheel as an input. tbhb-agent tracks CI wall time across repositories as separate CI speed work.
+- **Rule:** Go and Python targets sit in separate Bazel packages with disjoint inputs, with no catch-all target, so a pull request or merge queue run tests only what its change affects. Inside the monorepo, tests that run the Python server take the locally built wheel as an input. tbhb-agent tracks CI wall time across repositories as separate CI speed work.
 - **Undo:** one-way in practice. Merging the inputs again brings back the 300-second suite on every change.
 - **Record:** tbhb's decision of 2026-11-25.
 

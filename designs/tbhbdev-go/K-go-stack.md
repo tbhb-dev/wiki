@@ -108,15 +108,17 @@ Go has a native package for Configure Unify Execute (CUE), `cuelang.org/go`, so 
 | Review draft and review policy schemas | `jsonschema` | `internal/schemas`, through `encoding/jsonschema` |
 | Run request and run metadata: `schemas/agent-protocol.json` | `jsonschema`, from plan step 2 | `internal/agent/protocol`, through `encoding/jsonschema` |
 
-### The schema source across two repositories
+### The schema source after import
 
 The Python side's `src/tbhbdev/schemas/*.cue` files are symbolic links to `core.cue`, `issue.cue`, and `review.cue` under the tools root `schemas/` directory, where `taxonomy.cue` also sits (existing, at tools `bf420ff`).
 
-The Go code lives in another repository (D22), so no link can join the two. tools keeps the files as the source while its Python reads them. The schema slice copies them into `internal/schemas/cue/` as plain files, since by default `go:embed` skips symbolic links when walking directories and rejects patterns that match links directly ([Go 1.27.4 embed resolver](https://github.com/golang/go/blob/go1.27.4/src/cmd/go/internal/load/pkg.go)). A monorepo test reads the same files from the pinned tools commit and fails on any byte difference, so a schema change lands in tools first and reaches Go through the pin bump. When the Python content libraries go, the monorepo copies become the source.
+The Python CLI imports its schema source files into `factory/cli` (D22). The schema slice copies them into `internal/schemas/cue/` as plain files, since by default `go:embed` skips symbolic links when walking directories and rejects patterns that match links directly ([Go 1.27.4 embed resolver](https://github.com/golang/go/blob/go1.27.4/src/cmd/go/internal/load/pkg.go)). A monorepo test compares the embedded copies with the local source files byte for byte.
 
 ### The CUE boundary
 
-`cuecontext.New` reads `CUE_DEBUG` and `CUE_EXPERIMENT` from the process environment (per this design's review, checked again by the schema slice against the pinned version). That is an environment read inside a pure package's call, which no import ban can see. The port pins the boundary in three parts:
+`cuecontext.New` initializes settings from `CUE_DEBUG` and `CUE_EXPERIMENT` in the process environment. That is an environment read inside a pure package's call, which no import ban can see. [CUE v0.18.0 runtime source](https://github.com/cue-lang/cue/blob/v0.18.0/internal/core/runtime/runtime.go#L129-L139)
+
+The port pins the boundary in three parts:
 
 - **Cleared in the shell.** `run.Main`, the I/O entry for Go commands, removes every variable whose name starts with `CUE_` from the process environment before it builds the cobra root, so no CUE call ever sees one. Children that a Go command starts get the cleaned environment, which is safe because no Go code runs `cue`.
 - **One constructor.** The pure schema packages create their CUE context only through one unexported function, and an ast-grep rule, `cue-one-context`, bans `cuecontext.New` anywhere else.

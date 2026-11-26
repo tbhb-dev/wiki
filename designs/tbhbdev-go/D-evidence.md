@@ -1,7 +1,7 @@
 ---
 type: Design Appendix
 title: tbhbdev Go port evidence
-description: Each claim the tbhbdev Go port design makes about tbhbdev, its neighbors, and tbhb's rules, labeled existing, new, or unverified, with its source.
+description: Sources for claims the tbhbdev Go port design makes about tbhbdev, its neighbors, and tbhb's rules.
 tags: [tbhbdev, go, evidence, design]
 status: draft
 parent: README.md
@@ -20,11 +20,10 @@ The gh evidence is in [appendix A](A-gh-architecture.md) and [appendix B](B-gh-p
 
 Labels:
 
-- **existing** means a file read at the named commit.
+- **existing** means a claim checked against source or upstream documentation.
 - **outline** means the design outline from a tools read at `75cbfd83` on 2026-11-25, which this pass did not read again.
 - **brief** means tbhb's rules as the task brief relays them.
 - **new** means this design proposes it.
-- **unverified** means nobody checked it.
 
 ## tbhb's rules
 
@@ -32,13 +31,12 @@ Labels:
 | --- | --- | --- |
 | tbhbdev ports to one Go binary in the monorepo, the Python pure-core refactor stops, and the first build is the front with a Python fallthrough | brief | tbhb's decisions of 2026-11-25 and 2026-11-26 (D3 and D4) |
 | The design follows gh after research into its pitfalls, the pure and thin input/output (I/O) rule holds in Go, and no package takes the name `core` or `shell` | brief | the same |
-| One commit builds one release bundle | brief | the same. Since D22, one monorepo commit with the tools commit it pins |
+| One monorepo commit builds the Go binary and the Python fallback wheel from `factory/cli` | design | D22 and the [monorepo clean break](../monorepo/decisions.md#d27-the-new-repositories-have-no-dependency-on-the-old-repositories) |
 | Go has no `alpha`, commands get final names, and `alpha` works only through the fallthrough until each command ports | brief | the same |
 | No version mismatch ever blocks a launch, and a host that cannot run a driver's launch counts as a refusal | brief | the same |
 | Driver and host check a protocol version and never build hashes, and a build mismatch is a logged warning | brief | tbhb's requirements of 2026-11-25, relayed after the first draft |
 | tbhbdev updates itself at start when behind main, with a cached main commit, an atomic swap, no refusal on failure, and an opt-out variable | brief | the same |
 | The run request and run metadata are one versioned schema that both sides validate against, with a continuous integration (CI) check on version decisions | brief | the same |
-| The tools maintainer is building event-driven sync on merges to main | brief, unverified | the same. Its design was not read |
 | Go-only pull requests do not run the Python suite in pull requests or the merge queue | brief | the same |
 | CI wall time across repositories is separate CI speed work that tbhb-agent tracks, outside this port | brief | the same |
 | No decision record covered a Go port at the time of the outline's read, and the agent capacity record chose Go for new agent tooling | outline | grep of the decision folder |
@@ -47,11 +45,12 @@ Labels:
 | Front and dispatch pull requests go to tbhb before merge | brief | the same (D19) |
 | Go validates schemas in-process with `cuelang.org/go`, embedded by `go:embed`, and never runs the `cue` binary | brief | the same (D20) |
 | After tools#399, Python gets no new review features | brief | the same relay |
-| The Go port is built in the monorepo tbhb-dev/tbhbdev, module `github.com/tbhb-dev/tbhbdev` in `go.mod` only, tools keeps the Python and the unported commands, and tools#418 waits for the move | brief | tbhb's decision of 2026-11-25 on the monorepo (D22) |
+| The Go port is built in the monorepo tbhb-dev/tbhbdev, the Python CLI imports into `factory/cli`, and tools#418 waits for the move | brief | D22 and [monorepo D23](../monorepo/decisions.md#d23-the-command-line-tool-lives-at-factorycli) |
+| The front imports dispatch under the module path `github.com/tbhb-dev/tbhbdev` | existing | [Front source in tbhb-dev/tbhbdev#12](https://github.com/tbhb-dev/tbhbdev/blob/d3c0b84727eb0e9b5de38b523fc96fe1b29a7323/factory/cli/cmd/tbhbdev/main.go#L14) |
 | The CLI folder inside the monorepo is `factory/cli` | brief | The operator's 2026-11-26 correction (D27, [monorepo D23](../monorepo/decisions.md#d23-the-command-line-tool-lives-at-factorycli)) |
 | The Python fallthrough is the `tbhbdev-py` entry point in the front's own folder | brief | tbhb's decision of 2026-11-25 on the fallthrough (D25) |
 | The GitHub client stack is go-github v93 behind `internal/ghapi`, a GraphQL helper, and a standard-library JWT, with no `githubv4` or `ghinstallation` | brief | tbhb's decision of 2026-11-25 on a research report into Go GitHub clients (D24) |
-| Six of the eight go-github majors from v86 to v93 broke calls this code uses, and `ghinstallation` pins go-github v88 | brief, unverified | the same research report, not read by this pass |
+| `ghinstallation` v2.19.0 pins go-github v88.0.0 | existing | [ghinstallation v2.19.0 go.mod](https://github.com/bradleyfalzon/ghinstallation/blob/v2.19.0/go.mod#L8) |
 | Front and dispatch pull requests wait for tbhb's go on Open, nobody approves them before that, and the gate covers those paths under `factory/cli` in the monorepo but not the monorepo's general scaffolding | brief | tbhb's decisions of 2026-11-25 on the scaffolding gate (D19) |
 
 ## The tools repository
@@ -67,7 +66,7 @@ Labels:
 | The launcher's exit codes are 0, 2, 3, 4, 124, and 143 | outline | the agent README |
 | The launcher uses tmux and ssh, so Windows is out of scope | outline | `launcher.py` lines 15 to 29 |
 | The `alpha` command list and usage text | existing | `src/tbhbdev/alpha/__init__.py` at `938f65f` |
-| Top-level commands `admin`, `alpha`, `analytics`, `host`, and `secret` | existing | `src/tbhbdev/cli.py` at `938f65f` |
+| The pre-import Python CLI registers the top-level commands `admin`, `alpha`, `analytics`, `host`, and `secret` | existing | [tools CLI at `c02551d`](https://github.com/tbhb-dev/tools/blob/c02551d5089ecbc08404f565b73cec4724a60dea/src/tbhbdev/cli.py#L29) |
 | `agy`, `adr`, `issue`, and `cue` are top-level tools | outline | the tools table at `75cbfd83` |
 | graph and the private ITSM repository use that group | outline | their `pyproject.toml` files |
 | `pyproject.toml` has one console script, `tbhbdev` | existing | `pyproject.toml` at `938f65f`. `tbhbdev-py` is new (D25) |
@@ -79,10 +78,8 @@ Labels:
 | CI gives the main cache token to `push` and `merge_group` runs | existing | the merge queue design's evidence, tools `ci.yml` at `f342d9c5` |
 | Hosts install with `uv tool install git+https://github.com/tbhb-dev/tools` | outline | tools `AGENTS.md` |
 | tools#385 (`da154050`) is the only verified open pure-core pull request | outline | local refs. The tools inventory of 2026-11-25 lists it as merged since |
-| `tbhbdev host` is retired without a port, and its work moved to ops' Ansible | brief | tbhb's decision of 2026-11-08 (D2) |
+| `tbhbdev host` is retired, its work moved to ops' Ansible, and the bundled fallback excludes it | brief | tbhb's decision of 2026-11-08 (D2) |
 | `tbhbdev analytics migrate` stays in tbhbdev | brief | tbhb's answer of 2026-11-09 (D2) |
-| Which other repositories import the library-only modules | unverified | the tools README calls them libraries |
-| Who writes host authorized-keys entries | unverified | |
 
 ## The agent protocol today
 
@@ -130,11 +127,11 @@ The brief says tools main has no protocol or schema version in `alpha/agent`. Th
 | `cuelang.org/go/encoding/jsonschema.Extract` converts a JSON Schema to a CUE syntax tree that `cue.Context.BuildFile` loads for in-process validation | existing | [CUE v0.18.0 Extract](https://pkg.go.dev/cuelang.org/go@v0.18.0/encoding/jsonschema#Extract) |
 | Cobra registers `__complete` as a hidden command for shell completion | existing | [Cobra v1.10.2 completions.go](https://github.com/spf13/cobra/blob/v1.10.2/completions.go) |
 | Viper initializes a package-level default instance and routes package-level functions such as `Get` to it. Koanf's `New` returns a separate instance for each load | existing | [Viper v1.21.0 source](https://github.com/spf13/viper/blob/v1.21.0/viper.go) and [Koanf v2.4.1 source](https://github.com/knadh/koanf/blob/v2.4.1/koanf.go) |
-| `cuecontext.New` reads `CUE_DEBUG` and `CUE_EXPERIMENT` | brief, unverified | this design's review. The schema slice's `cue_env_reads_test` checks it against the pinned version |
-| go-github v93 and its main branch both have `WithTransport`, `WithAuthToken`, `WithUserAgent`, and `WithTimeout` | brief, unverified | the research report behind D24 |
-| gazelle takes its prefix from `go.mod` when no directive sets one | unverified | gazelle's documentation, checked by the scaffolding |
-| `uv venv --relocatable` keeps entry-point scripts working after a directory rename | unverified | uv's documentation, checked by the bundle slice |
-| `gh attestation verify` can pin the signer workflow, the source ref, and the source commit | unverified | the gh manual, checked by plan step 4 |
+| `cuecontext.New` calls `runtime.New`, which initializes settings from `CUE_DEBUG` and `CUE_EXPERIMENT` | existing | [CUE v0.18.0 context](https://github.com/cue-lang/cue/blob/v0.18.0/cue/cuecontext/cuecontext.go#L48) and [runtime](https://github.com/cue-lang/cue/blob/v0.18.0/internal/core/runtime/runtime.go#L69) |
+| go-github v93.0.0 and its main branch both define `WithTransport`, `WithAuthToken`, `WithUserAgent`, and `WithTimeout` | existing | [v93.0.0 source](https://github.com/google/go-github/blob/v93.0.0/github/github.go#L402-L460) and [main branch snapshot](https://github.com/google/go-github/blob/f73d443151bf3e64fe52b622adebdc521ef4ca5f/github/github.go#L411-L466) |
+| When the prefix is unset, gazelle v0.54.0 reads the module path from `go.mod` | existing | [gazelle v0.54.0 source](https://github.com/bazel-contrib/bazel-gazelle/blob/v0.54.0/language/go/config.go#L747-L760) |
+| `uv venv --relocatable` keeps standard console and GUI scripts working when the environment moves with them | existing | [uv 0.13.9 CLI source](https://github.com/astral-sh/uv/blob/0.13.9/crates/uv-cli/src/lib.rs#L3011-L3024) |
+| `gh attestation verify` accepts `--signer-workflow`, `--source-ref`, and `--source-digest` | existing | [GitHub CLI v2.103.3 source](https://github.com/cli/cli/blob/v2.103.3/pkg/cmd/attestation/verify/verify.go#L263-L268) |
 
 ## Neighbors and rules
 

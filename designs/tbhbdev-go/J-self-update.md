@@ -80,7 +80,7 @@ The install keeps versioned directories under `~/.local/libexec/tbhbdev/` and on
 4. **Place.** Rename `.tmp-<random>/` to `<version>/`. If `<version>/` already exists, because sync or another run got there first, delete the temporary directory and use the existing one.
 5. **Recheck.** Still under the lock, read the link's current target and its manifest. If that target's commit is the new one or later by release number, because sync published it meanwhile, leave the link alone and use the current target. The swap never publishes a bundle older than the one the link names.
 6. **Lease the target.** Open `<target>/.in-use` and take a shared lease on it, without close-on-exec, before anything else can prune.
-7. **Prove it runs.** Still under the lock, run `<target>/bin/tbhbdev version` and `<target>/bin/tbhbdev-py --version` as children, with `TBHBDEV_NO_SELF_UPDATE=1` and a deadline from the budget. Both must exit 0. The Go command must print the target's bundle version and tools commit, and the Python command must name the pinned tools commit. On any other result, record the failure, delete the target if this run placed it, and run the current build. No public link ever names a target that has not run.
+7. **Prove it runs.** Still under the lock, run `<target>/bin/tbhbdev version` and `<target>/bin/tbhbdev-py --version` as children, with `TBHBDEV_NO_SELF_UPDATE=1` and a deadline from the budget. Both must exit 0 and report the target's monorepo commit. The Go command must also print the target's bundle version. On any other result, record the failure, delete the target if this run placed it, and run the current build. No public link ever names a target that has not run.
 8. **Publish.** Create a new link `~/.local/bin/.tbhbdev-<random>` to `<target>/bin/tbhbdev`, then rename it over `~/.local/bin/tbhbdev`. The link always exists, and it names either the old bundle or a new one that has run. Remember the old target.
 9. **Hand off.** Write the cache, and exec the new front by its absolute path with the original argv, still holding the update lock. The lock's descriptor and the lease from step 6 pass through the exec, without close-on-exec, and `TBHBDEV_UPDATE_LOCK_FD` names the lock's. The new front closes that descriptor once it holds its own lease and has read its manifest, before dispatch, so the command starts with the lock released. The lock is never released between the publish and a successful start of the new front.
 
@@ -140,7 +140,7 @@ Each row below is a test in the self-update slice. Pure rows are `unit_go_test` 
 
 ## Event-driven sync
 
-The tools maintainer is building event-driven sync, which installs the new release on each machine when a pull request merges to main (unverified beyond the brief). Since D22 that is the main branch of tbhb-dev/tbhbdev, and a tools merge reaches machines through the pin bump it opens there. Sync is the main path, and self-update is the fallback.
+The design uses event-driven sync to install the new release on each machine when a pull request merges to main in tbhb-dev/tbhbdev (D22). Sync is the main path, and self-update is the fallback.
 
 - **One install path.** Sync runs the same install code, takes the same lock, and makes the same swap with the same recheck. Whichever comes second finds the directory present and moves the link only if its bundle is newer.
 - **Sync writes the cache.** After an install, sync writes the cache with the installed commit and the current time. The next start's `Decide` returns `Run` with no network call.

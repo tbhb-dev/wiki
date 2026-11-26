@@ -22,7 +22,7 @@ decisions_open: 0
 
 ## Summary
 
-On 2026-11-25 tbhb chose to port tbhbdev, about 37,700 lines of Python, to Go. The Go code lives in the new monorepo tbhb-dev/tbhbdev (D22), and the Python stays in tbhb-dev/tools.
+On 2026-11-25 tbhb chose to port tbhbdev, about 37,700 lines of Python, to Go. The Python CLI imports into `factory/cli` in the new monorepo tbhb-dev/tbhbdev, and the port proceeds there (D22).
 
 One Go binary, `tbhbdev`, runs its own commands in `factory/cli` (D3). It hands unported commands, `alpha` included, to `tbhbdev-py`, the Python tbhbdev beside it (D25). The Go commands use cobra, koanf, go-github, and in-process Configure Unify Execute (CUE) validation, with no package state.
 
@@ -32,15 +32,15 @@ Implementation waits for tbhb's read of the merged design.
 
 ## Proposal
 
-When the first build merges, these parts exist. The Go code is one module in tbhb-dev/tbhbdev, `github.com/tbhb-dev/tbhbdev`, a path written only in its `go.mod` (D22). The Python tbhbdev, `tbhbdev-py`, and every unported command stay in tbhb-dev/tools.
+When the first build merges, these parts exist. The Go code is one module in tbhb-dev/tbhbdev, `github.com/tbhb-dev/tbhbdev`, declared in `go.mod` and used in Go imports (D22).
 
 - **The front, `factory/cli/cmd/tbhbdev`** (new). A Go binary that routes argv to a Go command in the same binary or replaces itself with `tbhbdev-py`. It does no network work before dispatch.
 - **The Go stack** (new). cobra and pflag for Go commands, koanf for config, `cuelang.org/go` for every schema check, and go-github behind one package for GitHub, each held to its packages by the rules in [appendix K](K-go-stack.md). Routing uses none of them.
-- **The Python fallthrough, `tbhbdev-py`** (existing code, new place). The Python wheel from the tools commit that the monorepo pins, installed inside the bundle, with its `tbhbdev-py` entry point in the front's own `bin/` folder. It runs `tbhbdev alpha` and other names that the front does not resolve (D5, D25).
-- **The release bundle** (new). One archive per platform, built by the tbhb-dev/tbhbdev release job from one monorepo commit: the Go binary, the pinned tools wheel, and a manifest that names both commits. tbhb-agent builds the code, tbhb approves its merge, and the release job then builds the bundle from the merged commit.
+- **The Python fallthrough, `tbhbdev-py`** (existing code, new place). The monorepo builds the wheel from the Python CLI in `factory/cli` and installs it inside the bundle, with its `tbhbdev-py` entry point in the front's own `bin/` folder. It runs `tbhbdev alpha` and other unported commands (D5, D25). tbhb retired `tbhbdev host` on 2026-11-08, so the fallback's command list excludes `host` (D2).
+- **The release bundle** (new). One archive per platform, built by the tbhb-dev/tbhbdev release job from one monorepo commit. It includes the Go binary, the locally built Python wheel, and a manifest that names the commit. tbhb-agent builds the code, tbhb approves its merge, and the release job then builds the bundle from the merged commit.
 - **Release checks** (new, D23). The release job attests each archive with a keyless GitHub artifact attestation. The installer checks the SHA-256 hashes and the attestation, pinned to the tbhbdev release workflow, the `main` ref, and the expected commit, before any swap.
 - **The installer** (new behavior). It unpacks a bundle into its own versioned directory and swaps one symbolic link, so a failed install leaves the old bundle running. tbhb-agent runs the first install on each host, a deploy kept apart from tbhb's approval of the code, and after that event-driven sync and self-update keep hosts current.
-- **The protocol schema, `schemas/agent-protocol.json` in tools** (new). One versioned file for the run request and the run metadata, with a tools CI job that fails when it changes without a version decision ([appendix I](I-protocol.md)). The monorepo embeds a byte-checked copy.
+- **The protocol schema, `schemas/agent-protocol.json`** (new). One versioned file for the run request and the run metadata, with a CI job that fails when it changes without a version decision ([appendix I](I-protocol.md)). Both move with the Python CLI on import. The monorepo embeds a byte-checked copy from its own tree.
 - **The internal self-update helper** (new). The input/output (I/O) side of self-update, run only when the front's pure decision says the build is behind or the cache is stale, inside a fixed time budget ([appendix J](J-self-update.md)).
 - **A shared Go library** (new). Small packages for routing, build stamps, terminal streams, process runs, config, schemas, and the GitHub client.
 - **Checks from the first commit** (new, on existing rules). The pull request size gate, an import-direction check that keeps I/O out of pure packages, ast-grep rules for I/O in unit tests, and test time caps. [Appendix F](F-build-and-checks.md) has the layout and each check.
@@ -49,9 +49,7 @@ Parts of it land in other repositories, with the same duties kept apart. tbhb-ag
 
 ### The CLI folder
 
-The CLI sits in `factory/cli` inside tbhb-dev/tbhbdev, decided by tbhb (D27). Every Go path in this design, such as `cmd/tbhbdev` or `internal/dispatch`, sits under `factory/cli`, so its packages are `github.com/tbhb-dev/tbhbdev/factory/cli/...`, and the module path stays the one line in `go.mod`.
-
-The monorepo imports the Python CLI into `factory/cli`, where it becomes the `tbhbdev-py` fallback.
+The CLI sits in `factory/cli` inside tbhb-dev/tbhbdev, decided by tbhb (D27). Every Go path in this design, such as `cmd/tbhbdev` or `internal/dispatch`, sits under `factory/cli`, so its import paths start with `github.com/tbhb-dev/tbhbdev/factory/cli/`.
 
 ## How it works
 
@@ -62,7 +60,7 @@ The monorepo imports the Python CLI into `factory/cli`, where it becomes the `tb
 3. A pure function, `dispatch.Resolve`, routes argv to the front's own commands or to `tbhbdev-py`. The reserved `alpha` name goes directly to Python.
 4. For the fallthrough, the front sets `TBHBDEV_PROG`, `TBHBDEV_PATH`, and `TBHBDEV_BUNDLE` and calls `syscall.Exec` on the bundled `tbhbdev-py` by absolute path. Python inherits the argv, process ID, environment, and open descriptors, and its exit status becomes the process's. The front keeps 125, 126, and 127 for its own failures.
 
-The manifest records the bundle version, the Go build and Python tools commits, and the file hashes that the installer checks. `tbhbdev version` prints the Go stamp and the pinned tools commit.
+The manifest records the bundle version, the shared monorepo commit, and the file hashes that the installer checks. `tbhbdev version` prints the bundle version and commit.
 
 ### The Go stack
 
@@ -78,13 +76,13 @@ GitHub calls go through go-github, pinned at one major, which only `internal/gha
 
 Today the driver refuses any host whose build differs, through `same_version` in `decisions/driver.py`, and the request carries fixed versions that each reader matches exactly (existing). The port replaces both with one protocol version (D14).
 
-- **One schema.** `schemas/agent-protocol.json` in tools defines the envelope, the run request, and the run metadata, with a top-level `version` that is the protocol version (D16). Python and Go validate against the same bytes. Writers are strict, and readers drop and log properties they do not know.
+- **One schema.** `schemas/agent-protocol.json` defines the envelope, the run request, and the run metadata, with a top-level `version` that is the protocol version (D16). Python and Go validate against the same bytes. Writers are strict, and readers drop and log properties they do not know.
 - **Two versions per build.** An additive change keeps the version. A breaking change bumps it, and each build serves its version and the previous one, as driver and as host. A bump merges only when every listed machine serves the version it replaces.
 - **A version per launch.** Preflight reports the host's build and the versions it serves. The driver picks the highest common version, writes the request and the staged request file in that version's shape, and logs a build mismatch as a warning. A host that cannot answer gets the legacy version 2 shape.
 - **Bridges.** Every install keeps the newest bundle that serves each version from 2 up. When skew is wider than one and an update of the older side fails, the launch runs through a bridge on whichever side lacks the version.
 - **Served and retained schemas.** Each build serves two versions for new launches and retains every frozen schema for reading runs already on disk. CI checks each set apart.
 - **Run files carry their version.** The host records the chosen version as each run's first file, and every later reader validates the run's files against that version, across upgrades.
-- **A CI check.** A planned tools job compares the schema at the merge base with the head, and fails unless `schemas/agent-protocol.decisions.toml` holds an entry for the new schema's hash with a version that matches its kind.
+- **A CI check.** A planned job compares the schema at the merge base with the head, and fails unless `schemas/agent-protocol.decisions.toml` holds an entry for the new schema's hash with a version that matches its kind.
 
 | Phase | Machines run | What keeps every launch going |
 | --- | --- | --- |
@@ -104,7 +102,7 @@ When the build is behind, the front execs the binary in its internal update mode
 - **Concurrent runs.** One lock lets one update run at a time, and a run that finds it taken runs its current build. Each run holds a shared lease on its own bundle until it exits, and pruning never removes a leased bundle.
 - **Failures.** No failure blocks dispatch. No network, a bad hash, a failed exec of the helper, or a read-only install writes a warning and runs the current build, and a failed handoff puts the old link back.
 - **Opt-out.** `TBHBDEV_NO_SELF_UPDATE=1`.
-- **Sync.** Event-driven sync on merges to the monorepo's main, which the tools maintainer is building, runs the same install and writes the same cache. Sync is the main path, and self-update catches machines it missed.
+- **Sync.** The design uses event-driven sync on merges to the monorepo's main. Sync runs the same install and writes the same cache. Self-update catches machines that sync missed.
 
 ### Pure packages and I/O packages
 
@@ -123,13 +121,13 @@ These checks run from the first monorepo commit under `factory/cli`, and the two
 | Front budget | Startup routing and its self-update decision use standard-library packages and make no network call | new |
 | Stack rules | cobra, pflag, and koanf only in I/O wiring, `cuelang.org/go` only in pure schema packages, go-github only in `internal/ghapi`, no `init()`, no `os/exec` outside one package, and no `cue` child process by name or path | existing linters, new config ([appendix K](K-go-stack.md#the-rules-that-hold-it)) |
 | CUE boundary | The CUE variables are cleared before the first CUE call, a CUE bump that adds an environment read to validation or to linked task code fails, and no task runner is linked | new |
-| `protocol-version` CI job | A change to the protocol schema fails without a decision entry for its hash, an additive entry keeps the version, a breaking one adds exactly 1 and freezes the base, and no retained schema changes or goes | new, in tools CI |
-| Protocol corpus | Every writer emits only schema-valid documents, each side reads every served version's corpus and the legacy shape, every reader reads one run per retained version, launches through a bridge work on either side, and the tools and monorepo schema copies match | new |
+| `protocol-version` CI job | A change to the protocol schema fails without a decision entry for its hash, an additive entry keeps the version, a breaking one adds exactly 1 and freezes the base, and no retained schema changes or goes | new, in tools CI for phase 1, then monorepo CI |
+| Protocol corpus | Every writer emits only schema-valid documents, each side reads every served version's corpus and the legacy shape, every reader reads one run per retained version, launches through a bridge work on either side, and the packaged and embedded schema copies match | new |
 | Self-update | Table tests for every `Decide` row and the release order, the budget, each failure falling through to dispatch, the proof before publish, link restore under the held lock, publication under concurrent callers, lease order, and no older publish | new |
 
 ### Bazel layout
 
-The monorepo tbhb-dev/tbhbdev holds one Go module at its root, with rules_go, gazelle, and tbhb_rules_go set up as afakt and awrel set them up. Every Go package is its own Bazel package under `factory/cli`, so a pull request tests only what it affects (D7). tools keeps the Python suite and never runs on a monorepo change. [Appendix F](F-build-and-checks.md) has the tree.
+The monorepo tbhb-dev/tbhbdev holds one Go module at its root, with rules_go, gazelle, and tbhb_rules_go set up as afakt and awrel set them up. Every Go package is its own Bazel package under `factory/cli`. The imported Python suite has separate targets, so a pull request tests only what it affects (D7). [Appendix F](F-build-and-checks.md) has the tree.
 
 ### Names and callers
 
@@ -167,19 +165,12 @@ gh got the one-line `main`, the typed exit errors, and the injected process seam
 | Self-update runs on a hook's start | A hook waits on a download or hits its timeout | A 3-second budget, after which a detached installer finishes the work with no inherited descriptors | new |
 | A bad bundle on main | Every machine takes it at its next start | Prior bundles stay on disk, a revert on main ships forward, and `TBHBDEV_NO_SELF_UPDATE=1` holds a machine | new |
 | Concurrent runs during a swap | A run loses its files mid-run, a slow update publishes an older bundle, or a caller hits a bundle that cannot run | A lease taken before any bundle read, held across the re-exec, one update lock held from the recheck until the new front starts, a proof run of the new bundle before the link moves, and release numbers in place of commit times | new |
-| Go review code depends on the Python launcher until wave 2 | A review run fails if the Go call and the Python arguments drift | Python answers `tbhbdev agent` with the `alpha agent` code itself, and a test runs the Go review command against the pinned Python launcher | new |
+| Go review code depends on the Python launcher until wave 2 | A review run fails if the Go call and the Python arguments drift | Python answers `tbhbdev agent` with the `alpha agent` code itself, and a test runs the Go review command against the bundled Python launcher | new |
 | tools main gains review changes after tools#399 merged | Wave 1 ports a poster that does not match main | Wave 1 re-reads tools main on the day it starts, and its contract tests include the submitted-commit check that tools#399 added | existing: tools#399 merged as `719b589` |
-| The Python and Go copies of a schema drift across two repositories | The two languages accept different documents | A monorepo test compares each embedded copy with the pinned tools commit byte for byte | new |
-| `cuelang.org/go` reads a JSON Schema differently from Python's `jsonschema` | The two languages accept different documents | The protocol corpus and the review fixtures run both validators on every valid and planted invalid document | unverified |
-| `cuelang.org/go` adds start-up time | Commands start slower | The schema slice measures it | unverified |
+| The Python and Go copies of a schema drift | The two languages accept different documents | A monorepo test compares each embedded copy with the local source file byte for byte | new |
 | The Go agent server behaves differently from the Python one | A launch fails or runs wrongly on a Go host | Both validate against the same schema bytes, the corpus runs both ways in CI, and the Go host hands requests it cannot parse to `tbhbdev-py` | new |
-| The forced command or the push-token descriptor does not survive exec | Remote launches break | An integration test per host operating system, in the first build | unverified |
-| Timeout and kill behavior drifts from `process_group.py` | Runs hang or die early | Port the Python tests for it first, as Go table tests | unverified |
-| Go code runs longer than the Python it replaces | Slices split smaller under the 400-line gate | Size slices by Go lines after the first two | unverified |
 | A gap in the depguard or ast-grep rules | I/O slips into a pure test | Each rule has a planted failing fixture | new |
 | State files read by both languages drift | One side misreads the other's state | Go reads and writes the Python formats, with shared fixtures | new |
-| A Python fix in tools waits for a pin bump in the monorepo | A tools merge reaches machines later than today | Each tools merge to main opens a pin bump in tbhb-dev/tbhbdev, which sync ships like any other merge | new |
-| Library callers in other repositories | Removing Python modules breaks them | They stay in Python until their callers move | unverified |
 
 [Appendix D](D-evidence.md) lists the evidence behind each claim.
 
@@ -189,7 +180,7 @@ gh got the one-line `main`, the typed exit errors, and the injected process seam
 | --- | --- | --- | --- |
 | 1 | `ast_grep_test` in tbhb-dev/rules | A rules test fails on a planted `os.ReadFile` in a pure test fixture | rules maintainer |
 | 2 | Phase 1 Python release in tools: a warning in place of the build-version refusal and of tools#400's exact-match retry, the protocol schema at version 2 with validation on both sides, the frozen legacy v2 shape, the top-level Python `agent` name with `agent protocol`, the version file for each run, the `protocol-version` job, `TBHBDEV_PROG`, and the `tbhbdev-py` entry point. Then the rollout barrier: launches pause, the ops maintainer syncs every listed machine, and `tbhbdev alpha version-check` shows none older | A driver test with mismatched stamps launches, a schema edit with no decision entry fails the job, and the barrier record lists every listed machine on phase 1 or later, with any unreachable machine fenced off the list, before launches resume | tools maintainer, ops maintainer |
-| 3 | Go scaffolding in tbhb-dev/tbhbdev under `factory/cli` (D27): the front, `internal/dispatch`, the cobra wiring, `internal/buildinfo`, the koanf loader, `internal/schemas`, `internal/ghapi`, the Bazel setup, and every check in the table. tools#418 moves here. The scaffolding pull request that changes the front and dispatch waits for tbhb's go (D19) | `tbhbdev alpha agent status` through the front prints what the Python command prints, each check fails on its planted fixture, and each gated pull request has tbhb's go | tools maintainer |
+| 3 | Import the Python CLI into `factory/cli` (D27), then add Go scaffolding there: the front, `internal/dispatch`, the cobra wiring, `internal/buildinfo`, the koanf loader, `internal/schemas`, `internal/ghapi`, the Bazel setup, and every check in the table. tools#418 moves here. The scaffolding pull request that changes the front and dispatch waits for tbhb's go (D19) | `tbhbdev alpha agent status` through the front prints what the Python command prints, each check fails on its planted fixture, and each gated pull request has tbhb's go | tools maintainer |
 | 4 | The bundle build, the release job with its attestation, and the installer | On one host, `tbhbdev version` names the bundle, a launch through the fallthrough works, a bundle with a wrong workflow, ref, or commit in its attestation is refused, and pointing the link back restores the old bundle | tools maintainer, ops maintainer |
 | 5 | Self-update: the release pointer, `internal/selfupdate`, and the self-update helper | On one host with a stale cache and an older bundle, `tbhbdev alpha agent status` swaps to the main bundle and runs, with no network it warns and runs the old one, and with a slow download it runs the old one within the budget | tools maintainer |
 | 6 | Wave 1: `tbhbdev review`, the review run's verdict and post, and the unbuilt review pieces | One real review run posts a GO or HOLD comment review at the head it judged through the Go poster with the host-held token, and `tbhbdev review check N` reports what the Python command reports on the same pull request | tools maintainer |
@@ -206,7 +197,7 @@ No step starts until tbhb has read the merged design (D17). Steps 1, 2, and 3 th
 - [A. gh architecture](A-gh-architecture.md): how cli/cli is built, and what this design copies or avoids.
 - [B. gh pitfalls](B-gh-pitfalls.md): the architectural pain in cli/cli's history, by commit, each with the rule it gives this design.
 - [C. Alternatives considered](C-alternatives.md): the options not taken, and why.
-- [D. Evidence](D-evidence.md): each claim about tbhbdev and its neighbors, labeled existing, new, or unverified.
+- [D. Evidence](D-evidence.md): the sources behind claims about tbhbdev and its neighbors.
 - [F. Build and checks](F-build-and-checks.md): the Bazel layout and each check.
 - [G. Names and migration](G-names-and-migration.md): the `alpha` name map and how callers move.
 - [H. Waves](H-waves.md): what ports in which wave, the review tooling in Python and what is unbuilt, and how the work runs in parallel.

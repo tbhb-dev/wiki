@@ -58,7 +58,7 @@ Check for updates while the command runs and swap afterward. gh learned that exi
 
 ## The fallthrough found on PATH
 
-Have the front run a `tbhbdev-py` it finds on `PATH`, as the outline proposed. A `tbhbdev-py` found that way could come from a different tools commit than the bundle pins, or from an old uv install beside it. tbhb chose the same entry point in the front's own folder instead, run by absolute path (D25).
+Have the front run a `tbhbdev-py` it finds on `PATH`, as the outline proposed. A `tbhbdev-py` found that way could come from a different build or from an old uv install beside it. tbhb chose the same entry point in the front's own folder instead, run by absolute path (D25).
 
 ## The bundled interpreter as `python3 -m tbhbdev`
 
@@ -90,7 +90,7 @@ Let the Go commands answer to `alpha` names as aliases. That keeps two names ali
 
 ## The Go code in tools
 
-Build the Go module in tools beside the Python, as an earlier draft of this design decided in D8, so one tools commit holds both. tbhb chose the monorepo tbhb-dev/tbhbdev instead (D22). One monorepo commit still builds one bundle, because it pins the tools commit of its wheel, and byte checks against that commit keep the shared schemas from drifting.
+Build the Go module in tools beside the Python, as an earlier draft of this design decided in D8, so one tools commit holds both. tbhb chose the monorepo tbhb-dev/tbhbdev instead (D22). One monorepo commit builds both parts from `factory/cli`, and local byte checks keep the shared schemas from drifting.
 
 ## A Go workspace with many modules
 
@@ -114,4 +114,4 @@ Use `ghinstallation` to mint app installation tokens. It pins go-github v88, whi
 
 ## Following go-github's latest major
 
-Bump go-github each time it releases a major. Six of the eight majors from v86 to v93 broke calls this code uses. The compiler finds each break, but each one is a pull request at a time tbhb-dev did not choose, so majors move on tbhb-dev's schedule, and the client uses only constructor options present in both the pinned major and go-github's main branch (D24).
+Bump go-github each time it releases a major. The design moves majors on tbhb-dev's schedule and uses only constructor options present in both the pinned major and go-github's main branch (D24).

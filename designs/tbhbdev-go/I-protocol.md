@@ -30,7 +30,7 @@ So every release has to reach every machine at once. `run_host.py` and `decision
 
 ## The protocol schema
 
-One file in tools, `schemas/agent-protocol.json`, describes everything the driver and the host exchange (D16). It is a JSON Schema document with a top-level integer `version`, and it defines three parts:
+One file, `schemas/agent-protocol.json`, describes everything the driver and the host exchange (D16). It is a JSON Schema document with a top-level integer `version`, and it defines three parts:
 
 - **`envelope`**, the frame `ssh_serve` reads, with its `push_token`. Its own `v` stays 1 as a frame marker, and the schema pins it.
 - **`request`**, the run request. Its `v` is the protocol version.
@@ -40,7 +40,7 @@ The protocol version is the schema's `version`, and nothing else names a protoco
 
 ### Both sides validate
 
-The Python package ships the file as package data and validates with `jsonschema`, already a tools dependency (existing). The Go code in tbhb-dev/tbhbdev embeds a copy in `factory/cli/internal/agent/protocol` with `go:embed` and validates in-process through `cuelang.org/go`, never a `cue` child process (D20). A monorepo test reads the same file from the tools commit that the monorepo pins and fails if the two copies differ by a byte. The schema and its CI job stay in tools while a Python server exists, and move to the monorepo in phase 4.
+The Python package ships the file as package data and validates with `jsonschema`, already a tools dependency (existing). The phase 1 release adds the schema and its CI job in tools, and both move with the Python CLI on import. The Go code embeds a copy in `factory/cli/internal/agent/protocol` with `go:embed` and validates in-process through `cuelang.org/go`, never a `cue` child process (D20). A monorepo test compares that copy with the local source file byte for byte.
 
 - **Writers are strict.** The driver validates each request, and the host each metadata file, before writing it, against the schema with `additionalProperties: false`. A code change that adds a field fails its own tests until the schema names the field.
 - **Readers are lenient.** A reader removes properties the schema does not name, logs their names as a warning, and then validates. That is what lets an additive change reach an older reader without a refusal.
@@ -141,7 +141,7 @@ At no phase does a build mismatch refuse a launch, and at no phase does a host l
 | Phase | Machines run | Python driver, Go host | Go driver, Python host | Mixed bundle versions |
 | --- | --- | --- | --- | --- |
 | 1 | Python, installed as today, behind the rollout barrier | none yet | none yet | Not bundles yet: phase 1 drivers log a build mismatch and send version 2 |
-| 2 | Phase 1 Python, or a bundle with `tbhbdev-py` behind the front | none yet | none yet | Each runs the Python of its own tools commit, pinned in a bundle, and chooses a version, and a build mismatch logs |
+| 2 | Phase 1 Python, or a bundle with `tbhbdev-py` behind the front | none yet | none yet | Each runs the Python from its own release, chooses a version, and logs a build mismatch |
 | 3 | Bundles, with Go `agent` and Python still bundled | The Go server serves both versions its build serves, and passes any request it cannot parse to the bundled `tbhbdev-py` server | The Python host answers the protocol query, and the Go driver picks the common version | Every build serves its version and the one before, the bump gate keeps skew to one, and bridges cover any wider skew |
 | 4 | Bundles, Python server removed | none left | none left | As phase 3 |
 
@@ -168,6 +168,6 @@ CI runs the corpus four ways: the Python and Go servers each against every envel
 
 ### Phase 4: the Python server retires
 
-When the fleet check shows every host on a bundle with the forced command on Go, and the forwarder logs show no `alpha agent` calls for 14 days, the Python server goes. The schema, its decisions file, and the `protocol-version` job then move from tools to the monorepo in one pull request on each side, and versions change only under the schema rules in this appendix.
+When the fleet check shows every host on a bundle with the forced command on Go, and the forwarder logs show no `alpha agent` calls for 14 days, the Python server goes. The monorepo keeps the schema, its decisions file, and the `protocol-version` job. Versions change only under the schema rules in this appendix.
 
 Self-update ([appendix J](J-self-update.md)) and event-driven sync keep the fleet near main, so skew is usually zero and the previous version is rarely used.

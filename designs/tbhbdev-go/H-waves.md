@@ -18,7 +18,7 @@ Back to [the design](README.md).
 
 Line counts come from the design outline, read at tools `75cbfd83` on 2026-11-25, except the wave 1 review modules, counted at tools `c02551d` on 2026-11-26. They are `wc -l` of whole files, comments and blank lines included. The Python source is 37,745 lines under `src/tbhbdev`, and the tests are 95,572 lines in 150 files, of which `alpha` alone is 29,364 lines.
 
-No wave starts until tbhb has read the merged design (D17). Every Go wave lands in tbhb-dev/tbhbdev under `factory/cli` (D22), and every Python change in a wave, such as the wave 1 prompt fix, lands in tools.
+No wave starts until tbhb has read the merged design (D17). After the Python import, each wave's changes to Go and Python land in tbhb-dev/tbhbdev under `factory/cli` (D22).
 
 ## Waves
 
@@ -39,7 +39,7 @@ No wave starts until tbhb has read the merged design (D17). Every Go wave lands 
 | 4 | `admin` (1,484), the `secret` command (160), `agy` (276), `adr` with `adr_decision` (250), and `issue` with `issue_import` (282) | about 2,450 | |
 | none | `cue` (156) | | Go runs no `cue` binary (D20), so the command that installs it stays with the Python content libraries and goes when they go |
 | later | `analytics` | 727 | Stays in the bundle and runs through the Python fallthrough until it ports (D2) |
-| none | `host` | 2,395 | Retired without a port after its work moved to ops' Ansible (D2) |
+| none | `host` | 2,395 | Retired on 2026-11-08 after its work moved to ops' Ansible. Removed from the fallback command list (D2) |
 | none | `gitleaks_check`, `prose_check`, `content`, `content_model`, and `content_vet` as Python libraries | | Keep the Python libraries until their external callers move |
 
 `policy.py` in `decisions/` imports `secrets` and `host_tools`, which sit outside `decisions/`. Its purity gets a check before it ports as a pure package. The wave 2 Go copy of `gitleaks_check` and the wave 1 Go content check live beside their Python libraries until the libraries' callers move.
@@ -79,7 +79,7 @@ Wave 1 re-reads tools main on the day it starts and follows the Go review contra
 
 Wave 1 moves code, not review authority. ADR 0004 and ADR 0009 stay the rules, and each item below is a test in the wave 1 slices.
 
-- **Verdict words.** A verdict is `GO` or `HOLD`, as ADR 0004 names them. The Go prompt templates ask for `VERDICT: GO|HOLD <sha>`, and the Go parser accepts those two words and nothing else, except that it reads a legacy `NO-GO` as `HOLD` with a logged warning while runs from the Python prompt remain. One tools fix changes the Python prompt to `HOLD` in wave 1, and the `NO-GO` reading goes when no Python prompt is left. Table test: `GO`, `HOLD`, `NO-GO`, a lowercase word, a missing commit, and a short commit.
+- **Verdict words.** A Go verdict is `GO` or `HOLD`, as ADR 0004 names them, and the Go prompt asks for `VERDICT: GO|HOLD <sha>`. The Go parser accepts both vocabularies: Go's `GO` and `HOLD`, and Python's `GO`, `BLOCK`, and legacy `NO-GO`. It maps `BLOCK` and `NO-GO` to `HOLD` so negative verdicts from Python runs in flight when Go takes over still post. It logs a warning for `NO-GO`. Wave 1 changes the imported Python prompt to ask for `HOLD`. Table test: `GO`, `HOLD`, `BLOCK`, `NO-GO`, a lowercase word, a missing commit, and a short commit. [Python verdict parser](https://github.com/tbhb-dev/tools/blob/c02551d5089ecbc08404f565b73cec4724a60dea/src/tbhbdev/alpha/agent/review_post.py#L26)
 - **The exact judged head.** The verdict line's commit is the head the run judged, the run's `--ref`. The poster posts on that commit and never on the pull request's current head, and if the two differ it still posts on the judged one, which marks the verdict stale for the head that moved. That differs from the Python poster's check that an approval still targets the current head, so a verdict on a superseded head still reaches the pull request as ADR 0004's record of that exact head. Test: a head that moves during the run.
 - **The submitted commit matches the run.** Before it posts, the run-host path compares the draft's submitted commit, with the commit in the run's request as the host wrote it, the trusted run metadata, and refuses to post on any difference, as `review_post.validate` does today. It never takes the commit from the review run's own output. Test: a fixture draft whose submitted commit differs from the run's request posts nothing, logs the refusal, and leaves the run's exit status intact. That is a different case from the head that moves, where the draft and the run agree and the pull request moved.
 - **One post per run.** A `review` run file marks a post, and a retry with that file present posts nothing, as on tools main. Test: a second post of one run sends nothing.
@@ -111,7 +111,7 @@ About six pull requests in tbhb-dev/tbhbdev under `factory/cli`, one after anoth
 5. `internal/schemas`, with byte-checked copies of the Configure Unify Execute (CUE) files, in-process validation, and the CUE boundary checks.
 6. `internal/ghapi`, with the go-github client, its rules, and a fake transport for tests.
 
-Pull request 1 changes the front and dispatch, so it goes to tbhb before merge (D19). Review and CI come first, a reviewer's verdict is a GO or HOLD comment only, and coordination then puts the pull request on Open. Nobody approves it or runs `tbhb-approve` on it until tbhb says go. Pull requests 2 through 6 go through the gate only if they change a gated path. The phase 1 Python release in tools, which adds the protocol schema and the `protocol-version` job, and the rules ast-grep macro run beside them.
+Pull request 1 changes the front and dispatch, so it goes to tbhb before merge (D19). Review and CI come first, a reviewer's verdict is a GO or HOLD comment only, and coordination then puts the pull request on Open. Nobody approves it or runs `tbhb-approve` on it until tbhb says go. Pull requests 2 through 6 go through the gate only if they change a gated path. The phase 1 Python release adds the protocol schema and the `protocol-version` job in tools before the CLI import. The rules ast-grep macro runs beside the scaffolding.
 
 ### Wave 1 in parallel
 
@@ -146,4 +146,4 @@ The launcher applies host load and memory limits when admitting runs (tools#440)
 1. Pure types and functions, with their table tests.
 2. The adapter, with its `io_go_test` against real tools in a temporary root.
 3. The `io/app` wiring and the command, behind its final name.
-4. The corpus or golden comparison against the Python command from the pinned tools commit.
+4. The corpus or golden comparison against the Python command built from the same monorepo commit.

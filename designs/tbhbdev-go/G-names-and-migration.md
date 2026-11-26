@@ -59,7 +59,7 @@ The body check in `pr check` adds one rule:
 
 - **No closing keywords.** It fails on `close`, `closes`, `closed`, `fix`, `fixes`, `fixed`, `resolve`, `resolves`, or `resolved` followed by an issue reference. A pull request writes `Refs: #N` when it contributes to an issue and `Completes: #N` when it finishes one, and the reviewer checks a `Completes:` against the issue's acceptance criteria (decided by tbhb).
 
-The top-level names `admin`, `secret`, `adr`, `agy`, and `issue` keep their names and port in wave 4 ([appendix H](H-waves.md)). `cue` does not port, since Go runs no `cue` binary (D20). `analytics` keeps its name and runs through the Python fallthrough until it ports in a later wave. `host` is retired without a port (D2).
+The top-level names `admin`, `secret`, `adr`, `agy`, and `issue` keep their names and port in wave 4 ([appendix H](H-waves.md)). `cue` does not port, since Go runs no `cue` binary (D20). `analytics` keeps its name and runs through the Python fallthrough until it ports in a later wave. tbhb retired `tbhbdev host` on 2026-11-08, so the fallback's command list excludes `host` (D2).
 
 From the phase 1 release, the Python package also answers the top-level name `agent` with the `alpha agent` code, plus `agent env` and `agent gh-shim` with the `alpha agent-env` and `alpha gh-shim` code. Phase 1 needs it for `agent protocol`, which drivers in both languages call by the final name ([appendix I](I-protocol.md#choosing-a-version-per-launch)). The Go review code then starts runs by the final name, and the Go `agent` group takes that name in wave 2 ([appendix H](H-waves.md#review-runs-before-the-launcher-ports)).
 
@@ -71,7 +71,7 @@ The review commands ship as the top-level `tbhbdev review` group in wave 1, two 
 
 A Go command group takes a top-level name before Python does. Two rules keep that from hiding a Python command.
 
-- **Built-in Python names.** A Go command group for `admin`, `secret`, `issue`, `agent`, or another top-level Python name ships only when it covers every Python subcommand of that name, in Go or by passthrough to `tbhbdev-py`. `tbhbdev issue` therefore ports `import` with every `alpha issue` verb, `close`, `create`, `link-sub`, `unlink-sub`, `block`, and `unblock`, together, and `tbhbdev agent` answers every subcommand that Python's `agent` answers, with `env` and `gh-shim` passed through until wave 3. A bundle test compares the Go group's subcommands and passthrough list with the Python ones from the pinned tools commit.
+- **Built-in Python names.** A Go command group for `admin`, `secret`, `issue`, `agent`, or another top-level Python name ships only when it covers every Python subcommand of that name, in Go or by passthrough to `tbhbdev-py`. `tbhbdev issue` therefore ports `import` with every `alpha issue` verb, `close`, `create`, `link-sub`, `unlink-sub`, `block`, and `unblock`, together, and `tbhbdev agent` answers every subcommand that Python's `agent` answers, with `env` and `gh-shim` passed through until wave 3. A bundle test compares the Go group's subcommands and passthrough list with those of the bundled Python CLI.
 - **Reserved words.** `alpha`, `help`, and `version` are reserved from ported command groups, and the bundle build fails on them.
 
 ## The forwarder
