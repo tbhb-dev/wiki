@@ -96,9 +96,9 @@ Every repository arrives as one copy commit with no history (D10). The table giv
 | Repository | Path | Left out of the public copy |
 | --- | --- | --- |
 | renovate-config | Presets, the pin script, and its tests in `lib/renovate-config`. All three workflows in `.github/workflows/` (D40) | Superseded repository configuration |
-| rules | `lib/rules` | root configuration. Keep the nested module files in `lib/rules` and move reusable workflows to `.github/workflows/` |
+| rules | `lib/rules` | root configuration and the command-line tool's review-policy checker test (D42). Keep the nested module files in `lib/rules` and move reusable workflows to `.github/workflows/` |
 | runner-smoke | All four workflows in `.github/workflows/`. All six sample projects in `ops/runner-smoke/`, listed in `.bazelignore` (D39) | Repository boilerplate, `msys2-install`, and the Windows legs |
-| tools | `factory/cli` (D23) | root configuration |
+| tools | `factory/cli` (D23), including the review-policy checker test moved from rules (D42) | root configuration |
 | agent-config | `factory/agent-config` | the operator-account folder |
 | agent-memories | `factory/agent-memories` | every memory not marked public |
 | agent-capacity | `factory/agent-capacity` | root configuration |
@@ -114,6 +114,8 @@ Every repository arrives as one copy commit with no history (D10). The table giv
 | Ansible collections | `ops/ansible/collections` | root configuration |
 
 "Root configuration" means each repository's own module file, lock files, lint settings, Renovate file, and workflows, which the shared roots and the root workflows replace. gomodscan stays standalone, and awrel stays out because it will retire soon (D1). The four open source tools and the graph repository are out of scope and don't move (D11). The private counterparts of wiki, research, spikes, evals, and tools go to the companion at the mirrored paths.
+
+The 2026-11-26 coordination call (D42) puts the test with the checker it exercises. In wave 2, the rules path map marks `//lint:review_policy_test` as a drop for that reason. The import removes the old tools pin, so `lib/rules` has no reference to the old repository or dependency on `factory/`. In wave 3, the CLI import adds the test in `factory/cli` and reads its policy data from `lib/rules`. The rules import's pull request body records that the check starts running in the monorepo when the CLI import merges. To undo this decision, move the test back to `lib/rules` and allow that one dependency on `factory/cli`.
 
 ## Dependency rules in Bazel
 
@@ -232,7 +234,7 @@ The import of rules rewrites that table's rows to their new paths. Prefix each p
 | `.github/rulesets/**`, `.github/workflows/ci.yml` | The same paths at the monorepo root. `ci.yml` holds the record lane's path check, so this row covers it | 3 |
 | none, because the rule is new | The record-check rule under `lib/rules`, at the path its pull request gives it | 3 |
 | `lint/repo_checks.*`, `lint/private/required_status_checks/**`, `lint/private/review_policy/**`, `lint/private/pr_size*` | The same paths under `lib/rules/` | 3 |
-| `MODULE.bazel`, for the block that pins the review policy's source | Expected to need no row, because that source is in the tree at `factory/cli` and has its own rows | none |
+| `MODULE.bazel`, for the block that pins the review policy checker's source | Wave 2 removes the pin (D42) | none |
 
 Each later import adds rows for its own class 2 and class 3 paths, such as the review and merge code under `factory/cli` and the harness configuration under `factory/agent-config`. The map lists paths only. The decision record's content triggers, such as a credential, a deployment, or a destructive deletion, set tier 2 wherever they appear, with or without a row.
 

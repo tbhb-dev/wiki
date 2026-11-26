@@ -52,6 +52,13 @@ None.
 - **Undo:** Reorder pending imports or revert a build split or port independently of its import.
 - **Record:** Operator ruling of 2026-11-26.
 
+### D42. The review-policy checker test belongs with the command-line tool
+
+- **Decided:** 2026-11-26, by the coordinator. The decision is reversible.
+- **Rule:** The test exercises the command-line tool's checker, so the wave 2 rules import records it as a drop in the `lib/rules` path map and removes the old tools pin (D27). The wave 3 import adds the test under `factory/cli` and reads the policy data from `lib/rules`, which `factory/` may depend on (D35). The check is absent from monorepo CI until the CLI import merges. The rules import's pull request body names that gap.
+- **Undo:** Move the test back under `lib/rules` and allow that one dependency on `factory/cli`.
+- **Record:** The coordination call of 2026-11-26, recorded in [appendix C](C-layout-and-ownership.md#where-each-repository-goes) and [appendix G](G-import-and-cutover.md#import-order).
+
 ### D7. Stop work on the in-house queue
 
 - **Decided:** 2026-11-26, by the operator on 2026-11-25.
@@ -139,7 +146,7 @@ None.
 ### D35. Products depend on lib only, and factory code stays within the factory
 
 - **Decided:** 2026-11-26, by the operator.
-- **Rule:** products depend on `lib/` for published modules and vendored code (D14). Product build files load the build rules from `lib/rules` (D15). The factory publishes nothing for use outside `factory/`. Reusable workflows stay in `.github/workflows/` ([appendix C](C-layout-and-ownership.md#where-each-repository-goes)). Code used by both the factory and products, or by standalone repositories, goes in `lib/`. Bazel visibility and the layering queries in [appendix C](C-layout-and-ownership.md#dependency-rules-in-bazel) enforce both boundaries, including that no `factory/` target is visible to `products/` or `lib/`.
+- **Rule:** Products depend only on their own targets and `lib/`, which provides published modules and vendored code. Product build files load the build rules from `lib/rules` (D15). Factory projects may depend on `lib/`. The factory never depends on a product and publishes nothing for use outside `factory/`. Code that products or standalone repositories use goes in `lib/`, including the shared presets in `lib/renovate-config`. Reusable workflows stay in `.github/workflows/` ([appendix C](C-layout-and-ownership.md#where-each-repository-goes)). Bazel visibility and the layering queries in [appendix C](C-layout-and-ownership.md#dependency-rules-in-bazel) enforce both boundaries, including that no `factory/` target is visible to `products/` or `lib/`.
 - **Undo:** Amend D14 and change the visibility rules and layering test together.
 - **Record:** the operator's answers of 2026-11-26.
 
@@ -272,7 +279,7 @@ None.
 ### D14. Top-level folders, a flat `factory/`, and dependency rules
 
 - **Decided:** 2026-11-26, by the operator. The operator set the flat `factory/` layout on 2026-11-25. D35 amended the dependency rules on 2026-11-26.
-- **Rule:** The layout uses `factory/`, `ops/`, `products/`, `lib/`, `docs/`, `scripts/` (D38), and `third_party/`. `factory/` stays flat, with one folder directly under it per project and a shared `factory/docs/` (D37). The public operations files go in `ops/` and private values go in the companion's `ops/`. The Ansible collections go in `ops/ansible/collections`, and the runner-smoke samples go in `ops/runner-smoke/` (D39). Each project's `README.md` and `OWNERS` file describe the project, and neither sorts it into a category. The top-level `docs/` holds the wiki, research, and spikes. Products get their dependencies from `lib/`. Their build files load the rules from `lib/rules`. The factory never depends on a product and publishes nothing for use outside `factory/`. Anything products need goes in `lib/`, including the shared presets in `lib/renovate-config`. Code used by standalone repositories also goes in `lib/`. Bazel visibility keeps all `factory/` targets unavailable to `products/` and `lib/`, and layering queries check these boundaries. The companion mirrors the public paths.
+- **Rule:** The layout uses `factory/`, `ops/`, `products/`, `lib/`, `docs/`, `scripts/` (D38), and `third_party/`. `factory/` stays flat, with one folder directly under it per project and a shared `factory/docs/` (D37). The public operations files go in `ops/` and private values go in the companion's `ops/`. The Ansible collections go in `ops/ansible/collections`, and the runner-smoke samples go in `ops/runner-smoke/` (D39). Each project's `README.md` and `OWNERS` file describe the project, and neither sorts it into a category. The top-level `docs/` holds the wiki, research, and spikes. D35 governs the factory and product dependency rules. The companion mirrors the public paths.
 - **Undo:** move folders by pull request. The rules live in build files and one test.
 - **Record:** The operator's brief of 2026-11-25, the second and third fix briefs for this design's pull request, and the operator's decisions log of 2026-11-26.
 

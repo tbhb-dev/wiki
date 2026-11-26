@@ -34,13 +34,15 @@ Go ports follow import (D41). A Go port pull request for the command-line tool's
 | --- | --- | --- |
 | 0 | The scaffolding of both repositories | The shared roots, the inline CI workflow, the rulesets, a folder, a `README.md`, and an `OWNERS` file for every planned project, the tier 2 path map, the area labels, and the two Projects exist before any code |
 | 1 | renovate-config | Its presets, pin script, and tests go to `lib/renovate-config`, and its three workflows go to `.github/workflows/`. The root `renovate.json5` uses the presets from the first day (D40) |
-| 2 | rules | Everything else loads them, and the lint gates arrive with them. After this wave an imported project reads the rules from the tree |
-| 3 | tools into `factory/cli` and ops into `ops/`, in parallel | Later waves use the command-line tool from the monorepo. The ops import puts its private values into the companion's `ops/` and passes the private-origin gate before publication |
+| 2 | rules | Everything else loads them, and the lint gates arrive with them except for the review-policy checker test (D42). After this wave an imported project reads the rules from the tree |
+| 3 | tools into `factory/cli` and ops into `ops/`, in parallel | The CLI import adds the review-policy checker test (D42), and later waves use the tool from the monorepo. The ops import puts its private values into the companion's `ops/` and passes the private-origin gate before publication |
 | 4 | wiki, research, spikes | Prose, with tier 0 review and few build targets. They exercise the queue at volume with little risk |
 | 5 | design, evals, pm, telemetry, dashboard, event-gateway, agent-capacity, work, dotfiles, runner-smoke, github-metrics, bazel-r2-cache, go.tbhb.dev, and the Ansible collections | Independent imports, smallest first. Runner-smoke adds four root workflows and six sample projects under `ops/runner-smoke/`. The Ansible collections land at `ops/ansible/collections/` |
 | 6 | agent-memories, sm, agent-config | The remaining private-origin repositories, after the scan tooling has run on real hosts for some weeks |
 
 The break is clean (D27). Neither new repository ever calls a workflow in an old repository, pins one, or extends a preset from one. The scaffolding's workflow therefore uses only inline steps and third-party actions pinned by commit hash, and renovate-config's lint targets wait one wave for the rules.
+
+The 2026-11-26 coordination call (D42) puts the test with the command-line tool because it exercises the tool's checker. In wave 2, the rules import's path map marks `//lint:review_policy_test` as a drop and gives that reason. The import rewrites the affected build files to omit the test and removes the tools pin. In wave 3, the CLI import adds the test under `factory/cli`, with a dependency on the policy data in `lib/rules`. The rules import's pull request body names the gap in monorepo coverage from the rules import until the CLI import merges. To undo this decision, move the test back to `lib/rules` and allow that one dependency on `factory/cli`.
 
 A repository that hasn't moved yet changes nothing. It keeps its pins on the rules and presets repositories at the commits it holds, and those pins stop moving once their targets are archived. Whether a pin and a workflow call still resolve against an archived repository is unverified, and plan step 2 tests it.
 
