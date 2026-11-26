@@ -51,7 +51,7 @@ Run it when someone asks for a design, or when a change is large enough that a p
 
 3. The author runs the repository gates and opens a pull request with the design.
 
-4. The design owner sends the head to the reviewer role. Two reviewers read the whole design against [designs/REVIEW.md](../../designs/REVIEW.md). The pair follows the author under the roster's review-pair rule. A design from a Claude or Codex session gets Codex `gpt-6.1-sol` and Antigravity `gemini-4-argon-high`. A design with any Antigravity-written part gets Codex and a Claude review run on Sonnet. A reviewer reports findings as blocking or non-blocking, and the verdict covers only the head it read.
+4. The design owner sends the head to the reviewer role. Two reviewers read the whole design against [designs/REVIEW.md](../../designs/REVIEW.md). The pair follows the author under the roster's review-pair rule. A design from a Claude or Codex session gets Codex `gpt-6.2-sol` and Antigravity `gemini-4-argon-high`. A design with any Antigravity-written part gets Codex and a Claude review run on Sonnet. A reviewer reports findings as blocking or non-blocking, and the verdict covers only the head it read.
 
 5. The author fixes each blocking finding and pushes a new head, which voids the earlier verdicts. The reviewers read the new head.
 
