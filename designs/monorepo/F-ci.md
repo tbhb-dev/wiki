@@ -23,7 +23,7 @@ Back to [the design](README.md).
 | Job | What it does | Needs |
 | --- | --- | --- |
 | `plan` | Runs the record lane's path check, then computes the affected targets and splits them into shards | none |
-| `records` | On a record pull request, runs the record-check target of each project the diff touches | `plan` |
+| `records` | On a record pull request, runs the checks for the record folders the diff touches | `plan` |
 | `test` | One matrix entry per shard: `bazelisk test --config=ci --target_pattern_file=<shard>` | `plan` |
 | `coverage` | For each affected project, runs coverage over all of the project's test targets and checks the combined figure | `plan` |
 | `repo` | Gazelle diff, `bazel mod tidy`, gitleaks over the pull request's commits, commit identity, pull request size, the pull request body check, workflow lint, and the layering test | none |
@@ -40,12 +40,12 @@ No workflow uses a `paths` filter. GitHub reads at most 300 changed files for on
 
 ## The record lane
 
-A project's needs, requirements, and knowledge articles live in its own `docs/` folder ([appendix C](C-layout-and-ownership.md#what-the-top-level-docs-folder-holds)). A pull request that changes only those records takes a lighter lane (new, D33).
+The factory shares `factory/docs/`. Other projects keep records in their own `docs/` folders ([appendix C](C-layout-and-ownership.md#what-the-top-level-docs-folder-holds)). A pull request that changes only eligible records takes a lighter lane (D33 and D37).
 
-- **A path check decides.** The `plan` job lists the changed paths with Git. The pull request is a record pull request when every changed path is a Markdown file under `<top>/<project>/docs/needs/`, `<top>/<project>/docs/requirements/`, or `<top>/<project>/docs/kb/`, where `<top>` is `factory`, `products`, `lib`, or `docs`.
+- **A path check decides.** The `plan` job lists the changed paths with Git. The pull request is a record pull request when every changed path is a Markdown file under `factory/docs/kb/`, `factory/docs/needs/`, or `factory/docs/requirements/`, or in the same three categories within a project under `products/`, `lib/`, or `docs/`. Under the recommendation to keep `ops/` outside Bazel, its records take the full lane.
 - **Any other file sends it through the full lane.** One changed path outside those folders, or one file in them that isn't Markdown, and the pull request runs everything in the table above.
-- **A check's definition is never a record.** Each project declares its record check in its top-level `BUILD.bazel`, such as `//factory/tbhbdev:record_check`, and the rule behind it lives under `lib/rules`. Neither sits in a record folder, and neither does `ci.yml`, which holds the path check. A change to any of them takes the full lane, and the tier 2 path map covers the rule and the workflow.
-- **The lane runs one target for each project touched.** The `records` job runs `bazelisk test` on the record-check target of each project in the diff. The target checks that project's records: their front matter against the schema, their links, and their prose.
+- **A check's definition is never a record.** The factory declares `//factory/docs:record_check`, and each other eligible project declares its check in its top-level `BUILD.bazel`. The rule lives under `lib/rules`. A change to a check definition, the rule, or `ci.yml` takes the full lane. The tier 2 path map covers the rule and the workflow.
+- **The lane selects checks by path.** The `records` job runs `bazelisk test` on the shared factory target when the diff touches factory records and on the target of each other project whose records it touches. Each target checks the records' front matter against the schema and checks their links and prose.
 - **It skips the full build and test.** `test`, `coverage`, and `rules` are skipped on purpose, and so are the parts of `repo` that build: the gazelle diff, `bazel mod tidy`, and the layering test.
 - **The scans stay.** gitleaks, the `names` scan where D6 supplies the secret, commit identity, pull request size, and the body check still run, because they guard what a public pull request publishes and none of them builds anything. The base branch workflow keeps the secret and reports the file and line of each finding and omits the match. It scans fork changes at the queue candidate.
 
@@ -59,7 +59,7 @@ What a record check tests in detail belongs to the designs that define needs, re
 
 `bazel-diff` writes one file of target hashes for a commit. A hash covers a target's own attributes, its source files, and the hashes of everything it depends on. Two files compared give the targets whose hashes differ.
 
-The record lane's path check runs first. A record pull request stops there: the `plan` job hashes nothing and hands the `records` job the list of projects. Every other pull request goes on to these steps.
+The record lane's path check runs first. A record pull request stops there: the `plan` job hashes nothing and hands the `records` job the list of record-check targets. Every other pull request goes on to these steps.
 
 1. A push to `main` generates the hash file for that commit and saves it, keyed by the commit hash.
 2. The `plan` job on a pull request loads the file for the base commit. If it's missing, the job checks out the base and generates it.
@@ -89,7 +89,7 @@ A fork gets no secrets on a public repository (per docs), so its run is uncached
 
 Today the Python macro runs one test target per repository and fails it under 100% branch coverage (existing). With one target per package, no single target sees the whole figure.
 
-A new rule in the rules' Python and Go modules takes a project's test targets, merges their coverage reports, and fails under 100% branch coverage (new). "Project" replaces "repository" as the unit: a direct child of `factory/`, `products/`, `lib/`, or `docs/`. When any target in a project is affected, the `coverage` job runs that project's whole set, and unaffected tests come back from the cache with their reports.
+A new rule in the rules' Python and Go modules takes a project's test targets, merges their coverage reports, and fails under 100% branch coverage (new). "Project" replaces "repository" as the unit. The job groups targets by their project folder (D36). When any target in a project is affected, the `coverage` job runs that project's whole set, and unaffected tests come back from the cache with their reports.
 
 How the Go repositories measure branch coverage today wasn't read in this pass (unverified). The Go port's design owns that question.
 

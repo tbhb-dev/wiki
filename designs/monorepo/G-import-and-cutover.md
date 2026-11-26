@@ -18,35 +18,31 @@ Back to [the design](README.md).
 
 ## Prerequisites and their order
 
-These land in the old repositories first. Each is useful even if the move stops.
+Measure the old repositories and prove the CI design in a scratch repository before scaffolding.
 
 | Order | Prerequisite | State today | Why first |
 | --- | --- | --- | --- |
 | 1 | The baseline measurements | None recorded | Without them the move can't show a gain |
 | 2 | The spike on a scratch repository | Six unverified items in [appendix A](A-evidence.md#what-plan-step-2-must-prove) | Each one can change the design |
-| 3 | Gazelle in every Go and Python repository | Go repositories use it and CI checks it. No repository uses the Python plugin, and tools has one hand-written build file | Affected-target CI needs one target per package, or every change affects everything |
-| 4 | The Go port's layout, one package per directory | No design found in this pass; the brief says the port is under way | Gazelle writes one Go target per directory, so the port's layout decides the target graph |
-| 5 | Tests inside a time cap | No cap is written down. Tools' one test target sets `timeout = "long"` | The proposal adopts Bazel's `medium` limit of 300 seconds per target, so a shard's time is predictable |
-| 6 | The combined coverage rule | Coverage is checked inside one target | Per-package targets need a check across targets ([appendix F](F-ci.md#coverage)) |
-| 7 | `bazel-diff` in one repository's CI | None | Proves the plan job where a mistake costs one repository |
+| 3 | Combined coverage and `bazel-diff` in scratch CI | Coverage is checked inside one target, and the source repositories lack the plan job | Per-package targets need a combined coverage check, and affected-target CI needs a tested plan job ([appendix F](F-ci.md#coverage)) |
 
-Items 3 to 5 meet in tools. If the Go port replaces the Python tree soon, the port carries gazelle and the time cap, and nobody splits the Python target first. That call waits for the port's design.
-
-One gate applies to the port and to nothing else here. A Go port pull request for the tool's front, its dispatch, or its plugin plumbing goes to the operator before it merges (D29). The scaffolding and the imports don't wait on that gate.
+Go ports follow import (D41). A Go port pull request for the command-line tool's front, its dispatch, or its plugin plumbing goes to the operator before it merges (D29).
 
 ## Import order
 
 | Wave | What lands | Why here |
 | --- | --- | --- |
 | 0 | The scaffolding of both repositories | The shared roots, the inline CI workflow, the rulesets, a folder, a `README.md`, and an `OWNERS` file for every planned project, the tier 2 path map, the area labels, and the two Projects exist before any code |
-| 1 | renovate-config | Renovate arrives with it: the presets, the root `renovate.json5`, and the root Renovate workflow. Every later import's dependencies are then kept current from its first day |
-| 2 | rules | Everything else loads them, and the lint gates arrive with them. After this wave an imported project reads the rules from the tree |
-| 3 | tools | The import tool, the launcher, and the review tool live here, and the later waves use them from the monorepo |
+| 1 | renovate-config | Its presets, pin script, and tests go to `lib/renovate-config`, and its three workflows go to `.github/workflows/`. The root `renovate.json5` uses the presets from the first day (D40) |
+| 2 | rules | Everything else loads them, and the lint gates arrive with them except for the review-policy checker test (D42). After this wave an imported project reads the rules from the tree |
+| 3 | tools into `factory/cli` and ops into `ops/`, in parallel | The CLI import adds the review-policy checker test (D42), and later waves use the tool from the monorepo. The ops import puts its private values into the companion's `ops/` and passes the private-origin gate before publication |
 | 4 | wiki, research, spikes | Prose, with tier 0 review and few build targets. They exercise the queue at volume with little risk |
-| 5 | design, evals, pm, telemetry, dashboard, event-gateway, agent-capacity, work, dotfiles, runner-smoke, github-metrics, bazel-r2-cache, go.tbhb.dev, and the Ansible collections | Independent projects, smallest first |
-| 6 | agent-memories, sm, agent-config, ops | Private-origin, after the scan tooling has run on real hosts for some weeks. ops is last because it's the largest and holds the most private values |
+| 5 | design, evals, pm, telemetry, dashboard, event-gateway, agent-capacity, work, dotfiles, runner-smoke, github-metrics, bazel-r2-cache, go.tbhb.dev, and the Ansible collections | Independent imports, smallest first. Runner-smoke adds four root workflows and six sample projects under `ops/runner-smoke/`. The Ansible collections land at `ops/ansible/collections/` |
+| 6 | agent-memories, sm, agent-config | The remaining private-origin repositories, after the scan tooling has run on real hosts for some weeks |
 
 The break is clean (D27). Neither new repository ever calls a workflow in an old repository, pins one, or extends a preset from one. The scaffolding's workflow therefore uses only inline steps and third-party actions pinned by commit hash, and renovate-config's lint targets wait one wave for the rules.
+
+The 2026-11-26 coordination call (D42) puts the test with the command-line tool because it exercises the tool's checker. In wave 2, the rules import's path map marks `//lint:review_policy_test` as a drop and gives that reason. The import rewrites the affected build files to omit the test and removes the tools pin. In wave 3, the CLI import adds the test under `factory/cli`, with a dependency on the policy data in `lib/rules`. The rules import's pull request body names the gap in monorepo coverage from the rules import until the CLI import merges. To undo this decision, move the test back to `lib/rules` and allow that one dependency on `factory/cli`.
 
 A repository that hasn't moved yet changes nothing. It keeps its pins on the rules and presets repositories at the commits it holds, and those pins stop moving once their targets are archived. Whether a pin and a workflow call still resolve against an archived repository is unverified, and plan step 2 tests it.
 
@@ -57,11 +53,12 @@ Between waves, plan step 11 measures queue wait and CI time. A wave doesn't star
 1. **Sort the issues.** The relevance pass in [appendix I](I-issues-and-projects.md#the-relevance-pass) starts with a `tbhb-agent` sorting run. A fresh `tbhb-agent` run on another provider confirms each close list before any issue on it closes (D34). It doesn't block the import, and it does block the archive.
 2. **Announce and drain.** `tbhb-agent` posts a freeze time in the old repository. Open pull requests merge or close before it, and agents get no new briefs for that repository.
 3. **Freeze.** `tbhb-agent` removes the Apps' write access to the old repository, under the organization admin grant, and the import names the frozen commit.
-4. **Map.** A path map lists every file at that commit as copied to a new path, dropped, or rewritten. Dropped files are the root configuration that the shared roots replace. Rewritten files are those that called, pinned, or imported an old repository.
-5. **Import.** `tbhbdev alpha monorepo import <repository>@<commit>` builds one signed commit and opens a pull request. The commit holds the files at their new paths, the project's dependencies folded into the shared roots, its rows in the tier 2 path map, and the build files gazelle writes. Its message names the source repository and the full commit hash, and it has no parent in the old repository.
-6. **Prove.** A required `import` job fetches a public source at the named commit, which needs no credential. It checks that each copied file is byte-identical to its source, that the map accounts for every source file, and that no executable reference to an old repository remains. It can't read a private source, so [appendix D](D-public-private.md#what-public-ci-proves-for-a-private-origin-import) says what it checks then, and the project's targets build and test like any affected targets.
+4. **Map.** A path map lists every file at that commit as copied to a new path, dropped, or rewritten. It records the configuration that the shared roots replace, the layout-specific drops in [appendix C](C-layout-and-ownership.md#where-each-repository-goes), and rewrites needed to use the new paths and dependency roots.
+5. **Import.** `tbhbdev alpha monorepo import <repository>@<commit>` builds one signed commit and opens a pull request. It imports the project as it is, with the mapped layout changes, shared dependency entries, and tier 2 path map rows needed to land it. The source language and target granularity carry over. The message names the source repository and full commit hash. The commit has no parent in the old repository.
+6. **Prove.** The required `import` job fetches a public source at the named commit and runs `verify` against it. The check compares every copied file byte for byte, checks that the map accounts for every source file, and rejects executable references to old repositories. [Appendix D](D-public-private.md#what-public-ci-proves-for-a-private-origin-import) describes the checks for private sources. The project's targets build and test like any affected targets.
 7. **Review.** GitHub’s diff view shows at most 300 files (per docs). The reviewer uses a local checkout of the exact head to read the path map and every dropped, rewritten, or generated file. If the import exceeds either size limit, a sizing review agent uses the passing byte-identical import check for that head as evidence for an override under the existing size rule (D9). For a private-origin import, the companion's comparison supplies that evidence.
-8. **Archive.** Once the repository has no open issue and no open pull request, its README gets one line that points to the new path, and it becomes an archive. `tbhbdev alpha monorepo archive` refuses while either count is above 0.
+8. **Split the build.** Right after a project's import, land a separate change that splits its build into fine-grained targets. Use Gazelle where a Gazelle extension exists. Keep the split out of the import commit so `verify` can compare the import with its source (D41). The split keeps test targets within Bazel's `medium` timeout. Go ports happen after import.
+9. **Archive.** Once the repository has no open issue and no open pull request, its README gets one line that points to the new path, and it becomes an archive. `tbhbdev alpha monorepo archive` refuses while either count is above 0.
 
 For a private-origin repository, step 5 builds the signed copy commit in a private workspace. The split, scans, and two independent reviews in [appendix D](D-public-private.md#importing-a-private-origin-repository) clear that exact commit before the import tool pushes it and opens the public pull request.
 
@@ -76,10 +73,10 @@ For a private-origin repository, step 5 builds the signed copy commit in a priva
 | Releases and tags | Old ones stay on the archived repository, where they remain downloadable. New ones are tagged `<project>/vX.Y.Z` |
 | Go import paths | The import rewrites each one to the root module's path, and the map lists the files it touched. The vanity import service keeps serving only the standalone modules |
 | Bazel module consumers outside the monorepo | A standalone repository keeps its rules pins until its own cutover, which it schedules itself. It then points each override at the monorepo with `strip_prefix = "lib/rules/<module>"` |
-| Renovate | One root `renovate.json5` and one root workflow, from wave 1 ([appendix H](H-dependencies-and-renovate.md#renovate)) |
+| Renovate | One root `renovate.json5` and three workflows in `.github/workflows/`, from wave 1 ([appendix H](H-dependencies-and-renovate.md#renovate)) |
 | Tier 0 approval | One root workflow, written inline, with the path lists in [appendix C](C-layout-and-ownership.md#the-tier-0-workflow) |
 | Reusable workflows | The monorepo calls none. The ones standalone repositories need are published from the root `.github/workflows` ([appendix F](F-ci.md#what-stays-for-standalone-repositories)) |
-| Deploy workflows | Deploys that need private values move to the companion. Others run on each push to `main` and deploy when `bazel-diff` marks their target as affected, with no path filter |
+| Deploy workflows | Deploys that need private values move to the companion. Ops deploys that need private values read them from the companion's `ops/`. Under the recommendation to keep `ops/` outside Bazel, its workflows use the deployment tools directly. Public Bazel deploys run on a push to `main` when `bazel-diff` marks their target as affected, with no path filter |
 | Scheduled jobs, such as nightly mutation tests | One root workflow each, with a matrix over projects |
 | Trackers | Each tracker row that names a repository gets the new path. The wiki's own links keep working inside `docs/wiki` because they're relative |
 

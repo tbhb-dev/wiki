@@ -10,7 +10,7 @@ parent: README.md
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 <!-- Copyright Tony Burns -->
 
-<!-- cspell:words monorepo bzlmod gomodscan determinator evals avirt afenc tbhbdev cutover -->
+<!-- cspell:words monorepo bzlmod gomodscan determinator evals avirt afenc tbhbdev cutover msys -->
 
 # One public monorepo for the factory decisions
 
@@ -21,6 +21,43 @@ Back to [the design](README.md).
 None.
 
 ## Decided
+
+### D37. Factory projects share one documents folder
+
+- **Rule:** Store the factory's knowledge articles in `factory/docs/kb/`, needs in `factory/docs/needs/`, and requirements in `factory/docs/requirements/`. Use this shared tree for all factory records and give no factory project a documents folder of its own. This updates D33 for the factory.
+- **Undo:** Move the records to project folders and update the record lane's path check.
+- **Record:** Operator ruling of 2026-11-26.
+
+### D38. Repository-wide helpers go in `scripts/`
+
+- **Rule:** The top-level `scripts/` holds helpers for internal use across the repository. It has no project of its own and publishes nothing. The name avoids the confusion with the old tools repository that `tools/` would cause.
+- **Undo:** Rename the folder.
+- **Record:** Operator ruling of 2026-11-26.
+
+### D39. Runner-smoke becomes repository infrastructure
+
+- **Rule:** Move all four workflows to the root `.github/workflows/` and all six sample projects to `ops/runner-smoke/`. List `ops/runner-smoke/` in `.bazelignore`. Drop the source repository's boilerplate, `msys2-install`, and the Windows legs. The fixture folder belongs to `ops/` and has no project of its own.
+- **Undo:** Restore the source repository from its archive and move the smoke checks back.
+- **Record:** Operator ruling of 2026-11-26.
+
+### D40. Renovate-config workflows live at the root
+
+- **Rule:** Move all three workflows to the root `.github/workflows/`. Keep the presets, pin script, and its tests in `lib/renovate-config`.
+- **Undo:** Restore the source repository from its archive and move the configuration and workflows back.
+- **Record:** Operator ruling of 2026-11-26.
+
+### D41. Import each project before porting it or splitting its build
+
+- **Rule:** Start with scaffolding, then import renovate-config, then rules, then the command-line tool at `factory/cli` and ops in parallel, then the rest. Import each project as it is and port to Go after import. Immediately after each project import, split its build into fine-grained targets in a separate change. Use Gazelle where a Gazelle extension exists. The import commit keeps the source build granularity so `verify` can compare the import with its source. [Appendix G](G-import-and-cutover.md)
+- **Undo:** Reorder pending imports or revert a build split or port independently of its import.
+- **Record:** Operator ruling of 2026-11-26.
+
+### D42. The review-policy checker test belongs with the command-line tool
+
+- **Decided:** 2026-11-26, by the coordinator. The decision is reversible.
+- **Rule:** The test exercises the command-line tool's checker, so the wave 2 rules import records it as a drop in the `lib/rules` path map and removes the old tools pin (D27). The wave 3 import adds the test under `factory/cli` and reads the policy data from `lib/rules`, which `factory/` may depend on (D35). The check is absent from monorepo CI until the CLI import merges. The rules import's pull request body names that gap.
+- **Undo:** Move the test back under `lib/rules` and allow that one dependency on `factory/cli`.
+- **Record:** The coordination call of 2026-11-26, recorded in [appendix C](C-layout-and-ownership.md#where-each-repository-goes) and [appendix G](G-import-and-cutover.md#import-order).
 
 ### D7. Stop work on the in-house queue
 
@@ -109,21 +146,21 @@ None.
 ### D35. Products depend on lib only, and factory code stays within the factory
 
 - **Decided:** 2026-11-26, by the operator.
-- **Rule:** products depend on `lib/` for published modules and vendored code (D14). Product build files load the build rules from `lib/rules` (D15). The factory publishes nothing for use outside `factory/`. Reusable workflows stay in `.github/workflows/` ([appendix C](C-layout-and-ownership.md#where-each-repository-goes)). Code used by both the factory and products, or by standalone repositories, goes in `lib/`. Bazel visibility and the layering queries in [appendix C](C-layout-and-ownership.md#dependency-rules-in-bazel) enforce both boundaries, including that no `factory/` target is visible to `products/` or `lib/`.
+- **Rule:** Products depend only on their own targets and `lib/`, which provides published modules and vendored code. Product build files load the build rules from `lib/rules` (D15). Factory projects may depend on `lib/`. The factory never depends on a product and publishes nothing for use outside `factory/`. Code that products or standalone repositories use goes in `lib/`, including the shared presets in `lib/renovate-config`. Reusable workflows stay in `.github/workflows/` ([appendix C](C-layout-and-ownership.md#where-each-repository-goes)). Bazel visibility and the layering queries in [appendix C](C-layout-and-ownership.md#dependency-rules-in-bazel) enforce both boundaries, including that no `factory/` target is visible to `products/` or `lib/`.
 - **Undo:** Amend D14 and change the visibility rules and layering test together.
 - **Record:** the operator's answers of 2026-11-26.
 
 ### D36. Both repositories use one identical area label set
 
 - **Decided:** 2026-11-26, by the orchestrator.
-- **Rule:** A project is a folder under `factory/`, `products/`, `lib/`, or `docs/` that holds an `OWNERS` file. The monorepo computes the set from its tree, and the companion creates the same set from the commit it pins. The generator uses the project paths and ignores the contents of `OWNERS` files.
+- **Rule:** An `OWNERS` file marks a project under `factory/`, `products/`, `lib/`, or `docs/`, and at `ops/` or any folder below it (D14). The monorepo computes the set from its tree, and the companion creates the same set from the commit it pins. The generator uses the project paths and ignores the contents of `OWNERS` files.
 - **Undo:** Change the generator and relabel the affected issues.
 - **Record:** the decision by the orchestrator on 2026-11-26.
 
-### D33. Project records live in each project's own docs folder, and a record pull request takes a lighter CI lane
+### D33. A record pull request takes a lighter CI lane
 
-- **Decided:** 2026-11-25, by the operator.
-- **Rule:** needs, requirements, and knowledge articles live in each project's own `docs/` folder, such as `factory/tbhbdev/docs/needs`, `factory/tbhbdev/docs/requirements`, and `factory/tbhbdev/docs/kb`, and not in the top-level `docs/`. A pull request whose diff touches only those paths is a record pull request, and a path check decides that. It runs only the Bazel record-check targets of the projects it touches, not the full build and test. The scans that guard what a pull request publishes still run, and the private-name scan runs wherever D6 supplies the secret. Any other file in the diff, or a change to a check's definition, sends it through the full lane. `conclusion` stays the one required check, and the rulesets don't change ([appendix F](F-ci.md#the-record-lane)).
+- **Decided:** 2026-11-25, by the operator. D37 changed the factory paths on 2026-11-26.
+- **Rule:** Factory records share `factory/docs/` (D37). Other projects keep needs, requirements, and knowledge articles in their own `docs/` folders. When a pull request touches only eligible Markdown records, CI runs the Bazel record checks for the changed paths. The scans that guard publication still run, and the private-name scan runs wherever D6 supplies the secret. Any other file in the diff sends it through the full lane. `conclusion` stays the one required check ([appendix F](F-ci.md#the-record-lane)).
 - **Undo:** remove the path check from the workflow, and every pull request takes the full lane again.
 - **Record:** the third fix brief for this design's pull request, 2026-11-25.
 
@@ -148,12 +185,12 @@ None.
 - **Undo:** change the duty table or the `OWNERS` test by a tier 2 pull request.
 - **Record:** the second and third fix briefs for this design's pull request, 2026-11-25.
 
-### D23. The command-line tool lives at `factory/tbhbdev`
+### D23. The command-line tool lives at `factory/cli`
 
-- **Decided:** 2026-11-25, by the operator.
-- **Rule:** tools imports to `factory/tbhbdev`, and its area label is `area/factory/tbhbdev`. No folder sits between `factory/` and the tool.
+- **Decided:** 2026-11-26, by the operator.
+- **Rule:** The tools repository imports to `factory/cli`. The `cli` folder is the project itself and its area label is `area/factory/cli`.
 - **Undo:** one folder move, which renames the area label and every Bazel label below it. It costs nothing before the tools import.
-- **Record:** the second fix brief for this design's pull request, 2026-11-25.
+- **Record:** The second fix brief set `factory/tbhbdev` on 2026-11-25. The operator's decisions log changed the path on 2026-11-26.
 
 ### D29. Go port pull requests for the front, dispatch, and plugin plumbing go to the operator before merge
 
@@ -165,14 +202,14 @@ None.
 ### D28. Issues live in two repositories, with two Projects and one area label each
 
 - **Decided:** 2026-11-25, by the operator. D26 and D36 amend the Project and label rules on 2026-11-26.
-- **Rule:** issues live in the monorepo and in the companion, and both have Issues and Projects on. The main private Project holds issues from both repositories, and the public roadmap holds the monorepo's public issues. Each issue carries exactly one area label, either `area/<project-path>` or one of `area/repo`, `area/third_party`, and `area/none`. A project is a folder under `factory/`, `products/`, `lib/`, or `docs/` that holds an `OWNERS` file. The monorepo computes the set from its tree, and the companion creates the same set from the commit it pins. The issue commands and a sync check enforce the one-label rule. Existing issues get a relevance pass before they move ([appendix I](I-issues-and-projects.md)).
+- **Rule:** issues live in the monorepo and in the companion, and both have Issues and Projects on. The main private Project holds issues from both repositories, and the public roadmap holds the monorepo's public issues. Each issue carries exactly one area label, either `area/<project-path>` or one of `area/repo`, `area/third_party`, and `area/none`. An `OWNERS` file marks a project under `factory/`, `products/`, `lib/`, or `docs/`, and at `ops/` or any folder below it (D14). The monorepo computes the set from its tree, and the companion creates the same set from the commit it pins. The issue commands and a sync check enforce the one-label rule. Existing issues get a relevance pass before they move ([appendix I](I-issues-and-projects.md)).
 - **Undo:** change the label generator or the Projects. Imported issues stay where they landed.
 - **Record:** the operator's brief of 2026-11-25, addendum 5, and the second fix brief for this design's pull request.
 
-### D27. A clean break, starting with scaffolding, then renovate-config, then rules
+### D27. The new repositories have no dependency on the old repositories
 
 - **Decided:** 2026-11-25, by the operator.
-- **Rule:** neither new repository calls, pins, or extends an old repository, and their CI is written inline. The import order is the scaffolding, then renovate-config, which brings Renovate, then rules, then the rest. A repository that hasn't moved yet keeps the pins it holds until its own import.
+- **Rule:** Neither new repository calls, pins, or extends an old repository, and their CI is written inline. A repository that hasn't moved yet keeps the pins it holds until its own import. D41 sets the import order.
 - **Undo:** none needed. A stop after any import leaves the old repositories working ([appendix G](G-import-and-cutover.md#stopping-partway)).
 - **Record:** the operator's brief of 2026-11-25, addendum 5.
 
@@ -239,12 +276,12 @@ None.
 - **Undo:** fold them into the root module, which rewrites every load statement and cuts off standalone consumers.
 - **Record:** this design's pull request.
 
-### D14. Five top-level folders, a flat `factory/`, and dependency rules
+### D14. Top-level folders, a flat `factory/`, and dependency rules
 
-- **Decided:** 2026-11-25, by the operator. The flat `factory/` is the operator's later ruling of the same day, which replaced the first sketch's extra level of folders. D35 amends the dependency rules on 2026-11-26.
-- **Rule:** top-level folders are `factory/`, `products/`, `lib/`, `docs/`, and `third_party/`. `factory/` is one boundary with no grouping folders: each project is one folder directly under it, and one source repository becomes one folder. Each project's `README.md` and `OWNERS` file describe the project, and neither sorts it into a category. The top-level `docs/` holds the wiki, research, and spikes, and each project's own records live in the project (D33). Products get their dependencies from `lib/`. Their build files load the rules from `lib/rules`. The factory never depends on a product and publishes nothing for use outside `factory/`. Code used by both the factory and products, or by standalone repositories, goes in `lib/`. Bazel visibility keeps all `factory/` targets unavailable to `products/` and `lib/`, and layering queries check these boundaries. The companion mirrors the public paths.
+- **Decided:** 2026-11-26, by the operator. The operator set the flat `factory/` layout on 2026-11-25. D35 amended the dependency rules on 2026-11-26.
+- **Rule:** The layout uses `factory/`, `ops/`, `products/`, `lib/`, `docs/`, `scripts/` (D38), and `third_party/`. `factory/` stays flat, with one folder directly under it per project and a shared `factory/docs/` (D37). The public operations files go in `ops/` and private values go in the companion's `ops/`. The Ansible collections go in `ops/ansible/collections`, and the runner-smoke samples go in `ops/runner-smoke/` (D39). Each project's `README.md` and `OWNERS` file describe the project, and neither sorts it into a category. The top-level `docs/` holds the wiki, research, and spikes. D35 governs the factory and product dependency rules. The companion mirrors the public paths.
 - **Undo:** move folders by pull request. The rules live in build files and one test.
-- **Record:** the operator's brief of 2026-11-25, and the second and third fix briefs for this design's pull request.
+- **Record:** The operator's brief of 2026-11-25, the second and third fix briefs for this design's pull request, and the operator's decisions log of 2026-11-26.
 
 ### D13. Gazelle writes build files, coverage stays at 100% branch, and CI runs affected targets
 

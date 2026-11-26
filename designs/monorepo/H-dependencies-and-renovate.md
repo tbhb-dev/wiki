@@ -62,11 +62,13 @@ The extraction is done when the new repository builds and tests with no path int
 
 Today a self-hosted Renovate runs once for each repository, from a reusable workflow, on a GitHub App token (existing). In the monorepo it runs once for the whole repository.
 
+The renovate-config import moves all three workflows to the root `.github/workflows/` directory. The presets, pin script, and its tests stay together in `lib/renovate-config` (D40).
+
 | Topic | Design |
 | --- | --- |
 | Internal pins | None exist inside the monorepo, so Renovate has none to move. The companion's one pin on a monorepo commit is the exception, and the companion's own run moves it |
 | One version | The single root for each language is the enforcement. Renovate has no second manifest to update differently |
-| Runs | One root workflow, written inline, on today's schedule and the same App token. The root `renovate.json5` loads the presets from `factory/renovate-config` in the same repository |
+| Runs | The root Renovate workflow runs inline on today's schedule with the same App token. The root `renovate.json5` loads presets from `lib/renovate-config`. Products can use the same presets |
 | Grouping | One group for each lock file holds its minor, patch, and digest updates, opened once a day. Each major version gets its own pull request, and a security update opens at once |
 | Automerge | A green non-major update needs only CI under the review tier record, and it still needs an approval to enter the queue. [Approval and owner notices](#approval-and-owner-notices) says who gives it. Renovate's platform automerge then adds it to the merge queue, so it lands through the same queue as every change |
 | Limits | At most 10 Renovate pull requests are open at once, which keeps the bot well inside the 1,000 open pull requests GitHub recommends for a branch |
