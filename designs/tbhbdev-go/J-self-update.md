@@ -20,7 +20,7 @@ Everything here is new (D15). It starts with the bundle in plan step 5. Machines
 
 ## The shape
 
-The front decides, and a separate bundle binary acts. The front does one file read and one pure call, so it still does no network work and starts no process before its exec ([appendix E](E-plugin-contract.md#dispatch)).
+The front decides, and a separate bundle binary acts. The front reads the self-update cache and makes one pure call for that decision. It does no network work and starts no process before its exec ([appendix E](E-plugin-contract.md#dispatch)).
 
 1. **Lease.** The front takes a shared lease on its own bundle before it reads any file in it ([runs in progress](#runs-in-progress)).
 2. **Read.** The front reads the manifest and the cache file. A missing or unreadable cache is a stale one.

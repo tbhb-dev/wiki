@@ -80,7 +80,8 @@ Labels:
 | CI gives the main cache token to `push` and `merge_group` runs | existing | the merge queue design's evidence, tools `ci.yml` at `f342d9c5` |
 | Hosts install with `uv tool install git+https://github.com/tbhb-dev/tools` | outline | tools `AGENTS.md` |
 | tools#385 (`da154050`) is the only verified open pure-core pull request | outline | local refs. The tools inventory of 2026-11-25 lists it as merged since |
-| `host` is frozen until ops replaces it | unverified | a memory note the outline cites |
+| `tbhbdev host` is retired without a port, and its work moved to ops' Ansible | brief | tbhb's decision of 2026-11-08 (D2) |
+| `tbhbdev analytics migrate` stays in tbhbdev | brief | tbhb's answer of 2026-11-09 (D2) |
 | Which other repositories import the library-only modules | unverified | the tools README calls them libraries |
 | Who writes host authorized-keys entries | unverified | |
 

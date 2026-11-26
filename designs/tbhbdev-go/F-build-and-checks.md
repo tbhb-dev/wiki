@@ -128,4 +128,4 @@ A `genquery` test fails on any `go_test` in the module that is not one of those 
 
 - `go_arch_lint_test` keeps the front's main to its wiring package, and the wiring to the four packages in the components table, plus the standard library. depguard's `front-stdlib-only` list holds the same line for third-party packages across all six of the front's packages, and a planted fixture that imports cobra into the wiring package fails it.
 - A size test fails if the stripped front binary grows past a budget set from the first build (new, value to be measured).
-- A test runs the front under a process counter and fails if it starts any process before its exec. The front's only reads are the manifest and the self-update cache, plus the shared lock on its bundle.
+- A test runs the front under a process counter and fails if it starts any process before its exec. With a shared lock on its bundle, the front reads the manifest, the self-update cache, and, when needed for routing, the outside plugin list (D3).

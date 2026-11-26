@@ -35,7 +35,7 @@ None of them appears in the front, `internal/dispatch`, or `internal/selfupdate`
 
 ### Why the front does not use cobra
 
-The front stays on the standard library, and `dispatch.Resolve` stays a pure function over argv and the manifest. The front runs before any flag parsing, and it must hand unknown names and flags through untouched to a plugin or to Python. A flag parser consumes or rejects flags it does not define, which is why gh turned off flag parsing for extensions and later matched cobra's error text ([appendix B](B-gh-pitfalls.md#14-matching-the-unknown-command-error-string)).
+The front stays on the standard library, and `dispatch.Resolve` stays a pure function over argv, the manifest, and any outside plugin entries (D3). The front runs before any flag parsing, and it must hand unknown names and flags through untouched to a plugin or to Python. A flag parser consumes or rejects flags it does not define, which is why gh turned off flag parsing for extensions and later matched cobra's error text ([appendix B](B-gh-pitfalls.md#14-matching-the-unknown-command-error-string)).
 
 The front also starts on every hook call, so each library it links adds start-up time to every tool call ([appendix B](B-gh-pitfalls.md#51-dependency-start-up-costs)). Cobra lives in the plugin binaries, where each flag belongs to the command that defines it.
 

@@ -1,7 +1,7 @@
 ---
 type: Design Appendix
 title: tbhbdev Go port decisions
-description: The open and decided questions of the tbhbdev Go port design.
+description: The decisions of the tbhbdev Go port design.
 tags: [tbhbdev, go, decisions, design]
 status: draft
 parent: README.md
@@ -18,21 +18,7 @@ Back to [the design](README.md).
 
 ## Open
 
-### D2. Does `tbhbdev host` retire without a port, and does `tbhbdev analytics` leave the bundle as its own Python tool, so the Python fallthrough can end?
-
-- **Recommendation:** yes.
-- **Why:** `host` is 2,395 lines that a memory note calls frozen until ops replaces it (unverified as current). `analytics` is 727 lines of PostgreSQL migrations with no tie to the launcher. Porting either costs more than it returns, and keeping either in the bundle keeps a Python interpreter in every install for good. Neither speaks the agent protocol, so neither touches D14 or D16.
-- **If yes:** `host` stays in the fallthrough until ops ships its replacement, then goes. `analytics` moves to its own package with its own console script before plan step 9. The library-only modules stay in Python until their callers in other repositories move.
-- **If no:** `host` or `analytics` joins wave 4 as Go, about 2,400 or 700 more Python lines to port, or the bundle keeps the Python wheel with no end date.
-- **Reversible:** yes until the Python code is deleted, then only by restoring it from history.
-
-### D3. May the front run plugins from outside its release bundle, but only from absolute paths listed in a file that tbhb owns, and never from a `PATH` search?
-
-- **Recommendation:** yes.
-- **Why:** graph and the private ITSM repository add tools today through Python entry points in the `tbhbdev.plugins` group, and they need a way in once the fallthrough ends. Agent hooks run `tbhbdev` on every tool call, so what it may run is a trust boundary. gh dropped its `PATH` search six days after it shipped ([appendix B](B-gh-pitfalls.md#11-path-discovery-dropped-after-six-days)).
-- **If yes:** the front reads `$XDG_CONFIG_HOME/tbhbdev/plugins.toml` only when no bundle plugin matches. Each entry is a name and an absolute path, and a name that a built-in or bundle plugin uses is reported, never run. Self-update replaces only the bundle, so listed plugins keep their own installs, and one whose contract version differs runs with a logged warning (D14).
-- **If no:** only the bundle's plugins run. graph and the ITSM repository ship their own commands under their own names once the fallthrough ends.
-- **Reversible:** yes. Removing the file read narrows the boundary again, and the entries just stop working.
+Nothing is open.
 
 ## Decided
 
@@ -42,6 +28,20 @@ Back to [the design](README.md).
 - **Rule:** The release job publishes the Go bundles as GitHub Releases of tbhb-dev/tbhbdev, one release per main merge, with the `main.json` pointer and per-version bridge pointers as release assets.
 - **Undo:** Make a new decision, then delete the releases.
 - **Record:** The 2026-11-26 decision follows the existing practice of hosts installing the tools from a per-merge release.
+
+### D2. Host retires, analytics stays, and the Python fallthrough ends after the kept commands port
+
+- **Decided:** 2026-11-26, by coord, as a two-way door.
+- **Rule:** `tbhbdev host` is retired without a port. `tbhbdev analytics` stays in the bundle and runs through the Python fallthrough until it ports in a later wave. The fallthrough stays until every kept command has a Go version, then goes in its own pull request. Library-only modules stay in Python until their callers in other repositories move.
+- **Undo:** Make a new decision any time before the Python code is deleted.
+- **Record:** On 2026-11-08, tbhb retired `tbhbdev host` entirely and moved its work to ops' Ansible. On 2026-11-09, tbhb confirmed that `tbhbdev analytics migrate` stays in tbhbdev. Coord decided when to remove the fallthrough on 2026-11-26.
+
+### D3. The front runs outside plugins from an operator-owned list
+
+- **Decided:** 2026-11-26, by coord, as a two-way door.
+- **Rule:** The front only runs outside plugins by absolute path from the operator-owned `$XDG_CONFIG_HOME/tbhbdev/plugins.toml`. Built-in and bundle plugin names take precedence over listed names, and collisions are reported. The front reads the file only when no built-in or bundle plugin matches and never searches `PATH`. Self-update replaces only the bundle, so listed plugins keep their own installs. A listed plugin whose contract version differs still runs with a logged warning (D14).
+- **Undo:** Remove the file read, and listed entries stop working.
+- **Record:** Coord accepted the design on 2026-11-26. The list gives Python entry-point plugins a route after the fallthrough ends and follows gh's decision to drop `PATH` discovery ([appendix B](B-gh-pitfalls.md#11-path-discovery-dropped-after-six-days)).
 
 ### D27. The CLI folder is `factory/cli`
 

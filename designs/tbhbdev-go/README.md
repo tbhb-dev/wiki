@@ -5,8 +5,8 @@ description: How tbhbdev moves from Python to a Go front and per-command plugin 
 tags: [tbhbdev, go, cli, plugins, bazel, design]
 status: draft
 owner: tools maintainer
-updated: "2026-11-25"
-decisions_open: 3
+updated: "2026-11-26"
+decisions_open: 0
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
@@ -18,13 +18,13 @@ decisions_open: 3
 
 | Status | Owner | Updated | Needs from tbhb |
 | --- | --- | --- | --- |
-| Draft | tools maintainer | 2026-11-25 | 3 open decisions in [decisions.md](decisions.md), about 10 minutes |
+| Draft | tools maintainer | 2026-11-26 | Read the merged design (D17) |
 
 ## Summary
 
 On 2026-11-25 tbhb chose to port tbhbdev, about 37,700 lines of Python, to Go as plugin binaries, modeled on the GitHub command-line tool `gh`. The Go code lives in the new monorepo tbhb-dev/tbhbdev (D22), and the Python stays in tbhb-dev/tools.
 
-A small standard-library front, `tbhbdev`, execs `tbhbdev-<name>` from its release bundle, and hands every other name, `alpha` included, to `tbhbdev-py`, the Python tbhbdev beside it (D25). Plugins use cobra, koanf, go-github, and in-process Configure Unify Execute (CUE) validation, with no package state.
+A small standard-library front, `tbhbdev`, runs bundle plugins and operator-listed outside plugins (D3). It hands remaining names, `alpha` included, to `tbhbdev-py`, the Python tbhbdev beside it (D25). Bundle plugins use cobra, koanf, go-github, and in-process Configure Unify Execute (CUE) validation, with no package state.
 
 Wave 1 ports the unfinished review tooling, and the launcher follows. Drivers and hosts agree on a versioned schema, and tbhbdev updates itself without blocking a run.
 
@@ -34,10 +34,10 @@ Implementation waits for tbhb's read of the merged design.
 
 When the first build merges, these parts exist. The Go code is one module in tbhb-dev/tbhbdev, `github.com/tbhb-dev/tbhbdev`, a path written only in its `go.mod` (D22). The Python tbhbdev, `tbhbdev-py`, and every unported command stay in tbhb-dev/tools.
 
-- **The front, `factory/cli/cmd/tbhbdev`** (new). A Go binary that maps argv to one route and replaces itself with that route's program. It does no network, config, or per-plugin work before the exec.
+- **The front, `factory/cli/cmd/tbhbdev`** (new). A Go binary that maps argv to one route and replaces itself with that route's program. Its only config read is the outside plugin list (D3). It does no network or per-plugin work before the exec.
 - **Plugin binaries, `factory/cli/cmd/tbhbdev-<name>`** (new). One per top-level command word, such as `tbhbdev-review` for `tbhbdev review post`. Each owns its subcommands and its own small dependency set.
 - **The Go stack** (new). cobra and pflag for each plugin's commands, koanf for config, `cuelang.org/go` for every schema check, and go-github behind one package for GitHub, each held to its packages by the rules in [appendix K](K-go-stack.md). The front uses none of them.
-- **The Python fallthrough, `tbhbdev-py`** (existing code, new place). The Python wheel from the tools commit that the monorepo pins, installed inside the bundle, with its `tbhbdev-py` entry point in the front's own `bin/` folder. It runs every name the front does not route to Go, including all of `tbhbdev alpha` (D5, D25).
+- **The Python fallthrough, `tbhbdev-py`** (existing code, new place). The Python wheel from the tools commit that the monorepo pins, installed inside the bundle, with its `tbhbdev-py` entry point in the front's own `bin/` folder. It runs `tbhbdev alpha` and other names that the front does not resolve (D5, D25).
 - **The release bundle** (new). One archive per platform, built by the tbhb-dev/tbhbdev release job from one monorepo commit: the front, every plugin, the pinned tools wheel, and a manifest that names both commits. tbhb-agent builds the code, tbhb approves its merge, and the release job then builds the bundle from the merged commit.
 - **Release checks** (new, D23). The release job attests each archive with a keyless GitHub artifact attestation. The installer checks the SHA-256 hashes and the attestation, pinned to the tbhbdev release workflow, the `main` ref, and the expected commit, before any swap.
 - **The installer** (new behavior). It unpacks a bundle into its own versioned directory and swaps one symbolic link, so a failed install leaves the old bundle running. tbhb-agent runs the first install on each host, a deploy kept apart from tbhb's approval of the code, and after that event-driven sync and self-update keep hosts current.
@@ -60,11 +60,11 @@ The monorepo imports the Python CLI into `factory/cli`, where it becomes the `tb
 
 1. The front resolves its own path once, from `os.Executable` and `filepath.EvalSymlinks`, and takes a shared lease on that bundle before it reads anything in it.
 2. It reads the bundle manifest beside it and the self-update cache, and calls the pure `selfupdate.Decide`. Most calls get `Run` and go on, and the rest exec the self-update helper first. If that exec fails, the front goes on to dispatch the current build.
-3. A pure function, `dispatch.Resolve`, maps argv and the manifest to one route. The order is front built-ins (`version` and `help`), then bundle plugins by the first command word, then `tbhbdev-py`.
+3. A pure function, `dispatch.Resolve`, maps argv, the manifest, and any outside plugin entries to one route. The order is front built-ins (`version` and `help`), then bundle plugins by the first command word, then listed outside plugins, then `tbhbdev-py`. The reserved `alpha` name goes directly to Python.
 4. The front sets the contract variables and calls `syscall.Exec`. The plugin inherits the process ID, the argv tail verbatim, the environment, and every open descriptor, so the forced command's standard input contract and the inherited push-token pipe survive as they are.
 5. The plugin's own exit status is the process's exit status, since nothing waits on it. The front keeps 125, 126, and 127 for its own failures.
 
-The front never searches `PATH` for plugins or for Python, and never routes `alpha` to Go. Whether it may run plugins from outside the bundle is D3.
+The front runs outside plugins only from absolute paths in the operator-owned `$XDG_CONFIG_HOME/tbhbdev/plugins.toml` (D3). It never searches `PATH` for plugins or for Python.
 
 ### The plugin contract
 
@@ -149,7 +149,7 @@ After a command ports, its Python `alpha` entry becomes a silent forwarder to th
 
 Wave 1 ports the review tooling, the one unfinished part of tbhbdev: review runs, verdicts, posting reviews to GitHub, and the unbuilt pieces of the review-wire milestone plan (D17). It keeps the review authority of ADR 0004 and ADR 0009: GO or HOLD verdicts, comment reviews on the exact judged head, and approval left to the independent approver. Until wave 2, Go review code starts runs through `tbhbdev agent exec`, which the Python launcher answers under that final name.
 
-Wave 2 ports the launcher, which works today. Wave 3 ports the harness hooks, the pull request commands, and `loop`, and wave 4 the rest. [Appendix H](H-waves.md) lists the review pieces in Python and the unbuilt ones, the line counts, and the slices.
+Wave 2 ports the launcher, which works today. Wave 3 ports the harness hooks, the pull request commands, and `loop`. Wave 4 ports the installer and the other commands assigned to it, with `analytics` scheduled for a later wave (D2). [Appendix H](H-waves.md) lists the review pieces in Python and the unbuilt ones, the line counts, and the slices.
 
 The scaffolding is about six serial pull requests in tbhb-dev/tbhbdev, then up to about eight at once. The first Go slice, tools#418, waits for the move to the monorepo and does not merge into tools.
 
@@ -204,13 +204,13 @@ gh got the one-line `main`, the typed exit errors, and the injected process seam
 | 7 | Wave 2: `tbhbdev agent` | The envelope corpus passes both ways in CI, a Go driver launches on a phase 1 host, and `tbhbdev agent env` reaches the Python code through the plugin's passthrough | tools maintainer |
 | 8 | Caller migration for each ported command | `rg 'tbhbdev alpha <command>'` finds nothing in tools, tbhbdev, agent-config, ops, or wiki, and the forwarder logs stay empty for 14 days | agent-config maintainer, ops maintainer |
 | 9 | Waves 3 and 4 | Each wave's commands answer under final names from the bundle | tools maintainer |
-| 10 | The fallthrough retires, per D2 | `tbhbdev` with an unported name exits 127, and no bundle carries the Python wheel | tools maintainer |
+| 10 | Remove the fallthrough in its own pull request after every kept command has a Go version (D2) | An unknown command exits 127, and the bundle carries no Python wheel | tools maintainer |
 
-No step starts until tbhb has read the merged design (D17). Steps 1, 2, and 3 then run in parallel, and step 3's ast-grep check lands once step 1 has. Until wave 4 ports `install check`, every fleet check uses the existing `tbhbdev alpha version-check`, which step 2 extends to print each machine's served versions. Step 10 waits on D2.
+No step starts until tbhb has read the merged design (D17). Steps 1, 2, and 3 then run in parallel, and step 3's ast-grep check lands once step 1 has. Until wave 4 ports `install check`, every fleet check uses the existing `tbhbdev alpha version-check`, which step 2 extends to print each machine's served versions.
 
 ## Appendices
 
-- [Decisions](decisions.md): 3 open, then the decided record.
+- [Decisions](decisions.md): the decision record.
 - [A. gh architecture](A-gh-architecture.md): how cli/cli is built, and what this design copies or avoids.
 - [B. gh pitfalls](B-gh-pitfalls.md): the architectural pain in cli/cli's history, by commit, each with the rule it gives this design.
 - [C. Alternatives considered](C-alternatives.md): the options not taken, and why.

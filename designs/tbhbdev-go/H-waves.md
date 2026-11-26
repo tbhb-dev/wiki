@@ -38,7 +38,8 @@ No wave starts until tbhb has read the merged design (D17). Every Go wave lands 
 | 4 | `brief`, `verify-range`, `version-check`, `pre-push-guard`, and `pr-stats` | about 1,100 | |
 | 4 | `admin` (1,484), the `secret` command (160), `agy` (276), `adr` with `adr_decision` (250), and `issue` with `issue_import` (282) | about 2,450 | |
 | none | `cue` (156) | | Go runs no `cue` binary (D20), so the command that installs it stays with the Python content libraries and goes when they go |
-| none | `analytics` (727) and `host` (2,395) | | D2 |
+| later | `analytics` | 727 | Stays in the bundle and runs through the Python fallthrough until it ports (D2) |
+| none | `host` | 2,395 | Retired without a port after its work moved to ops' Ansible (D2) |
 | none | `gitleaks_check`, `prose_check`, `content`, `content_model`, and `content_vet` as Python libraries | | Keep the Python libraries until their external callers move |
 
 `policy.py` in `decisions/` imports `secrets` and `host_tools`, which sit outside `decisions/`. Its purity gets a check before it ports as a pure package. The wave 2 Go copy of `gitleaks_check` and the wave 1 Go content check live beside their Python libraries until the libraries' callers move.

@@ -34,7 +34,7 @@ Go's `plugin` package, or plugins over a remote procedure call protocol. The fir
 
 ## Plugins found on PATH
 
-Search `PATH` for `tbhbdev-<name>`, as git and kubectl do, and as the outline proposed after the bundle directory. gh shipped this and removed it six days later ([appendix B](B-gh-pitfalls.md#11-path-discovery-dropped-after-six-days)). It also lets any file on `PATH` run under hooks that agents trigger on every tool call. D3 asks whether listed absolute paths may join the bundle's plugins, which keeps the gain without the search.
+Search `PATH` for `tbhbdev-<name>`, as git and kubectl do, and as the outline proposed after the bundle directory. gh shipped this and removed it six days later ([appendix B](B-gh-pitfalls.md#11-path-discovery-dropped-after-six-days)). It also lets any file on `PATH` run under hooks that agents trigger on every tool call. D3 lets the operator list outside plugins by absolute path.
 
 ## A child process instead of exec
 

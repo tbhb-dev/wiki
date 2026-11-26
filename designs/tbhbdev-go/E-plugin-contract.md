@@ -26,26 +26,26 @@ The front is `factory/cli/cmd/tbhbdev`. Its `main` is one line that calls `front
 2. **Lease the bundle.** Before it reads any file in the bundle, the front opens `<bundle>/.in-use` and takes a shared lock on it, without close-on-exec. If the bundle was pruned in between, it resolves the link once more and retries once ([appendix J](J-self-update.md#runs-in-progress)).
 3. **Read the manifest.** One read of `<bundle>/manifest.json`. A missing or unreadable manifest exits 125 with one line on standard error.
 4. **Check for an update.** Unless the first word is `version`, `--version`, or `help`, the front reads the self-update cache and calls the pure `selfupdate.Decide`. Anything but `Run` execs the bundle's self-update helper, which does the network work under its budget ([appendix J](J-self-update.md)). If that exec fails, the front logs one warning and goes on to route the current build. A front started by the helper after a swap closes the update lock it inherited, named by `TBHBDEV_UPDATE_LOCK_FD`, at this step, so no plugin holds it.
-5. **Route.** `dispatch.Resolve(argv, manifest, outside)` is pure and returns one route: a built-in, a bundle plugin, an outside plugin (only if D3 passes), or `tbhbdev-py`. The first word of argv picks it.
+5. **Route.** `dispatch.Resolve(argv, manifest, outside)` is pure and returns one route: a built-in, a bundle plugin, a listed outside plugin (D3), or `tbhbdev-py`. The first word of argv picks it.
 6. **Exec.** The front adds the contract variables to the environment and calls `syscall.Exec` on the route's absolute path. A failed exec exits 126.
 
 | First word | Route | Notes |
 | --- | --- | --- |
-| none, `help`, `-h`, `--help` | built-in help | Lists bundle plugins from the manifest, then says other names go to `tbhbdev-py` |
+| none, `help`, `-h`, `--help` | built-in help | Lists bundle plugins from the manifest and describes how other names are routed |
 | `help <name>` | `<name> --help` | Forwarded, so the plugin prints its own help |
 | `version`, `--version` | built-in version | Prints the bundle version and commit from the stamp, with no file read |
 | `alpha` | `<bundle>/bin/tbhbdev-py`, always | No Go plugin may take this name, and a bundle build fails if one does |
 | a manifest plugin name | `<bundle>/bin/tbhbdev-<name>` | argv after the name, verbatim |
-| an outside plugin name (D3) | the listed absolute path | Read only when no bundle plugin matches |
+| an outside plugin name (D3) | the listed absolute path | Read only when no built-in or bundle plugin matches |
 | anything else | `<bundle>/bin/tbhbdev-py` | Full argv, verbatim |
 
-The front takes no flags of its own before the command word and links no flag library, so a flag such as `--repo` always reaches the plugin as typed ([appendix K](K-go-stack.md#why-the-front-does-not-use-cobra)). It starts no goroutine, reads no config, makes no network call, and runs no migration, and it reads only the manifest and the self-update cache. A failed self-update never stops it from routing.
+The front takes no flags of its own before the command word and links no flag library, so a flag such as `--repo` always reaches the plugin as typed ([appendix K](K-go-stack.md#why-the-front-does-not-use-cobra)). Its only reads are the manifest, the self-update cache, and, when needed for routing, the operator-owned `$XDG_CONFIG_HOME/tbhbdev/plugins.toml`. It starts no goroutine, makes no network call, and runs no migration. A failed self-update never stops it from routing.
 
-It does not hash or verify plugins at run time, because the installer did that once.
+The installer hashes and verifies bundle plugins once. The operator controls the paths to outside plugins.
 
 ## The plugin contract
 
-Contract version 1. A plugin is any executable the manifest lists, written in Go in tbhb-dev/tbhbdev or, under D3, elsewhere.
+Contract version 1. A plugin is a Go executable listed in the bundle manifest or an outside executable listed in the operator's `plugins.toml` (D3).
 
 | Part | Rule |
 | --- | --- |
@@ -117,7 +117,7 @@ The bundle carries the tools wheel from the commit that the monorepo pins, and t
 
 The front execs `<bundle>/bin/tbhbdev-py <argv>` by absolute path with `TBHBDEV_PROG=tbhbdev`. It never runs `python3 -m tbhbdev`, and never searches `PATH`. The wheel's `tbhbdev` script stays inside `py/bin`, off `PATH`, so it cannot shadow the front.
 
-The Python dispatcher works as it does today, including the `tbhbdev.plugins` entry points that graph and the ITSM repository use. Python reads `TBHBDEV_PROG` for usage messages (plan step 2). Entry-point plugins that also supply config files keep doing so on the Python side, and how they reach Go commands is part of D3.
+The Python dispatcher works as it does today, including the `tbhbdev.plugins` entry points that graph and the ITSM repository use. Python reads `TBHBDEV_PROG` for usage messages (plan step 2). Entry-point plugins that also supply config files keep doing so on the Python side. Outside executables can use the operator's list (D3).
 
 A Go plugin that owns a word before all its subcommands port passes the unported ones to the same file, `$TBHBDEV_BUNDLE/bin/tbhbdev-py <word> <argv>`, as the `agent` plugin does in wave 2 (D26).
 
