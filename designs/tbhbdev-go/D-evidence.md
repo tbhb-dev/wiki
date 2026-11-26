@@ -45,8 +45,8 @@ Labels:
 | Front and dispatch pull requests go to tbhb before merge | brief | the same (D19) |
 | Go validates schemas in-process with `cuelang.org/go`, embedded by `go:embed`, and never runs the `cue` binary | brief | the same (D20) |
 | After tools#399, Python gets no new review features | brief | the same relay |
-| The Go port is built in the monorepo tbhb-dev/tbhbdev, the Python CLI imports into `factory/cli`, and tools#418 waits for the move | brief | D22 and [monorepo D23](../monorepo/decisions.md#d23-the-command-line-tool-lives-at-factorycli) |
-| The front imports dispatch under the module path `github.com/tbhb-dev/tbhbdev` | existing | [Front source in tbhb-dev/tbhbdev#12](https://github.com/tbhb-dev/tbhbdev/blob/d3c0b84727eb0e9b5de38b523fc96fe1b29a7323/factory/cli/cmd/tbhbdev/main.go#L14) |
+| The Python CLI has landed in `factory/cli`, where the Go port is built | existing, design | [CLI import](https://github.com/tbhb-dev/tbhbdev/commit/4dcb1a63a88f2f306916bcdb6f8e366ab5209e8b) and D22 |
+| The front imports dispatch under the module path `github.com/tbhb-dev/tbhbdev` | existing | [Front source in tbhb-dev/tbhbdev#12](https://github.com/tbhb-dev/tbhbdev/blob/d3c0b84727eb0e9b5de38b523fc96fe1b29a7323/factory/cli/cmd/tbhbdev/main.go#L15) |
 | The CLI folder inside the monorepo is `factory/cli` | brief | The operator's 2026-11-26 correction (D27, [monorepo D23](../monorepo/decisions.md#d23-the-command-line-tool-lives-at-factorycli)) |
 | The Python fallthrough is the `tbhbdev-py` entry point in the front's own folder | brief | tbhb's decision of 2026-11-25 on the fallthrough (D25) |
 | The GitHub client stack is go-github v93 behind `internal/ghapi`, a GraphQL helper, and a standard-library JWT, with no `githubv4` or `ghinstallation` | brief | tbhb's decision of 2026-11-25 on a research report into Go GitHub clients (D24) |

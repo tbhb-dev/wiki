@@ -38,7 +38,7 @@ tbhb-dev/tbhbdev/
     tests/agent-corpus/           request envelopes both languages test against
 ```
 
-The CLI import brings the Python sources, tests, and schemas under `factory/cli`. The `protocol-version` job moves to monorepo CI.
+The CLI import brought the Python sources, tests, and CUE schemas under `factory/cli`. Phase 1 adds the protocol schema and the `protocol-version` job in the monorepo.
 
 gazelle writes one `BUILD.bazel` per Go package. The root omits the `# gazelle:prefix` directive because gazelle v0.54.0 reads the module path from `go.mod` when the prefix is unset ([source](https://github.com/bazel-contrib/bazel-gazelle/blob/v0.54.0/language/go/config.go#L747-L760)). Bazel labels name the folder as `//factory/cli/...`. There is no plain `go build` path, and release builds use `bazelisk build --config=release` as in afakt and awrel CI.
 
@@ -73,7 +73,7 @@ The copy checks and corpus tests use local Bazel inputs from `factory/cli`. No t
 | input/output (I/O) in pure code and unit tests | `ast_grep_test` | new macro in rules, plan step 1 |
 | Test time caps | `unit_go_test` and `io_go_test` | new macros in the monorepo |
 | The front budget | Imports and startup work in dispatch | new |
-| Build stamp | `tbhbdev version` prints the bundle version, and both it and `tbhbdev-py --version` report the bundle's monorepo commit | new release test |
+| Build stamp | `tbhbdev version` prints the bundle version and monorepo commit. When the bundle includes `tbhbdev-py`, its `--version` also reports that commit | new release test |
 | Protocol version | The `protocol-version` CI job compares the schema at the merge base with the head and requires a matching decision entry ([appendix I](I-protocol.md#the-schema-version-check)) | new, outside Bazel because it needs the merge base |
 | Protocol corpus | Writers emit only schema-valid documents, both servers read each served version and the legacy shape, the staged request file matches the envelope's request, and the packaged and embedded schema copies match byte for byte | new |
 | Self-update | The tests that [appendix J](J-self-update.md#tests) lists | new |

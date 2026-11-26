@@ -48,7 +48,7 @@ The design uses gh's history as evidence and avoids its extension architecture (
 
 `98f1f5ec0d57` (2021-03-03) wrote an absolute path into git config because Homebrew's git ran without `/usr/local/bin`. `2dba58bfa80b` (2021-08-30) and `d731cb9c73d7` (2021-09-06) walked `PATH` because `os.Executable()` returned a Cellar path that upgrades delete. `7387346196a6` (2022-06-20) swapped `os.Stat` for `os.Lstat`, `05bf29d88ec4` (2023-03-07, #7025) added a `GH_PATH` override for cygwin, and `5e14987d65a7` (2023-11-14, #8238) fixed the same function again. `d853ce5bc980` (2021-09-24) and `3cce16e72d76` (2021-12-21) made the lookup lazy.
 
-**Rule:** only the front resolves its path, once, with `os.Executable` and `EvalSymlinks`, and passes it and the bundle root to the Python fallback. The bundle lives in a versioned directory that an upgrade never deletes while a link points at it or a run holds it open. The path logic is a pure function with table tests. **Applied in:** [Dispatch](README.md#dispatch) and [J, runs in progress](J-self-update.md#runs-in-progress).
+**Rule:** only the front resolves its path, once, with `os.Executable` and `EvalSymlinks`, and sets it and the bundle root in the environment for every command it runs. The bundle lives in a versioned directory that an upgrade never deletes while a link points at it or a run holds it open. The path logic is a pure function with table tests. **Applied in:** [Dispatch](README.md#dispatch) and [J, runs in progress](J-self-update.md#runs-in-progress).
 
 ### 1.6 Five years without a dispatch contract
 

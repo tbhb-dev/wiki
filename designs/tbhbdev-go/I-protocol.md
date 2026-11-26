@@ -40,7 +40,7 @@ The protocol version is the schema's `version`, and nothing else names a protoco
 
 ### Both sides validate
 
-The Python package ships the file as package data and validates with `jsonschema`, already a tools dependency (existing). The phase 1 release adds the schema and its CI job in tools, and both move with the Python CLI on import. The Go code embeds a copy in `factory/cli/internal/agent/protocol` with `go:embed` and validates in-process through `cuelang.org/go`, never a `cue` child process (D20). A monorepo test compares that copy with the local source file byte for byte.
+The Python package ships the file as package data and validates with `jsonschema`, already a dependency of the imported CLI. Phase 1 adds the schema to `factory/cli/schemas` and its job to monorepo CI. The Go code embeds a copy in `factory/cli/internal/agent/protocol` with `go:embed` and validates in-process through `cuelang.org/go`, never a `cue` child process (D20). A monorepo test compares that copy with the local source file byte for byte.
 
 - **Writers are strict.** The driver validates each request, and the host each metadata file, before writing it, against the schema with `additionalProperties: false`. A code change that adds a field fails its own tests until the schema names the field.
 - **Readers are lenient.** A reader removes properties the schema does not name, logs their names as a warning, and then validates. That is what lets an additive change reach an older reader without a refusal.
@@ -111,7 +111,7 @@ Table tests cover each `Choose` row: equal sets, one-version skew each way, a le
 
 ## The schema version check
 
-A planned CI job in tools, `protocol-version`, runs on `pull_request` and `merge_group` events. It needs the merge base, so it runs outside Bazel, and its comparison is a pure function with table tests.
+A planned monorepo CI job, `protocol-version`, runs on `pull_request` and `merge_group` events. It needs the merge base, so it runs outside Bazel, and its comparison is a pure function with table tests.
 
 It compares `schemas/agent-protocol.json` at the merge base with the file at the head. When the bytes differ, it reads the head's `schemas/agent-protocol.decisions.toml` and fails unless one entry has a `schema_sha256` equal to the head file's Secure Hash Algorithm 256 (SHA-256) hash. That entry is the version decision, reviewed in the same pull request:
 
@@ -147,7 +147,7 @@ At no phase does a build mismatch refuse a launch, and at no phase does a host l
 
 ### Phase 1: the release that removes the refusal
 
-A Python release in tools replaces `same_version` and tools#400's `version_heal`, which reinstalls the host once and retries the same exact match, with the warning, adds the top-level `agent` name with `agent protocol`, its `alpha agent protocol` form, and the `<run>.protocol` file, ships the schema and the legacy shape and validates against them, and makes readers drop unknown properties. Preflight always runs its `git ls-remote`, where today a mismatch makes it exit early.
+A Python release from the imported CLI in the monorepo replaces `same_version` and tools#400's `version_heal`, which reinstalls the host once and retries the same exact match, with the warning, adds the top-level `agent` name with `agent protocol`, its `alpha agent protocol` form, and the `<run>.protocol` file, ships the schema and the legacy shape and validates against them, and makes readers drop unknown properties. Preflight always runs its `git ls-remote`, where today a mismatch makes it exit early.
 
 Builds already installed still refuse any host whose build differs, and no release can change code that is already installed. An install order cannot fix that, because a sync-once retry from an old driver still ends in the exact match. So phase 1 ends with a rollout barrier, run once by the ops maintainer:
 

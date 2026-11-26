@@ -61,7 +61,7 @@ Nothing is open.
 ### D25. The Python fallthrough is `tbhbdev-py` in the front's own folder
 
 - **Decided:** 2026-11-25, by tbhb.
-- **Rule:** the Python CLI wheel gets a second entry point, `tbhbdev-py`, with the same code as the Python `tbhbdev`. The installer puts it in the bundle's `bin/` beside the front, and the front execs it by absolute path. It never runs `python3 -m tbhbdev` and never searches `PATH`.
+- **Rule:** the Python CLI wheel gets a second entry point, `tbhbdev-py`, with the same code as the Python `tbhbdev` after external entry-point plugin loading is removed from the imported entry point. The installer puts it in the bundle's `bin/` beside the front, and the front execs it by absolute path. It never runs `python3 -m tbhbdev` and never searches `PATH`.
 - **Undo:** a new decision by tbhb.
 - **Record:** tbhb's decision of 2026-11-25 on the fallthrough.
 
@@ -81,8 +81,9 @@ Nothing is open.
 
 ### D22. The Go code lives in the monorepo tbhb-dev/tbhbdev
 
-- **Decided:** 2026-11-25, by tbhb, superseding D8.
-- **Rule:** the Go port is built in tbhb-dev/tbhbdev as one module, `github.com/tbhb-dev/tbhbdev`. The module path is declared in `go.mod` and used in Go imports, including the front's dispatch import in [tbhb-dev/tbhbdev#12](https://github.com/tbhb-dev/tbhbdev/blob/d3c0b84727eb0e9b5de38b523fc96fe1b29a7323/factory/cli/cmd/tbhbdev/main.go#L14). The monorepo imports the Python CLI and its unported commands into `factory/cli` (D27). It builds the Go binary and the `tbhbdev-py` fallback wheel from that folder at the same monorepo commit and records the commit in the manifest. The build follows the [monorepo clean break](../monorepo/decisions.md#d27-the-new-repositories-have-no-dependency-on-the-old-repositories) with no tools pin. The first Go slice, tools#418, waits for the move and does not merge into tools.
+- **Decided:** 2026-11-25, by tbhb, superseding D8. The operator confirmed the GitHub module path on 2026-11-26.
+- **Rule:** the Go port keeps the root module `github.com/tbhb-dev/tbhbdev` in `go.mod`, so CLI package paths stay under `github.com/tbhb-dev/tbhbdev/factory/cli/...`. [tbhb-dev/tbhbdev#12](https://github.com/tbhb-dev/tbhbdev/blob/d3c0b84727eb0e9b5de38b523fc96fe1b29a7323/factory/cli/cmd/tbhbdev/main.go#L15) uses that path for the front's dispatch import. The Python CLI and its unported commands have landed in `factory/cli` (D27). The monorepo builds the Go binary and the `tbhbdev-py` fallback wheel from that folder at the same commit and records the commit in the manifest. The build follows the [monorepo clean break](../monorepo/decisions.md#d27-the-new-repositories-have-no-dependency-on-the-old-repositories) with no tools pin. The first Go slice, tools#418, is rebuilt in the monorepo.
+- **Tech debt.** Move to `go.tbhb.dev` once a hosted `go-import` redirector exists. The rename is mechanical.
 - **Undo:** a new decision by tbhb.
 - **Record:** tbhb's decision of 2026-11-25 on the monorepo.
 
@@ -125,7 +126,7 @@ Nothing is open.
 ### D16. The driver-host format is one versioned schema with a CI check
 
 - **Decided:** 2026-11-25, by tbhb.
-- **Rule:** the run request and the run metadata are one schema file, `schemas/agent-protocol.json`, with a version, and the driver and the host both validate against it. It starts in tools in phase 1 and moves with the Python CLI on import. An additive change keeps the version. A breaking change bumps it, and the host keeps serving the previous version until the next bump, which waits until every listed machine serves the version it replaces. A CI job fails when the schema changes without a matching entry in `schemas/agent-protocol.decisions.toml`, as [appendix I](I-protocol.md#the-schema-version-check) specifies. The protocol version in D14 is this schema's version. A frozen legacy version 2 shape, today's exact fields, is what a writer sends a host too old to answer the protocol query, in the envelope and in the staged request file. The host writes the chosen version as each run's first file, and every reader validates that run's files against it. Each build serves two versions for new launches and retains every frozen schema for reading runs, and CI holds both sets apart.
+- **Rule:** the run request and the run metadata are one schema file, `schemas/agent-protocol.json`, with a version, and the driver and the host both validate against it. Phase 1 adds it under `factory/cli` in the monorepo. An additive change keeps the version. A breaking change bumps it, and the host keeps serving the previous version until the next bump, which waits until every listed machine serves the version it replaces. A CI job fails when the schema changes without a matching entry in `schemas/agent-protocol.decisions.toml`, as [appendix I](I-protocol.md#the-schema-version-check) specifies. The protocol version in D14 is this schema's version. A frozen legacy version 2 shape, today's exact fields, is what a writer sends a host too old to answer the protocol query, in the envelope and in the staged request file. The host writes the chosen version as each run's first file, and every reader validates that run's files against it. Each build serves two versions for new launches and retains every frozen schema for reading runs, and CI holds both sets apart.
 - **Undo:** a new decision by tbhb.
 - **Record:** tbhb's decision of 2026-11-25, relayed with D14 and D15. The separate plugin version contract was replaced by the 2026-11-26 no-plugins decision (D3).
 

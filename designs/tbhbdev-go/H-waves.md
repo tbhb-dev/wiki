@@ -79,8 +79,8 @@ Wave 1 re-reads tools main on the day it starts and follows the Go review contra
 
 Wave 1 moves code, not review authority. ADR 0004 and ADR 0009 stay the rules, and each item below is a test in the wave 1 slices.
 
-- **Verdict words.** A Go verdict is `GO` or `HOLD`, as ADR 0004 names them, and the Go prompt asks for `VERDICT: GO|HOLD <sha>`. The Go parser accepts both vocabularies: Go's `GO` and `HOLD`, and Python's `GO`, `BLOCK`, and legacy `NO-GO`. It maps `BLOCK` and `NO-GO` to `HOLD` so negative verdicts from Python runs in flight when Go takes over still post. It logs a warning for `NO-GO`. Wave 1 changes the imported Python prompt to ask for `HOLD`. Table test: `GO`, `HOLD`, `BLOCK`, `NO-GO`, a lowercase word, a missing commit, and a short commit. [Python verdict parser](https://github.com/tbhb-dev/tools/blob/c02551d5089ecbc08404f565b73cec4724a60dea/src/tbhbdev/alpha/agent/review_post.py#L26)
-- **The exact judged head.** The verdict line's commit is the head the run judged, the run's `--ref`. The poster posts on that commit and never on the pull request's current head, and if the two differ it still posts on the judged one, which marks the verdict stale for the head that moved. That differs from the Python poster's check that an approval still targets the current head, so a verdict on a superseded head still reaches the pull request as ADR 0004's record of that exact head. Test: a head that moves during the run.
+- **Verdict words.** A Go verdict is `GO` or `HOLD`, as ADR 0004 names them, and the Go prompt asks for `VERDICT: GO|HOLD <sha>`. The Go parser accepts both vocabularies: Go's `GO` and `HOLD`, and Python's `GO`, `BLOCK`, and legacy `NO-GO`. It maps `BLOCK` and `NO-GO` to `HOLD` so negative verdicts from Python runs in flight when Go takes over still post. It logs a warning for `NO-GO`. Wave 1 changes the imported Python prompt to ask for `HOLD`. The table test covers `GO`, `HOLD`, `BLOCK`, `NO-GO`, and a lowercase word. [Python verdict parser](https://github.com/tbhb-dev/tools/blob/c02551d5089ecbc08404f565b73cec4724a60dea/src/tbhbdev/alpha/agent/review_post.py#L205-L224)
+- **The exact judged head.** The poster accepts a verdict line with or without a commit hash. It takes the judged head from the trusted run metadata, the run's pinned `--ref`, and requires any hash on the verdict line to match that full commit. It posts on the judged commit even if the pull request's head has moved, so a verdict on a superseded head still reaches the pull request as ADR 0004's record of that exact head. Tests cover an omitted hash, a matching hash, a short or mismatched hash, and a head that moves during the run.
 - **The submitted commit matches the run.** Before it posts, the run-host path compares the draft's submitted commit, with the commit in the run's request as the host wrote it, the trusted run metadata, and refuses to post on any difference, as `review_post.validate` does today. It never takes the commit from the review run's own output. Test: a fixture draft whose submitted commit differs from the run's request posts nothing, logs the refusal, and leaves the run's exit status intact. That is a different case from the head that moves, where the draft and the run agree and the pull request moved.
 - **One post per run.** A `review` run file marks a post, and a retry with that file present posts nothing, as on tools main. Test: a second post of one run sends nothing.
 - **Comment only.** The poster sends a review with the event `COMMENT`, carrying the run identifier, the model provider, the exact head, the verdict, and the findings, as ADR 0004 lists them. No code path in `tbhbdev review` sends `APPROVE` or `REQUEST_CHANGES`, an ast-grep rule bans those event names in the review commands, and a test drives every post path through a fake transport that fails on any other event.
@@ -102,16 +102,18 @@ The size gate allows 400 added code lines per pull request, tests included. With
 
 ### Go scaffolding
 
-About six pull requests in tbhb-dev/tbhbdev under `factory/cli`, one after another. The monorepo session owns the repository's own general scaffolding, which these build on. The first Go slice, tools#418, waits for the move and is rebuilt there rather than merged into tools.
+About six pull requests in tbhb-dev/tbhbdev under `factory/cli`, one after another. The monorepo session owns the repository's own general scaffolding, which these build on. The first Go slice, tools#418, is rebuilt in the monorepo.
 
-1. The front with `factory/cli/internal/dispatch`.
+1. The front with `factory/cli/internal/dispatch` and the `tbhbdev-py` entry point with external entry-point plugin loading removed.
 2. The stamp and the bundle test.
 3. The cobra root wiring and `internal/config/io/load` with koanf ([appendix K](K-go-stack.md)).
 4. The checks with their planted fixtures, the stack rules included.
 5. `internal/schemas`, with byte-checked copies of the Configure Unify Execute (CUE) files, in-process validation, and the CUE boundary checks.
 6. `internal/ghapi`, with the go-github client, its rules, and a fake transport for tests.
 
-Pull request 1 changes the front and dispatch, so it goes to tbhb before merge (D19). Review and CI come first, a reviewer's verdict is a GO or HOLD comment only, and coordination then puts the pull request on Open. Nobody approves it or runs `tbhb-approve` on it until tbhb says go. Pull requests 2 through 6 go through the gate only if they change a gated path. The phase 1 Python release adds the protocol schema and the `protocol-version` job in tools before the CLI import. The rules ast-grep macro runs beside the scaffolding.
+Pull request 1 changes the front and dispatch, so it goes to tbhb before merge (D19). Review and CI come first, a reviewer's verdict is a GO or HOLD comment only, and coordination then puts the pull request on Open. Nobody approves it or runs `tbhb-approve` on it until tbhb says go. Pull requests 2 through 6 go through the gate only if they change a gated path. The rules ast-grep macro runs beside the scaffolding.
+
+The Python CLI import has landed in `factory/cli` with its CUE schemas. The protocol work in phase 1 adds `factory/cli/schemas/agent-protocol.json` and the `protocol-version` job in the monorepo, where the imported Python launcher first needs them. [Imported schemas on main](https://github.com/tbhb-dev/tbhbdev/tree/caf97cf4a27c7acfaeff469ad7e2281659f9949c/factory/cli/schemas)
 
 ### Wave 1 in parallel
 
