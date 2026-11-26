@@ -20,16 +20,18 @@ Everything here is new (D15). It starts with the bundle in plan step 5. Machines
 
 ## The shape
 
-The front decides, and a separate bundle binary acts. The front reads the self-update cache and makes one pure call for that decision. It does no network work and starts no process before its exec ([appendix E](E-plugin-contract.md#dispatch)).
+The front decides, and the same Go binary handles the update in an internal mode. The front reads the self-update cache and makes one pure call for that decision. It does no network work and starts no process before its exec. [Dispatch](README.md#dispatch)
+
+The separate helper executable and its manifest entry were replaced by the 2026-11-26 no-plugins decision (D3).
 
 1. **Lease.** The front takes a shared lease on its own bundle before it reads any file in it ([runs in progress](#runs-in-progress)).
 2. **Read.** The front reads the manifest and the cache file. A missing or unreadable cache is a stale one.
 3. **Decide.** `selfupdate.Decide` in `factory/cli/internal/selfupdate` is pure and returns `Run`, `Refresh`, or `Update(commit)`.
-4. **Run.** On `Run`, dispatch goes on as [appendix E](E-plugin-contract.md#dispatch) describes.
-5. **Hand off.** On `Refresh` or `Update`, the front execs `<bundle>/bin/tbhbdev-self-update` with the original argv. That binary is the input/output (I/O) adapter: it does the network call, the download, the checks, the rename, and the re-exec. If the exec of the helper fails, the front writes one warning to the log and dispatches the current build, as on `Run`.
+4. **Run.** On `Run`, the front continues to route the command. [Dispatch](README.md#dispatch)
+5. **Hand off.** On `Refresh` or `Update`, the front execs `<bundle>/bin/tbhbdev` in its internal update mode with the original argv. That mode runs the input/output (I/O) adapter: it does the network call, the download, the checks, the rename, and the re-exec. If the exec of the helper fails, the front writes one warning to the log and dispatches the current build, as on `Run`.
 6. **Re-exec.** The adapter always ends by exec of a front, the new one after an in-band swap or the current one otherwise, with `TBHBDEV_SELF_UPDATED=1` set. The front drops that variable before dispatch, so the next call checks again. After a swap, the new front also closes the update lock it inherited, named by `TBHBDEV_UPDATE_LOCK_FD`, once it holds its lease and has read its manifest, and drops that variable too.
 
-`tbhbdev version`, `--version`, and `help` skip the check, so they still read only the manifest. `tbhbdev-self-update` is a helper the manifest lists apart from plugins, and no plugin may take the name `self-update`.
+`tbhbdev version`, `--version`, and `help` skip the check, so they still read only the manifest.
 
 ## The decision
 
@@ -63,14 +65,14 @@ Agent hooks run `tbhbdev` on every tool call and wait on it under a timeout, so 
 
 - **Refresh.** The pointer GET gets at most 2 seconds of the budget.
 - **In band.** The download, the checks, the unpack, the wheel install, and the swap run in the foreground only while budget remains. When they finish in time, the adapter execs the new front.
-- **Past the budget.** The adapter cancels its in-band work, deletes its temporary directory, and starts a detached installer: `tbhbdev-self-update --install <commit>` in a new session through `setsid`, with standard streams on `/dev/null` and no inherited descriptor, so it holds no hook pipe, no push-token pipe, and no lease. It then releases the update lock if it holds it and execs the current front, so the caller's run starts within the budget plus one exec. The budget is checked only before the publish step of [the swap](#the-swap), so a swap that has moved the link always finishes its handoff. The proof step runs before that check, so a slow proof sends the work to the detached installer too.
+- **Past the budget.** The adapter cancels its in-band work, deletes its temporary directory, and starts the detached installer for that commit by invoking the same Go binary in a new session through `setsid`, with standard streams on `/dev/null` and no inherited descriptor, so it holds no hook pipe, no push-token pipe, and no lease. It then releases the update lock if it holds it and execs the current front, so the caller's run starts within the budget plus one exec. The budget is checked only before the publish step of [the swap](#the-swap), so a swap that has moved the link always finishes its handoff. The proof step runs before that check, so a slow proof sends the work to the detached installer too.
 - **The detached installer.** It takes the update lock, downloads under a 60-second deadline, checks, installs, proves the target runs, and publishes as [the swap](#the-swap) describes, writes the cache, releases the lock, and exits. It never execs a front, so the proof in step 7 of the swap is what keeps a bundle that cannot run off the public link. The next start runs the new bundle.
 
 The harness hooks that `alpha install` writes run under a 10-second timeout (existing, `HARNESS_TIMEOUT` at tools `1be1910`), so a 3-second budget plus one exec leaves the hook's own work most of its time. The budget is a policy value, and plan step 5 checks it against the hook settings in force then.
 
 ## The swap
 
-The install keeps the layout in [appendix E](E-plugin-contract.md#install-and-the-bundle-directory): versioned directories under `~/.local/libexec/tbhbdev/`, and one link, `~/.local/bin/tbhbdev`. No step writes into a file or directory that a run may be using.
+The install keeps versioned directories under `~/.local/libexec/tbhbdev/` and one link, `~/.local/bin/tbhbdev`. No step writes into a file or directory that a run may be using.
 
 1. **Lock.** Take `~/.local/libexec/tbhbdev/.update.lock` with a non-blocking exclusive `flock`. If another run or sync holds it, record nothing and run the current build.
 2. **Download.** Fetch the archive into a new `.tmp-<random>/` directory beside the versioned ones, on the same file system.
@@ -78,9 +80,9 @@ The install keeps the layout in [appendix E](E-plugin-contract.md#install-and-th
 4. **Place.** Rename `.tmp-<random>/` to `<version>/`. If `<version>/` already exists, because sync or another run got there first, delete the temporary directory and use the existing one.
 5. **Recheck.** Still under the lock, read the link's current target and its manifest. If that target's commit is the new one or later by release number, because sync published it meanwhile, leave the link alone and use the current target. The swap never publishes a bundle older than the one the link names.
 6. **Lease the target.** Open `<target>/.in-use` and take a shared lease on it, without close-on-exec, before anything else can prune.
-7. **Prove it runs.** Still under the lock, run `<target>/bin/tbhbdev version` and `<target>/bin/tbhbdev-py --version` as children, with `TBHBDEV_NO_SELF_UPDATE=1` and a deadline from the budget. Each must exit 0 and print the target's bundle version and tools commit. On any other result, record the failure, delete the target if this run placed it, and run the current build. No public link ever names a target that has not run.
+7. **Prove it runs.** Still under the lock, run `<target>/bin/tbhbdev version` and `<target>/bin/tbhbdev-py --version` as children, with `TBHBDEV_NO_SELF_UPDATE=1` and a deadline from the budget. Both must exit 0. The Go command must print the target's bundle version and tools commit, and the Python command must name the pinned tools commit. On any other result, record the failure, delete the target if this run placed it, and run the current build. No public link ever names a target that has not run.
 8. **Publish.** Create a new link `~/.local/bin/.tbhbdev-<random>` to `<target>/bin/tbhbdev`, then rename it over `~/.local/bin/tbhbdev`. The link always exists, and it names either the old bundle or a new one that has run. Remember the old target.
-9. **Hand off.** Write the cache, and exec the new front by its absolute path with the original argv, still holding the update lock. The lock's descriptor and the lease from step 6 pass through the exec, without close-on-exec, and `TBHBDEV_UPDATE_LOCK_FD` names the lock's. The new front closes that descriptor once it holds its own lease and has read its manifest, before dispatch, so no plugin inherits it. The lock is never released between the publish and a successful start of the new front.
+9. **Hand off.** Write the cache, and exec the new front by its absolute path with the original argv, still holding the update lock. The lock's descriptor and the lease from step 6 pass through the exec, without close-on-exec, and `TBHBDEV_UPDATE_LOCK_FD` names the lock's. The new front closes that descriptor once it holds its own lease and has read its manifest, before dispatch, so the command starts with the lock released. The lock is never released between the publish and a successful start of the new front.
 
 ### A failed handoff
 
@@ -88,7 +90,7 @@ If the exec in step 9 fails, the adapter still holds the update lock, since a fa
 
 ### Runs in progress
 
-Each run leases its own bundle until it exits. The front opens `<bundle>/.in-use` and takes a shared `flock` on it before it reads the manifest, without close-on-exec, so the plugin, `tbhbdev-py`, and their children hold it through every exec.
+Each run leases its own bundle until it exits. The front opens `<bundle>/.in-use` and takes a shared `flock` on it before it reads the manifest, without close-on-exec, so Go commands, `tbhbdev-py`, and their children hold it through every exec.
 
 - **A bundle pruned before the lease.** The front resolves the link, then takes the lease. If `<bundle>/.in-use` is gone, or the lease succeeds but the manifest is gone, a pruner got there first. The front resolves the link once more and retries once. A second miss exits 125.
 - **Pruning.** It runs under the update lock and keeps the link's target, the two before it, and every protocol bridge ([appendix I](I-protocol.md#bridges)). It removes an older directory only after it takes a non-blocking exclusive lock on that directory's `.in-use`. While it still holds that lock, it renames the directory to `.trash-<random>` and only then deletes it, so a front that gets its lease afterward finds no manifest and retries.
@@ -123,8 +125,8 @@ Each row below is a test in the self-update slice. Pure rows are `unit_go_test` 
 | Test | Passes when |
 | --- | --- |
 | `Decide` table | Each row above, each time-to-live boundary, and `TBHBDEV_UPDATE_NOW` return the listed action |
-| Helper exec fails | With a helper file that cannot run, the front dispatches the current build and exits with the plugin's status |
-| Slow download | With a server that stalls, the caller's plugin starts within the budget plus 500 ms, a detached installer runs, and the hook's standard output pipe closes when the plugin exits |
+| Helper exec fails | When exec of the update mode fails, the front dispatches the current build and exits with the command's status |
+| Slow download | With a server that stalls, the caller's command starts within the budget plus 500 ms, a detached installer runs, and the hook's standard output pipe closes when the command exits |
 | Detached installer descriptors | The detached process holds no descriptor of the caller's, checked through `/proc` or `lsof` |
 | Failed handoff | With a new front that cannot exec, the link names the old target afterward and the current build runs, and the lock was never released between the publish and the restore |
 | Proof before publish | With a target whose front or `tbhbdev-py` exits nonzero, in band and in the detached installer, the link never names it |

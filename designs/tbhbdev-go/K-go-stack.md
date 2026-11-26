@@ -22,22 +22,22 @@ Everything here is new unless it names an existing file. tbhb chose the librarie
 
 | Need | Library | Where it may appear |
 | --- | --- | --- |
-| Command tree | `github.com/spf13/cobra` | Each plugin's `io/app` and `internal/plugin/io/run` |
+| Command tree | `github.com/spf13/cobra` | Command wiring under `io/app` |
 | Flags | `github.com/spf13/pflag`, through cobra | The same packages |
 | Config | `github.com/knadh/koanf/v2`, with its file provider, TOML parser, and `posflag` provider | `internal/config/io/load` only |
 | Schemas | `cuelang.org/go`: its `cue`, `cue/cuecontext`, `cue/errors`, and `encoding/jsonschema` packages | The pure schema packages `internal/schemas` and `internal/agent/protocol` |
 | GitHub REST | `github.com/google/go-github/v93`, one pinned major | `internal/ghapi/**` only |
 | GitHub GraphQL and app tokens | No library: a helper on the go-github client, and a standard-library JWT | `internal/ghapi/io/graphql` and `internal/ghapi/io/apptoken` |
 
-None of them appears in the front, `internal/dispatch`, or `internal/selfupdate`. awrel already builds its command with cobra 1.10.2, under go-arch-lint vendor rules like the ones below (existing).
+None of them appears in routing, `internal/dispatch`, or the pure `internal/selfupdate` package. awrel already builds its command with cobra 1.10.2, under go-arch-lint vendor rules like the ones below (existing).
 
 ## Commands with cobra
 
 ### Why the front does not use cobra
 
-The front stays on the standard library, and `dispatch.Resolve` stays a pure function over argv, the manifest, and any outside plugin entries (D3). The front runs before any flag parsing, and it must hand unknown names and flags through untouched to a plugin or to Python. A flag parser consumes or rejects flags it does not define, which is why gh turned off flag parsing for extensions and later matched cobra's error text ([appendix B](B-gh-pitfalls.md#14-matching-the-unknown-command-error-string)).
+Routing stays on the standard library, and `dispatch.Resolve` stays pure (D3). Routing runs before flag parsing, so names and flags for commands still on Python reach it untouched. A flag parser consumes or rejects flags it does not define, which is why gh turned off flag parsing for extensions and later matched cobra's error text ([appendix B](B-gh-pitfalls.md#14-matching-the-unknown-command-error-string)).
 
-The front also starts on every hook call, so each library it links adds start-up time to every tool call ([appendix B](B-gh-pitfalls.md#51-dependency-start-up-costs)). Cobra lives in the plugin binaries, where each flag belongs to the command that defines it.
+Cobra runs after routing, and each flag belongs to the command that defines it.
 
 ### Explicit dependencies and no shared object
 
@@ -46,7 +46,7 @@ gh's pain with cobra came from its wiring: one shared Factory passed to 216 comm
 - **One constructor per command, with its own dependencies.** Each constructor takes a private struct with only the values and one-method interfaces that command uses. No struct is shared between commands, and no type is named `Factory`.
 - **No registration in `init()`.** A parent adds its children in its own constructor with `AddCommand`, and `gochecknoinits` runs on every package.
 - **No package state.** Commands, flag variables, and config live in locals and closures. `gochecknoglobals` keeps its one stamp exception, and an ast-grep rule bans cobra's global hooks and settings.
-- **One place for errors.** `run.Main` sets `SilenceUsage` and `SilenceErrors`, turns flag errors into a usage error, and maps every returned error to an exit code through `plugin.ExitCode`.
+- **One place for errors.** `run.Main` sets `SilenceUsage` and `SilenceErrors`, turns flag errors into a usage error, and maps every returned error to an exit code.
 
 ```go
 // factory/cli/internal/review/io/app/post.go, a sketch
@@ -76,12 +76,11 @@ func newPostCmd(d postDeps) *cobra.Command {
 
 A test builds the command with fakes in its struct and calls `SetArgs`, so no test swaps a global. Pure functions such as `review.PlanPost` keep their own table tests, with no cobra in them.
 
-### The plugin contract under cobra
+### Running Go commands
 
-- `run.Main(name, newRoot)` parses the contract environment, answers a lone `--version` before cobra sees it, builds the root, and calls `ExecuteContext` with the argv tail.
-- The root's `Use` comes from `TBHBDEV_PROG`, so usage lines read `tbhbdev review post`.
-- Cobra's hidden `__complete` command answers the contract's reserved completion argument. [Cobra v1.10.2 source](https://github.com/spf13/cobra/blob/v1.10.2/completions.go)
-- A flag error or an unknown subcommand exits 2, as the contract requires ([appendix E](E-plugin-contract.md#exit-codes)).
+- The front answers a lone `--version`. For a Go command, `run.Main` builds the cobra tree and calls `ExecuteContext` with its arguments.
+- Cobra handles completion for Go commands. [Cobra v1.10.2 source](https://github.com/spf13/cobra/blob/v1.10.2/completions.go)
+- A flag error or an unknown subcommand exits 2.
 
 ## Config with koanf
 
@@ -119,7 +118,7 @@ The Go code lives in another repository (D22), so no link can join the two. tool
 
 `cuecontext.New` reads `CUE_DEBUG` and `CUE_EXPERIMENT` from the process environment (per this design's review, checked again by the schema slice against the pinned version). That is an environment read inside a pure package's call, which no import ban can see. The port pins the boundary in three parts:
 
-- **Cleared in the shell.** `run.Main`, the I/O entry of every plugin, removes every variable whose name starts with `CUE_` from the process environment before it builds the cobra root, so no CUE call ever sees one. Children that a plugin starts get the cleaned environment, which is safe because no Go code runs `cue`.
+- **Cleared in the shell.** `run.Main`, the I/O entry for Go commands, removes every variable whose name starts with `CUE_` from the process environment before it builds the cobra root, so no CUE call ever sees one. Children that a Go command starts get the cleaned environment, which is safe because no Go code runs `cue`.
 - **One constructor.** The pure schema packages create their CUE context only through one unexported function, and an ast-grep rule, `cue-one-context`, bans `cuecontext.New` anywhere else.
 - **Pinned and checked in two sets.** `cuelang.org/go` is pinned in `go.mod`. The packages the module links include task code that validation never runs: in CUE v0.18.0, `go list -deps` includes `pkg/tool/os`, whose tasks call `os.LookupEnv` and `os.Environ` (per this design's review). A test, `cue_env_reads_test`, finds every call to `os.Getenv`, `os.LookupEnv`, `os.Environ`, and `syscall.Getenv` in the linked CUE packages, through `go list -deps` and a syntax scan, and sorts each into one of two reviewed lists:
   - **Reachable from validation.** Calls reachable in the call graph from the schema packages' exported functions and from every `init()` in the linked CUE packages. The reviewed list holds the reads of `CUE_DEBUG` and `CUE_EXPERIMENT`, and the test fails on any other, or on any of these reached from an `init()`, since clearing in `run.Main` comes after package start.
@@ -127,7 +126,7 @@ The Go code lives in another repository (D22), so no link can join the two. tool
   A CUE upgrade that adds a read to either set fails until a reviewer updates that list.
 - **The task boundary held.** depguard bans `cuelang.org/go/tools/flow` and `cuelang.org/go/cmd/...`, the task runner and the `cue` command, everywhere, and the test above fails if `go list -deps` ever links the runner. An `io_go_test` compiles a planted schema that imports `tool/os` and declares an environment task, with a sentinel variable set, and checks that validation returns without the sentinel in any value. CUE v0.18.0 ships the [flow package](https://pkg.go.dev/cuelang.org/go@v0.18.0/tools/flow) and the [command packages](https://github.com/cue-lang/cue/tree/v0.18.0/cmd/cue).
 
-An `io_go_test` runs a plugin binary with `CUE_DEBUG` and `CUE_EXPERIMENT` set to values that would change or break evaluation, and checks that every schema fixture validates exactly as it does with the variables unset.
+An `io_go_test` runs a Go command with `CUE_DEBUG` and `CUE_EXPERIMENT` set to values that would change or break evaluation, and checks that every schema fixture validates exactly as it does with the variables unset.
 
 ## GitHub with go-github
 
@@ -143,9 +142,9 @@ tbhb chose the client stack on 2026-11-25, on a research report into Go GitHub c
 
 | Rule | Tool | Forbids |
 | --- | --- | --- |
-| `stack-vendors` | go-arch-lint `vendors` and `canUse`, with `depOnAnyVendor: false` as awrel sets it | cobra and pflag outside `factory/cli/**/io/app` and `factory/cli/internal/plugin/io/run`, koanf outside `factory/cli/internal/config/io/load`, `cuelang.org/go` outside the two schema packages, and go-github outside `factory/cli/internal/ghapi/**` |
+| `stack-vendors` | go-arch-lint `vendors` and `canUse`, with `depOnAnyVendor: false` as awrel sets it | cobra and pflag outside `factory/cli/**/io/app`, koanf outside `factory/cli/internal/config/io/load`, `cuelang.org/go` outside the two schema packages, and go-github outside `factory/cli/internal/ghapi/**` |
 | `ghapi-only-go-github` | depguard | `github.com/google/go-github/**` in any file outside `factory/cli/internal/ghapi/**`, a second line beside `stack-vendors` with its own planted fixture |
-| `front-stdlib-only` | depguard, strict list mode | In the files of the front's six packages, `factory/cli/cmd/tbhbdev`, `factory/cli/internal/dispatch/io/front`, `factory/cli/internal/dispatch`, `factory/cli/internal/selfupdate`, `factory/cli/internal/plugin`, and `factory/cli/internal/buildinfo`, each matched as one directory and not its subdirectories, any import but `$gostd` and the last five of those packages. So the front's main may import its wiring, the wiring the four pure packages, and nothing third-party enters. `internal/plugin/io/run` and `internal/selfupdate/io/**` sit outside the list, since the front never links them |
+| `front-stdlib-only` | depguard, strict list mode | In `factory/cli/internal/dispatch/io/front`, `factory/cli/internal/dispatch`, `factory/cli/internal/selfupdate`, and `factory/cli/internal/buildinfo`, each matched as one directory, any import except `$gostd` and those packages. Command wiring and the self-update I/O adapter sit outside the list |
 | `pure-no-exec` | depguard | `os/exec` and `syscall` in pure files and their tests, which the pure allowlist in [appendix F](F-build-and-checks.md#components) already leaves out, named here so a planted fixture proves it |
 | `exec-one-package` | depguard | `os/exec` in every file outside `factory/cli/internal/procexec/io/command`, so every child process starts in one package |
 | `no-cue-load` | depguard | `cuelang.org/go/cue/load` and `cuelang.org/go/mod/...` everywhere, since they read files and can fetch modules, and `cuelang.org/go/tools/flow` and `cuelang.org/go/cmd/...`, since they run `tool` tasks |

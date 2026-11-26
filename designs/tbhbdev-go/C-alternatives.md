@@ -20,33 +20,17 @@ Back to [the design](README.md).
 
 Keep tbhbdev in Python and finish moving decisions out of input/output (I/O) modules. tbhb stopped that work in favor of the port (D4). The refactor's finished pieces still help, because a pure Python function with plain-data tests ports almost line for line ([appendix H](H-waves.md)).
 
-## One Go binary with every command
+## Discovery on PATH
 
-A single binary with a full command tree, as gh builds it. It is one artifact and one build, but every call pays every command's start-up cost, and gh lost 12 to 40 ms per call to dependency start-up ([appendix B](B-gh-pitfalls.md#51-dependency-start-up-costs)). It also pulls every command toward one shared dependency object, which became gh's 17-field Factory. Plugin binaries keep the hooks small and let each command port on its own.
-
-## One multi-call binary
-
-One binary with links named `tbhbdev-<name>`, choosing its command from `argv[0]`, as BusyBox does. It saves disk, but every command still links every dependency, and one bad import slows all of them. The bundle's size is not a constraint at this scale, so the saving buys nothing.
-
-## In-process plugins
-
-Go's `plugin` package, or plugins over a remote procedure call protocol. The first needs matching toolchains and build flags across every binary, and works only on some platforms. The second adds a protocol and a long-lived child for what exec does with none. Neither keeps the inherited descriptors the launcher relies on.
-
-## Plugins found on PATH
-
-Search `PATH` for `tbhbdev-<name>`, as git and kubectl do, and as the outline proposed after the bundle directory. gh shipped this and removed it six days later ([appendix B](B-gh-pitfalls.md#11-path-discovery-dropped-after-six-days)). It also lets any file on `PATH` run under hooks that agents trigger on every tool call. D3 lets the operator list outside plugins by absolute path.
+gh shipped extension discovery on `PATH` and removed it six days later. The design uses its own command tree and the bundled Python fallback (D3). [Appendix B](B-gh-pitfalls.md#11-path-discovery-dropped-after-six-days)
 
 ## A child process instead of exec
 
-The front starts the plugin, waits, and copies its exit code, as gh runs extensions. That keeps the front alive for cleanup, but the plugin gets a new process ID, signals need forwarding, and every exit path needs wrapping. gh lost exit codes on one path and leaked its own subprocesses' codes on another ([appendix B](B-gh-pitfalls.md#73-exit-codes-from-the-wrong-process)). Exec avoids all three (D9).
-
-## Longest-match nested plugin names
-
-Resolve `tbhbdev alpha agent exec` to `tbhbdev-alpha-agent`, then `tbhbdev-alpha`, as kubectl does and as the outline proposed. One binary per top-level word is simpler to resolve and to test, and with no `alpha` in Go, the nesting the outline needed is gone.
+The front starts the Python fallback as a child, waits, and copies its exit code, as gh runs extensions. That keeps the front alive for cleanup, but the fallback gets a new process ID, signals need forwarding, and every exit path needs wrapping. gh lost exit codes on one path and leaked its own subprocesses' codes on another ([appendix B](B-gh-pitfalls.md#73-exit-codes-from-the-wrong-process)). Exec avoids all three (D9).
 
 ## Exact version matching with a lockstep cutover
 
-Keep `same_version`, stamp one version into every binary, have the front refuse a plugin whose stamp differs, and move the whole fleet at once, as the outline proposed. A half-upgraded fleet would then refuse every run, which D6 and D14 rule out. The release test that checks every stamp catches a mismatch before a bundle ships, so the front has no reason to refuse at run time.
+Keep `same_version` and move the whole fleet at once, as the outline proposed. A half-upgraded fleet would then refuse every run, which D6 and D14 rule out.
 
 ## Freezing the wire protocol for the port
 
@@ -78,7 +62,7 @@ Have the front run a `tbhbdev-py` it finds on `PATH`, as the outline proposed. A
 
 ## The bundled interpreter as `python3 -m tbhbdev`
 
-Have the front run `py/bin/python3 -m tbhbdev` by absolute path, as an earlier draft of this design did. It avoids a script's first line, but tbhb chose the `tbhbdev-py` entry point in the front's own folder (D25). That keeps every route the front takes a file in `bin/`, and the relocatable environment keeps the script's first line valid after the rename.
+Have the front run `py/bin/python3 -m tbhbdev` by absolute path, as an earlier draft of this design did. It avoids a script's first line, but tbhb chose the `tbhbdev-py` entry point in the front's own folder (D25). The relocatable environment keeps the script's first line valid after the rename.
 
 ## A Go bridge to Python `alpha` commands
 
@@ -90,7 +74,7 @@ Port the launcher in wave 1, as the first draft did, because its `decisions/` pa
 
 ## Cobra in the front
 
-Build the front's command tree with cobra, as gh does. The front must pass unknown names and flags through to a plugin or to Python before anything parses them, and a flag parser consumes or rejects flags it does not define. gh turned flag parsing off and then matched error text to work around it ([appendix B](B-gh-pitfalls.md#14-matching-the-unknown-command-error-string)), so the front stays on the standard library (D18).
+Build the front's command tree with cobra, as gh does. The front must pass names and flags through to Python before those commands port before anything parses them, and a flag parser consumes or rejects flags it does not define. gh turned flag parsing off and then matched error text to work around it ([appendix B](B-gh-pitfalls.md#14-matching-the-unknown-command-error-string)), so routing stays on the standard library (D18).
 
 ## Viper for config
 
@@ -102,7 +86,7 @@ Keep Python's approach: install a pinned `cue` and run `cue vet` as a child proc
 
 ## Go aliases for alpha names
 
-Let the Go plugins answer to `alpha` names as aliases. That keeps two names alive in Go with no end date, and D5 rules it out. The Python forwarder carries the old names, logs their use, and goes away once the logs stay empty.
+Let the Go commands answer to `alpha` names as aliases. That keeps two names alive in Go with no end date, and D5 rules it out. The Python forwarder carries the old names, logs their use, and goes away once the logs stay empty.
 
 ## The Go code in tools
 
@@ -110,7 +94,7 @@ Build the Go module in tools beside the Python, as an earlier draft of this desi
 
 ## A Go workspace with many modules
 
-`go.work` with a module per plugin. afakt and awrel use one module each, gazelle handles one prefix well, and plugins share the contract library. One module keeps one `go.sum` and one dependency review.
+`go.work` with a module per command group. afakt and awrel use one module each, and gazelle handles one prefix well. One module keeps one `go.sum` and one dependency review.
 
 ## A goreleaser or plain Go build path
 

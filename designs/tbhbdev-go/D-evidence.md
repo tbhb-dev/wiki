@@ -30,7 +30,7 @@ Labels:
 
 | Claim | Label | Source |
 | --- | --- | --- |
-| tbhbdev ports to Go as a monorepo of plugin binaries, the Python pure-core refactor stops, and the first build is the front with a Python fallthrough | brief | tbhb's decision of 2026-11-25 |
+| tbhbdev ports to one Go binary in the monorepo, the Python pure-core refactor stops, and the first build is the front with a Python fallthrough | brief | tbhb's decisions of 2026-11-25 and 2026-11-26 (D3 and D4) |
 | The design follows gh after research into its pitfalls, the pure and thin input/output (I/O) rule holds in Go, and no package takes the name `core` or `shell` | brief | the same |
 | One commit builds one release bundle | brief | the same. Since D22, one monorepo commit with the tools commit it pins |
 | Go has no `alpha`, commands get final names, and `alpha` works only through the fallthrough until each command ports | brief | the same |
@@ -43,8 +43,8 @@ Labels:
 | CI wall time across repositories is separate CI speed work that tbhb-agent tracks, outside this port | brief | the same |
 | No decision record covered a Go port at the time of the outline's read, and the agent capacity record chose Go for new agent tooling | outline | grep of the decision folder |
 | Wave 1 is the unfinished review tooling, the launcher moves to a later wave, protocol versioning and self-update stay, and implementation waits for tbhb's read of the merged design | brief | tbhb's decisions of 2026-11-25 on wave order and stack (D17) |
-| Plugins use cobra, pflag, and koanf, with explicit dependencies, no package state, and a standard-library front | brief | the same (D18) |
-| Front, dispatch, and plugin plumbing pull requests go to tbhb before merge | brief | the same (D19) |
+| Go commands use cobra, pflag, and koanf, with explicit dependencies, no package state, and standard-library routing | brief | the same (D18) |
+| Front and dispatch pull requests go to tbhb before merge | brief | the same (D19) |
 | Go validates schemas in-process with `cuelang.org/go`, embedded by `go:embed`, and never runs the `cue` binary | brief | the same (D20) |
 | After tools#399, Python gets no new review features | brief | the same relay |
 | The Go port is built in the monorepo tbhb-dev/tbhbdev, module `github.com/tbhb-dev/tbhbdev` in `go.mod` only, tools keeps the Python and the unported commands, and tools#418 waits for the move | brief | tbhb's decision of 2026-11-25 on the monorepo (D22) |
@@ -52,7 +52,7 @@ Labels:
 | The Python fallthrough is the `tbhbdev-py` entry point in the front's own folder | brief | tbhb's decision of 2026-11-25 on the fallthrough (D25) |
 | The GitHub client stack is go-github v93 behind `internal/ghapi`, a GraphQL helper, and a standard-library JWT, with no `githubv4` or `ghinstallation` | brief | tbhb's decision of 2026-11-25 on a research report into Go GitHub clients (D24) |
 | Six of the eight go-github majors from v86 to v93 broke calls this code uses, and `ghinstallation` pins go-github v88 | brief, unverified | the same research report, not read by this pass |
-| Front, dispatch, and plugin plumbing pull requests wait for tbhb's go on Open, nobody approves them before that, and the gate covers those paths under `factory/cli` in the monorepo but not the monorepo's general scaffolding | brief | tbhb's decisions of 2026-11-25 on the scaffolding gate (D19) |
+| Front and dispatch pull requests wait for tbhb's go on Open, nobody approves them before that, and the gate covers those paths under `factory/cli` in the monorepo but not the monorepo's general scaffolding | brief | tbhb's decisions of 2026-11-25 on the scaffolding gate (D19) |
 
 ## The tools repository
 
@@ -69,7 +69,6 @@ Labels:
 | The `alpha` command list and usage text | existing | `src/tbhbdev/alpha/__init__.py` at `938f65f` |
 | Top-level commands `admin`, `alpha`, `analytics`, `host`, and `secret` | existing | `src/tbhbdev/cli.py` at `938f65f` |
 | `agy`, `adr`, `issue`, and `cue` are top-level tools | outline | the tools table at `75cbfd83` |
-| Other packages add tools and config files through the `tbhbdev.plugins` entry point group | existing | `src/tbhbdev/plugins.py` at `938f65f` |
 | graph and the private ITSM repository use that group | outline | their `pyproject.toml` files |
 | `pyproject.toml` has one console script, `tbhbdev` | existing | `pyproject.toml` at `938f65f`. `tbhbdev-py` is new (D25) |
 | `alpha` also has `guard-ssh-agent`, `agent log`, `agent diff`, and `pr rebase` | existing | `alpha/__init__.py` line 210, `alpha/agent/__init__.py` line 94, and `pull_request.py` line 2146 at `1be1910` |
@@ -155,4 +154,4 @@ The brief says tools main has no protocol or schema version in `alpha/agent`. Th
 
 ## What this design adds
 
-Everything in appendices [E](E-plugin-contract.md), [F](F-build-and-checks.md), [G](G-names-and-migration.md), [I](I-protocol.md), [J](J-self-update.md), and [K](K-go-stack.md) that names no existing file is new. That covers the front, the contract, the manifest, the bundle and installer, the forwarder, `names.toml`, the envelope corpus, the test macros, and the ast-grep rules. It also covers the protocol schema, the legacy shape, the run version file, its decisions file and CI job, the rollout barrier, the release pointer and attestation pins, self-update with its budget, the cobra wiring, the koanf loader, the schema package with its CUE boundary, the GitHub client package, and the stack rules.
+Everything in appendices [F](F-build-and-checks.md), [G](G-names-and-migration.md), [I](I-protocol.md), [J](J-self-update.md), and [K](K-go-stack.md) that names no existing file is new. That covers the front, the manifest, the bundle and installer, the forwarder, `names.toml`, the envelope corpus, the test macros, and the ast-grep rules. It also covers the protocol schema, the legacy shape, the run version file, its decisions file and CI job, the rollout barrier, the release pointer and attestation pins, self-update with its budget, the cobra wiring, the koanf loader, the schema package with its CUE boundary, the GitHub client package, and the stack rules.

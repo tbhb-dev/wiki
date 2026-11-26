@@ -36,12 +36,12 @@ Nothing is open.
 - **Undo:** Make a new decision any time before the Python code is deleted.
 - **Record:** On 2026-11-08, tbhb retired `tbhbdev host` entirely and moved its work to ops' Ansible. On 2026-11-09, tbhb confirmed that `tbhbdev analytics migrate` stays in tbhbdev. Coord decided when to remove the fallthrough on 2026-11-26.
 
-### D3. The front runs outside plugins from an operator-owned list
+### D3. Every command lives in `factory/cli`
 
-- **Decided:** 2026-11-26, by coord, as a two-way door.
-- **Rule:** The front only runs outside plugins by absolute path from the operator-owned `$XDG_CONFIG_HOME/tbhbdev/plugins.toml`. Built-in and bundle plugin names take precedence over listed names, and collisions are reported. The front reads the file only when no built-in or bundle plugin matches and never searches `PATH`. Self-update replaces only the bundle, so listed plugins keep their own installs. A listed plugin whose contract version differs still runs with a logged warning (D14).
-- **Undo:** Remove the file read, and listed entries stop working.
-- **Record:** Coord accepted the design on 2026-11-26. The list gives Python entry-point plugins a route after the fallthrough ends and follows gh's decision to drop `PATH` discovery ([appendix B](B-gh-pitfalls.md#11-path-discovery-dropped-after-six-days)).
+- **Decided:** 2026-11-26, by tbhb.
+- **Rule:** Every command lives in `factory/cli`. One Go binary, `tbhbdev`, runs its own commands and dispatches unported commands to `tbhbdev-py`.
+- **Undo:** Make a new decision.
+- **Record:** tbhb's 2026-11-26 no-plugins decision replaces the earlier D3 and the plugin part of the 2026-11-25 dispatch decision.
 
 ### D27. The CLI folder is `factory/cli`
 
@@ -50,10 +50,10 @@ Nothing is open.
 - **Undo:** a new decision by tbhb. A move edits the lint globs and the Bazel labels in one change.
 - **Record:** The operator's 2026-11-26 correction supersedes the folder named in the 2026-11-25 decision. [Monorepo D23](../monorepo/decisions.md#d23-the-command-line-tool-lives-at-factorycli)
 
-### D26. The `agent` plugin owns its word and passes unported subcommands to `tbhbdev-py`
+### D26. The Go `agent` group owns its word and passes unported subcommands to `tbhbdev-py`
 
 - **Decided:** 2026-11-25, by tbhb-agent in this design, which tbhb approves, under D10 and D25.
-- **Rule:** the wave 2 `tbhbdev-agent` plugin owns the word `agent`. `agent env` and `agent gh-shim` port in wave 3, so until then the plugin's own passthrough execs `<bundle>/bin/tbhbdev-py agent env` or `agent gh-shim` with the rest of argv, and Python's top-level `agent` answers them with the `alpha agent-env` and `alpha gh-shim` code. The passthrough list comes from `names.toml` and empties in wave 3. Passthrough counts as covering a subcommand for the collision rule in [appendix G](G-names-and-migration.md#collisions-with-python-names).
+- **Rule:** the wave 2 Go `agent` group owns the word `agent`. `agent env` and `agent gh-shim` port in wave 3, so until then the command group's passthrough execs `<bundle>/bin/tbhbdev-py agent env` or `agent gh-shim` with the rest of argv, and Python's top-level `agent` answers them with the `alpha agent-env` and `alpha gh-shim` code. The passthrough list comes from `names.toml` and empties in wave 3. Passthrough counts as covering a subcommand for the collision rule in [appendix G](G-names-and-migration.md#collisions-with-python-names).
 - **Why this over moving them to wave 2:** `gh-shim` runs on the hook path and shares the wave 3 identity and guard code, so moving it would pull hook code into the launcher wave. The passthrough keeps wave 2's scope and leaves no `agent` subcommand without an answer.
 - **Undo:** port both in wave 2 and drop the passthrough.
 - **Record:** this design's pull request.
@@ -82,14 +82,14 @@ Nothing is open.
 ### D22. The Go code lives in the monorepo tbhb-dev/tbhbdev
 
 - **Decided:** 2026-11-25, by tbhb, superseding D8.
-- **Rule:** the Go port is built in tbhb-dev/tbhbdev as one module, `github.com/tbhb-dev/tbhbdev`. The module path appears only in `go.mod`, so an organization rename touches one place. The CLI sits in the folder `factory/cli` (D27). The Python CLI and its unported commands move into the same folder on import (D27). One monorepo commit builds the bundle: the Go binaries from that commit, and the wheel from the tools commit it pins, with both commits in the manifest. The first Go slice, tools#418, waits for the move and does not merge into tools.
+- **Rule:** the Go port is built in tbhb-dev/tbhbdev as one module, `github.com/tbhb-dev/tbhbdev`. The module path appears only in `go.mod`, so an organization rename touches one place. The CLI sits in the folder `factory/cli` (D27). The Python CLI and its unported commands move into the same folder on import (D27). One monorepo commit builds the bundle: the Go binary from that commit, and the wheel from the tools commit it pins, with both commits in the manifest. The first Go slice, tools#418, waits for the move and does not merge into tools.
 - **Undo:** a new decision by tbhb.
 - **Record:** tbhb's decision of 2026-11-25 on the monorepo.
 
 ### D21. The review commands take the top-level name `review`
 
 - **Decided:** 2026-11-26, confirming the top-level placement settled on 2026-11-13 when the alpha prefix was retired and the alpha group, including review, moved to the top level.
-- **Rule:** `alpha review draft`, `check`, `policy`, `post`, `dismiss`, and `reply` port as `tbhbdev review` in their own plugin, `tbhbdev-review`, and not as `pr review` in `tbhbdev-pr`. Wave 1 ships the review commands alone. A `tbhbdev-pr` that answered only `review` would send every other `pr` word to a Go usage error until wave 3.
+- **Rule:** `alpha review draft`, `check`, `policy`, `post`, `dismiss`, and `reply` port as the top-level `tbhbdev review` command group in `factory/cli`. Wave 1 ships the review commands alone.
 - **Undo:** rename before callers move. After they move, a rename is a second migration.
 - **Record:** this design's pull request.
 
@@ -100,19 +100,19 @@ Nothing is open.
 - **Undo:** a new decision by tbhb.
 - **Record:** tbhb's decisions of 2026-11-25 on the wave order and the stack, relayed with D17 to D19.
 
-### D19. Front, dispatch, and plugin plumbing pull requests go to tbhb before merge
+### D19. Front and dispatch pull requests go to tbhb before merge
 
 - **Decided:** 2026-11-25, by tbhb, narrowed the same day from every scaffolding pull request to this gate.
-- **Rule:** a pull request in tbhb-dev/tbhbdev that changes `factory/cli/cmd/tbhbdev`, `factory/cli/internal/dispatch/**`, or `factory/cli/internal/plugin/**`, the front, dispatch, and plugin plumbing, goes to tbhb before it merges. Review and CI come first, and coordination then puts the pull request on Open. It does not merge, and nobody approves it or runs `tbhb-approve` on it, until tbhb says go. That covers every session and subagent, commissioned runs included, and a reviewer's verdict on one is a GO or HOLD comment only.
-- **Not gated:** the monorepo's general scaffolding, which the monorepo session owns, and every other pull request under `factory/cli`, such as the stamp, the checks, the schema package, and the GitHub client, unless it also changes one of the gated paths. Of the six scaffolding pull requests in [appendix H](H-waves.md#go-scaffolding), the first and the third are gated.
+- **Rule:** a pull request in tbhb-dev/tbhbdev that changes `factory/cli/cmd/tbhbdev` or `factory/cli/internal/dispatch/**`, the front and dispatch paths, goes to tbhb before it merges. Review and CI come first, and coordination then puts the pull request on Open. It does not merge, and nobody approves it or runs `tbhb-approve` on it, until tbhb says go. That covers every session and subagent, commissioned runs included, and a reviewer's verdict on one is a GO or HOLD comment only.
+- **Not gated:** the monorepo's general scaffolding, which the monorepo session owns, and every other pull request under `factory/cli`, such as the stamp, the checks, the schema package, and the GitHub client, unless it also changes one of the gated paths. Of the six scaffolding pull requests in [appendix H](H-waves.md#go-scaffolding), the first is gated.
 - **Undo:** a new decision by tbhb.
 - **Record:** tbhb's decisions of 2026-11-25, relayed with D17, D18, and D20, and tbhb's later decisions that day on the gate and on its scope in the monorepo.
 
-### D18. The Go stack is cobra, pflag, and koanf, with a standard-library front
+### D18. The Go stack is cobra, pflag, and koanf, with standard-library routing
 
 - **Decided:** 2026-11-25, by tbhb.
-- **Rule:** plugin binaries build their command trees with cobra, parse flags with pflag, and load config with koanf. Each command's constructor takes its dependencies explicitly, no package holds state or registers commands in `init()`, and koanf loads once in the input/output (I/O) shell and hands pure code a plain value. The front's dispatch stays pure and on the standard library, because it runs before any flag parsing and must pass unknown names and flags through untouched ([appendix K](K-go-stack.md)).
-- **Undo:** a new decision by tbhb. A later library swap touches each plugin's `io/app` and the config loader, and no pure package.
+- **Rule:** Go command groups build their command trees with cobra, parse flags with pflag, and load config with koanf. Each command's constructor takes its dependencies explicitly, no package holds state or registers commands in `init()`, and koanf loads once in the input/output (I/O) shell and hands pure code a plain value. The front's dispatch stays pure and on the standard library, because it runs before any flag parsing and must pass unknown names and flags through untouched ([appendix K](K-go-stack.md)).
+- **Undo:** a new decision by tbhb. A later library swap touches the command groups' `io/app` packages and the config loader, and no pure package.
 - **Record:** tbhb's decisions of 2026-11-25, relayed with D17, D19, and D20.
 
 ### D17. The review tooling ports first, and implementation waits for tbhb's read
@@ -127,7 +127,7 @@ Nothing is open.
 - **Decided:** 2026-11-25, by tbhb.
 - **Rule:** the run request and the run metadata are one schema file, `schemas/agent-protocol.json` in tools, with a version, and the driver and the host both validate against it. An additive change keeps the version. A breaking change bumps it, and the host keeps serving the previous version until the next bump, which waits until every listed machine serves the version it replaces. A CI job fails when the schema changes without a matching entry in `schemas/agent-protocol.decisions.toml`, as [appendix I](I-protocol.md#the-schema-version-check) specifies. The protocol version in D14 is this schema's version. A frozen legacy version 2 shape, today's exact fields, is what a writer sends a host too old to answer the protocol query, in the envelope and in the staged request file. The host writes the chosen version as each run's first file, and every reader validates that run's files against it. Each build serves two versions for new launches and retains every frozen schema for reading runs, and CI holds both sets apart.
 - **Undo:** a new decision by tbhb.
-- **Record:** tbhb's decision of 2026-11-25, relayed with D14 and D15.
+- **Record:** tbhb's decision of 2026-11-25, relayed with D14 and D15. The separate plugin version contract was replaced by the 2026-11-26 no-plugins decision (D3).
 
 ### D15. tbhbdev updates itself at start when it is behind main
 
@@ -143,7 +143,7 @@ Nothing is open.
 - **Skew wider than one version:** every install keeps a bridge bundle for each version from 2 up, so when an update of the older side fails, the launch runs through a bridge on either side ([appendix I](I-protocol.md#bridges)).
 - **Before phase 1:** builds already installed cannot be changed, so phase 1 ends with a rollout barrier: launches pause, every listed machine syncs, and launches resume when no listed machine runs an older build. A machine the sync cannot reach is fenced off the list, its driver key removed from every host, until a sync and a version check bring it back, so no listed machine keeps the old refusal.
 - **Undo:** a new decision by tbhb.
-- **Record:** tbhb's decision of 2026-11-25, relayed with D15 and D16.
+- **Record:** tbhb's decision of 2026-11-25, relayed with D15 and D16. The warning for a plugin contract version mismatch was replaced by the 2026-11-26 no-plugins decision (D3).
 
 ### D13. Test time caps for Go
 
@@ -162,7 +162,7 @@ Nothing is open.
 ### D11. Pure and I/O packages are told apart by directory
 
 - **Decided:** 2026-11-25, by tbhb-agent in this design, which tbhb approves.
-- **Rule:** I/O code lives in `cmd/`, under any `io/` directory, and in each plugin's `io/app` wiring package. Everything else under `internal/` is pure. No package takes the name `core` or `shell`.
+- **Rule:** I/O code lives in `cmd/` and under any `io/` directory, including the command groups' `io/app` packages. Everything else under `internal/` is pure. No package takes the name `core` or `shell`.
 - **Undo:** move packages and update the arch-lint, depguard, and ast-grep globs in one change.
 - **Record:** this design's pull request.
 
@@ -176,16 +176,16 @@ Nothing is open.
 ### D9. The front hands off by exec
 
 - **Decided:** 2026-11-25, by tbhb-agent in this design, which tbhb approves.
-- **Rule:** the front calls `syscall.Exec`, so the plugin keeps the process ID, every descriptor, and signal delivery, and its exit status is the process's. Windows is out of scope, since the launcher depends on tmux and ssh.
+- **Rule:** the front calls `syscall.Exec` for `tbhbdev-py`, which keeps the process ID, every descriptor, and signal delivery. Its exit status is the process's. Windows is out of scope, since the launcher depends on tmux and ssh.
 - **Undo:** a child process with wrapped exit codes, as gh does, at the cost in [appendix C](C-alternatives.md).
 - **Record:** this design's pull request.
 
 ### D8. The Go code lives in tbhb-dev/tools as one module (superseded)
 
 - **Decided:** 2026-11-25, by tbhb-agent in this design, which tbhb approves. Superseded the same day by tbhb's D22, which moves the Go code to tbhb-dev/tbhbdev.
-- **Rule:** one `go.mod` at the tools root, module `go.tbhb.dev/tools`, with no `go.work`. One commit builds the bundle, the Go binaries, and the Python wheel it falls through to.
+- **Rule:** one commit builds the bundle with one Go binary for its own commands and the Python wheel it falls through to.
 - **Undo:** not needed. D22 keeps one commit per bundle by pinning the tools commit in the monorepo.
-- **Record:** this design's pull request.
+- **Record:** this design's pull request. The per-command binaries were replaced by the 2026-11-26 no-plugins decision (D3).
 
 ### D7. Go-only pull requests do not run the Python suite
 
@@ -208,9 +208,9 @@ Nothing is open.
 - **Undo:** a new decision by tbhb.
 - **Record:** tbhb's decision of 2026-11-25.
 
-### D4. tbhbdev moves to Go as plugin binaries
+### D4. tbhbdev moves to Go
 
 - **Decided:** 2026-11-25, by tbhb.
-- **Rule:** tbhbdev becomes a modular monorepo of plugin binaries in Go, modeled on gh after a study of its pitfalls. The Python pure-core refactor stops. The first build is the front and its plugin plumbing, with unported names falling through to the Python tbhbdev. Pure packages and thin I/O packages stay apart, and one commit builds one release bundle.
+- **Rule:** tbhbdev becomes one Go binary in the monorepo. The Python pure-core refactor stops. The first build is the front and dispatch, with unported names falling through to `tbhbdev-py`. Pure packages and thin I/O packages stay apart, and one commit builds one release bundle.
 - **Undo:** a new decision by tbhb. Ported commands would need their Python code back.
-- **Record:** tbhb's decision of 2026-11-25. No record in the decision folder covered a Go port at the time of the outline's read.
+- **Record:** tbhb's decision of 2026-11-25. Its plugin dispatch was replaced by the 2026-11-26 no-plugins decision (D3). No record in the decision folder covered a Go port at the time of the outline's read.

@@ -36,7 +36,7 @@ One file in tools, `schemas/agent-protocol.json`, describes everything the drive
 - **`request`**, the run request. Its `v` is the protocol version.
 - **`metadata`**, one definition per run file the driver or `agent status` reads, such as `.phase`, `.rc`, `.audit.json`, and an `index.jsonl` line. A plain-text file is checked as a JSON string against its pattern.
 
-The protocol version is the schema's `version`, and nothing else names a protocol (D14). It starts at 2, today's request version, so no machine sees a new number at the switch.
+The protocol version is the schema's `version`, and nothing else names a protocol (D14). It starts at 2, today's request version, so no machine sees a new number at the switch. The separate plugin version contract was replaced by the 2026-11-26 no-plugins decision (D3).
 
 ### Both sides validate
 

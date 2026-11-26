@@ -24,7 +24,7 @@ No wave starts until tbhb has read the merged design (D17). Every Go wave lands 
 
 | Wave | What ports | Python lines | Why here |
 | --- | --- | --- | --- |
-| 0 | The front, the plugin runner on cobra, the koanf loader, the schema package, the GitHub client package, the contract library, the checks, the bundle, the installer, and self-update, all new | none | Everything else stands on it |
+| 0 | The front, the cobra wiring, the koanf loader, the schema package, the GitHub client package, the checks, the bundle, the installer, and self-update, all new | none | Everything else stands on it |
 | 1 | `alpha review`: `review` (359), `review_doc` (333), `review_policy` (242), and `review_prompt` (121), with `review_data/` and `review_prompt_data/` | 1,055 | The review tooling is the unfinished part of tbhbdev (D17) |
 | 1 | The review run's post: `agent/review_post.py` and the run host's `post_review` call to it | 257, plus part of `run_host` | A review run posts its own verdict |
 | 1 | What the review code imports: the content check in `content_vet` (186) with the parts of `content` and `content_model` it calls, the app and review tokens in `gh_app` (815), the parts of `pull_request` that `review_post.py` calls, and the GitHub client on go-github (D24) | Selected functions | Ported as Go library packages beside the Python libraries, both tested on the same fixtures |
@@ -71,7 +71,7 @@ Wave 1 re-reads tools main on the day it starts and follows the Go review contra
 ### Review runs before the launcher ports
 
 - **Launching.** The Go review code imports nothing from the launcher. To start a review run, it calls `tbhbdev agent exec` by its final name through `TBHBDEV_PATH`.
-- **Python answers `agent`.** From the phase 1 release, before wave 1, the Python package answers the top-level name `agent` with the `alpha agent` code, so Go names no `alpha` command (D5). In wave 2 the Go `agent` plugin takes the name, and the review code does not change.
+- **Python answers `agent`.** From the phase 1 release, before wave 1, the Python package answers the top-level name `agent` with the `alpha agent` code, so Go names no `alpha` command (D5). In wave 2 the Go `agent` group takes the name, and the review code does not change.
 - **Admission.** Rules that read the launcher's run state, such as reserved slots and one live review per commit, stay in the Python launcher until wave 2. Go does not copy them.
 - **Posting.** Once `tbhbdev review post` ships, the Python run host hands the verdict to it by its final name, under the contract below, so one poster serves both paths.
 
@@ -83,7 +83,7 @@ Wave 1 moves code, not review authority. ADR 0004 and ADR 0009 stay the rules, a
 - **The exact judged head.** The verdict line's commit is the head the run judged, the run's `--ref`. The poster posts on that commit and never on the pull request's current head, and if the two differ it still posts on the judged one, which marks the verdict stale for the head that moved. That differs from the Python poster's check that an approval still targets the current head, so a verdict on a superseded head still reaches the pull request as ADR 0004's record of that exact head. Test: a head that moves during the run.
 - **The submitted commit matches the run.** Before it posts, the run-host path compares the draft's submitted commit, with the commit in the run's request as the host wrote it, the trusted run metadata, and refuses to post on any difference, as `review_post.validate` does today. It never takes the commit from the review run's own output. Test: a fixture draft whose submitted commit differs from the run's request posts nothing, logs the refusal, and leaves the run's exit status intact. That is a different case from the head that moves, where the draft and the run agree and the pull request moved.
 - **One post per run.** A `review` run file marks a post, and a retry with that file present posts nothing, as on tools main. Test: a second post of one run sends nothing.
-- **Comment only.** The poster sends a review with the event `COMMENT`, carrying the run identifier, the model provider, the exact head, the verdict, and the findings, as ADR 0004 lists them. No code path in `tbhbdev-review` sends `APPROVE` or `REQUEST_CHANGES`, an ast-grep rule bans those event names in the plugin, and a test drives every post path through a fake transport that fails on any other event.
+- **Comment only.** The poster sends a review with the event `COMMENT`, carrying the run identifier, the model provider, the exact head, the verdict, and the findings, as ADR 0004 lists them. No code path in `tbhbdev review` sends `APPROVE` or `REQUEST_CHANGES`, an ast-grep rule bans those event names in the review commands, and a test drives every post path through a fake transport that fails on any other event.
 - **Approval stays independent.** Approval belongs to the independent approver of ADR 0009, through `tbhb-approve` until the M5 switch decides otherwise. Wave 1 builds no approval path.
 - **The host holds the posting token.** In a review run, the run host holds the run-scoped posting token, and the review run's own process never sees it. The run host starts `tbhbdev review post --from-run <run>` as its own child and passes the token on an inherited descriptor that the review run's sandbox never had. Test: the review run's environment and descriptors hold no token, and the poster child reads exactly one.
 
@@ -104,14 +104,14 @@ The size gate allows 400 added code lines per pull request, tests included. With
 
 About six pull requests in tbhb-dev/tbhbdev under `factory/cli`, one after another. The monorepo session owns the repository's own general scaffolding, which these build on. The first Go slice, tools#418, waits for the move and is rebuilt there rather than merged into tools.
 
-1. The front with `factory/cli/internal/dispatch` and `factory/cli/internal/plugin`.
+1. The front with `factory/cli/internal/dispatch`.
 2. The stamp and the bundle test.
-3. `internal/plugin/io/run` with the cobra root, and `internal/config/io/load` with koanf ([appendix K](K-go-stack.md)).
+3. The cobra root wiring and `internal/config/io/load` with koanf ([appendix K](K-go-stack.md)).
 4. The checks with their planted fixtures, the stack rules included.
 5. `internal/schemas`, with byte-checked copies of the Configure Unify Execute (CUE) files, in-process validation, and the CUE boundary checks.
 6. `internal/ghapi`, with the go-github client, its rules, and a fake transport for tests.
 
-Pull requests 1 and 3 change the front, dispatch, or plugin plumbing, so they go to tbhb before merge (D19). Review and CI come first, a reviewer's verdict is a GO or HOLD comment only, and coordination then puts the pull request on Open. Nobody approves them or runs `tbhb-approve` on them until tbhb says go. Pull requests 2, 4, 5, and 6 are not gated, unless one also changes a gated path. The phase 1 Python release in tools, which adds the protocol schema and the `protocol-version` job, and the rules ast-grep macro run beside them.
+Pull request 1 changes the front and dispatch, so it goes to tbhb before merge (D19). Review and CI come first, a reviewer's verdict is a GO or HOLD comment only, and coordination then puts the pull request on Open. Nobody approves it or runs `tbhb-approve` on it until tbhb says go. Pull requests 2 through 6 go through the gate only if they change a gated path. The phase 1 Python release in tools, which adds the protocol schema and the `protocol-version` job, and the rules ast-grep macro run beside them.
 
 ### Wave 1 in parallel
 
@@ -137,7 +137,7 @@ The launcher applies host load and memory limits when admitting runs (tools#440)
 
 - Each slice adds new package directories, and gazelle writes each package's own `BUILD.bazel`, so two slices never edit one build file.
 - The arch-lint, depguard, and ast-grep configs match by glob, so a new package needs no config edit.
-- A subcommand slice adds one `AddCommand` line to its plugin's root constructor, the only line two slices share, and a rebase settles it.
+- A subcommand slice adds one `AddCommand` line to its command group's constructor, the only line two slices share, and a rebase settles it.
 - Only the serial steps and dependency bumps touch `go.mod`, `MODULE.bazel`, and the lint configs, one at a time.
 - Each slice ports the Python tests for its module as Go table tests in the same pull request, so the Python suite stays the behavior spec until the module's Python code goes.
 

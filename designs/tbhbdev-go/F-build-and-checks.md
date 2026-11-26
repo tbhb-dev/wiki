@@ -29,9 +29,7 @@ tbhb-dev/tbhbdev/
   .go-arch-lint.yml   components, allowed imports, and vendor lists, with paths under factory/cli
   sgconfig.yml        ast-grep rule directories
   factory/cli/
-    cmd/tbhbdev/                  the front, one-line main
-    cmd/tbhbdev-<name>/           one plugin each, one-line main
-    cmd/tbhbdev-self-update/      the self-update helper, one-line main
+    cmd/tbhbdev/                  the Go binary, one-line main
     internal/<domain>/<topic>/    pure packages
     internal/<domain>/io/<name>/  I/O adapters, and io/app for wiring and cobra commands
     internal/schemas/cue/         byte-checked copies of the tools CUE schemas (D20)
@@ -66,7 +64,7 @@ The pinned tools commit is a Bazel repository in `MODULE.bazel`, so the copy che
 | Check | Rule | Source |
 | --- | --- | --- |
 | Pull request size | 400 added code lines and 1,500 raw lines, Go tests included, Markdown exempt | existing: rules `lint/private/pr_size.sh.tpl`, run by the rules `repo-checks.yml` |
-| tbhb gate paths | A job labels a pull request `tbhb-gate` when it changes one of the three gated paths in D19, and only then | new, a monorepo CI job outside Bazel, since it reads the pull request's changed paths |
+| tbhb gate paths | A job labels a pull request `tbhb-gate` when it changes one of the two gated paths in D19, and only then | new, a monorepo CI job outside Bazel, since it reads the pull request's changed paths |
 | Import direction | `go_arch_lint_test` with the components below | existing macro in rules `go/defs.bzl`, new config |
 | Standard-library bans | depguard through the golangci-lint aspect | existing factory in rules `go/defs.bzl`, new lists |
 | No package globals | `gochecknoglobals`, with one exception in `internal/buildinfo` | existing linter, as in awrel's `buildmeta` |
@@ -74,9 +72,8 @@ The pinned tools commit is a Bazel repository in `MODULE.bazel`, so the copy che
 | The CUE boundary | `run.Main` clears the `CUE_` variables before any CUE call, code reachable from validation reads no other variable, the environment reads in linked `pkg/tool` task code stay unreachable, and no task runner is linked ([appendix K](K-go-stack.md#the-cue-boundary)) | new |
 | input/output (I/O) in pure code and unit tests | `ast_grep_test` | new macro in rules, plan step 1 |
 | Test time caps | `unit_go_test` and `io_go_test` | new macros in the monorepo |
-| The front budget | Imports and size of `factory/cli/cmd/tbhbdev` | new |
-| Every binary stamped | Each bundle binary prints the bundle version for `--version` | new release test |
-| Contract | One test per contract variable, and no plugin exit code in 125 to 127 | new |
+| The front budget | Imports and startup work in dispatch | new |
+| Build stamp | `tbhbdev version` prints the bundle version and `tbhbdev-py --version` names the pinned tools commit | new release test |
 | Protocol version | The `protocol-version` CI job compares the schema at the merge base with the head and requires a matching decision entry ([appendix I](I-protocol.md#the-schema-version-check)) | new, a tools CI job outside Bazel, since it needs the merge base |
 | Protocol corpus | Writers emit only schema-valid documents, both servers read each served version and the legacy shape, the staged request file matches the envelope's request, and the tools and monorepo schema copies match byte for byte | new |
 | Self-update | The tests that [appendix J](J-self-update.md#tests) lists | new |
@@ -89,10 +86,8 @@ Each new rule ships with a planted fixture that must fail it, run through `expec
 
 | Component | Paths | May import |
 | --- | --- | --- |
-| front | `factory/cli/cmd/tbhbdev` | `factory/cli/internal/dispatch/io/front` |
-| front wiring | `factory/cli/internal/dispatch/io/front` | `factory/cli/internal/dispatch`, `factory/cli/internal/buildinfo`, `factory/cli/internal/plugin`, `factory/cli/internal/selfupdate` |
-| plugin mains | `factory/cli/cmd/tbhbdev-*`, except the self-update helper | `factory/cli/internal/plugin/io/run`, the plugin's own `io/app` |
-| self-update helper main | `factory/cli/cmd/tbhbdev-self-update` | `factory/cli/internal/selfupdate/io/swap` |
+| main | `factory/cli/cmd/tbhbdev` | `factory/cli/internal/dispatch/io/front`, command wiring under `io/app`, `factory/cli/internal/selfupdate/io/swap` |
+| front wiring | `factory/cli/internal/dispatch/io/front` | `factory/cli/internal/dispatch`, `factory/cli/internal/buildinfo`, `factory/cli/internal/selfupdate` |
 | io | `factory/cli/internal/**/io/**` | io and pure packages |
 | pure | the rest of `factory/cli/internal/**` | pure packages only |
 
@@ -109,7 +104,7 @@ The rules live in tbhb-dev/rules for other Go repositories to use, behind an `as
 | `pure-no-io` | pure sources | `os.$F(...)`, `exec.$F(...)`, `net.$F(...)`, `http.$F(...)`, `time.Now()`, `time.Sleep(...)`, `time.After(...)`, `filepath.Glob/Walk/WalkDir/Abs/EvalSymlinks(...)` |
 | `unit-test-no-io` | `_test.go` in pure packages | All of the above, plus `t.TempDir()`, `t.Setenv(...)`, `httptest.$F(...)`, and `os.Getenv(...)` |
 | `front-no-lookpath` | `factory/cli/internal/dispatch/**` | `exec.LookPath(...)` and `os.Getenv("PATH")` |
-| `front-no-net` | `factory/cli/internal/dispatch/**` and `factory/cli/cmd/tbhbdev` | `net.$F(...)`, `http.$F(...)`, and any import of `factory/cli/internal/selfupdate/io/**` |
+| `front-no-net` | `factory/cli/internal/dispatch/**` | `net.$F(...)`, `http.$F(...)`, and any import of `factory/cli/internal/selfupdate/io/**` |
 | `one-http-client` | everywhere except `factory/cli/internal/ghapi/io/**` | `http.Client{...}` and `&http.Client{...}` |
 | `no-alpha` | all Go sources except `factory/cli/internal/dispatch` | the string literal `"alpha"`, so no Go code names an `alpha` command (D5) |
 
@@ -126,6 +121,5 @@ A `genquery` test fails on any `go_test` in the module that is not one of those 
 
 ### The front budget
 
-- `go_arch_lint_test` keeps the front's main to its wiring package, and the wiring to the four packages in the components table, plus the standard library. depguard's `front-stdlib-only` list holds the same line for third-party packages across all six of the front's packages, and a planted fixture that imports cobra into the wiring package fails it.
-- A size test fails if the stripped front binary grows past a budget set from the first build (new, value to be measured).
-- A test runs the front under a process counter and fails if it starts any process before its exec. With a shared lock on its bundle, the front reads the manifest, the self-update cache, and, when needed for routing, the outside plugin list (D3).
+- `go_arch_lint_test` keeps dispatch wiring to the packages in the components table, plus the standard library. depguard's `front-stdlib-only` list holds the same line for third-party packages, and a planted fixture that imports cobra into the dispatch wiring fails it.
+- A test runs the front under a process counter and fails if it starts any process during routing. With a shared lock on its bundle, the front reads the manifest and the self-update cache.

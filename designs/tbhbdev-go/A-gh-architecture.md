@@ -26,7 +26,7 @@ The exit codes sit in `internal/ghcmd/cmd.go:41-49`: 0 for success, 1 for an err
 
 Before any command runs, `Main` loads config, builds the terminal streams, resolves its own path, starts telemetry, builds the Factory, starts an update check, and builds the whole command tree, extensions included. A config error is only a warning at that point, yet `gh version` still never runs on one (see the Factory below).
 
-**For tbhbdev:** copy the one-line `main` and the single error-to-exit map. Avoid every piece of eager startup, since the front does nothing before its exec.
+**For tbhbdev:** copy the one-line `main` and the single error-to-exit map. Keep eager startup work out of dispatch.
 
 ## The shared dependency object
 
@@ -38,7 +38,7 @@ Before any command runs, `Main` loads config, builds the terminal streams, resol
 - Package globals sit beside it: `factory.SSOURL()` reads `ssoHeader` (`default.go:26`), and `root.HasFailed()` reads a flag the help function sets (`pkg/cmd/root/help.go:54`).
 - A counter-example inside gh: `pkg/cmd/codespace/common.go:40` takes narrow dependencies explicitly.
 
-**For tbhbdev:** no Factory. Each plugin's `io/app` package builds only what that plugin uses, gives each cobra command a private struct of its own dependencies, and passes narrow values to pure code ([appendix E](E-plugin-contract.md#the-library-surface), [appendix K](K-go-stack.md#explicit-dependencies-and-no-shared-object)).
+**For tbhbdev:** no Factory. Each command group's `io/app` package builds only what that group uses, gives each cobra command a private struct of its own dependencies, and passes narrow values to pure code ([appendix K](K-go-stack.md#explicit-dependencies-and-no-shared-object)).
 
 ## Terminal streams
 
@@ -55,7 +55,7 @@ Before any command runs, `Main` loads config, builds the terminal streams, resol
 - **Completion:** extension names complete, and their arguments get nothing.
 - **Startup cost:** every call lists the extension directory and builds a command for each extension.
 
-**For tbhbdev:** copy verbatim argv, the dispatched marker, and the path back to the front. Avoid the child process, the silent skip, the three discovery shapes, and listing on every call.
+**For tbhbdev:** avoid gh's extension architecture (D3). The Python fallback gets verbatim argv and the path back to the front.
 
 ## How commands are tested
 
@@ -92,17 +92,17 @@ The extension manager is the good counter-example. `manager.go:45` injects `look
 
 The update checker (`internal/update/update.go`) runs only in builds with the `updateable` tag, which the Homebrew formula sets. It checks at most once a day and never when output is not a terminal.
 
-**For tbhbdev:** one stamp package for every binary, as awrel's `buildmeta` already does with Bazel `x_defs`, and a release test that each binary reports the bundle version. The update check at start is one cache read and a pure decision, with any network work in a separate helper ([appendix J](J-self-update.md)).
+**For tbhbdev:** one stamp package, as awrel's `buildmeta` already does with Bazel `x_defs`, and a release test for the bundle version. The update check at start is one cache read and a pure decision, with any network work in the internal self-update helper ([appendix J](J-self-update.md)).
 
 ## What this design copies and what it avoids
 
 | gh practice | Where in gh | tbhbdev |
 | --- | --- | --- |
 | One-line `main`, startup in a package | `cmd/gh/main.go`, `internal/ghcmd/cmd.go:51` | copy |
-| Typed errors mapped to codes in one place | `pkg/cmdutil/errors.go`, `cmd.go:193-243` | copy, and exec makes plugin codes pass through by construction |
-| Dispatched marker and path back | `manager.go:134`, `cmd.go:428` | copy, as `TBHBDEV_DISPATCHED` and `TBHBDEV_PATH` |
+| Typed errors mapped to codes in one place | `pkg/cmdutil/errors.go`, `cmd.go:193-243` | copy, and exec preserves the Python fallback status |
+| Dispatched marker and path back | `manager.go:134`, `cmd.go:428` | pass `TBHBDEV_PATH` to the Python fallback |
 | Verbatim argv | `pkg/cmd/root/extension.go:77` | copy |
-| Built-ins win, with an install-time check | `root.go:197-207`, `command.go:694` | copy, but report a collision instead of skipping it |
+| Built-ins win, with an install-time check | `root.go:197-207`, `command.go:694` | keep Go command names ahead of the Python fallback, with the checks in [appendix G](G-names-and-migration.md#collisions-with-python-names) |
 | Leaf streams package with `Test()` | `pkg/iostreams/iostreams.go` | copy |
 | Options struct, `runF` seam, one-method interfaces | `pkg/cmd/label/delete.go` | copy in `io/app` packages |
 | Injected process and file functions | `pkg/cmd/extension/manager.go:45` | copy in adapters |
@@ -112,6 +112,6 @@ The update checker (`internal/update/update.go`) runs only in builds with the `u
 | Package-level mutable state | `help.go:54`, `default.go:26`, `run.go:24` | avoid |
 | Eager work before dispatch | `cmd.go:57-174`, `default.go:343` | avoid |
 | A plugin manager inside a command package | `pkg/cmd/factory` to `pkg/cmd/extension` | avoid |
-| Implicit discovery shapes | `manager.go:~150-190` | avoid: one manifest |
+| Implicit discovery shapes | `manager.go:~150-190` | avoid extension discovery |
 | Layering by convention only | `.golangci.yml` | avoid |
 | Regex stubs of git command lines | `pkg/cmd/pr/create/create_test.go` | avoid |
