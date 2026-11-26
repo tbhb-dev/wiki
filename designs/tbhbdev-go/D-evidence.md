@@ -48,11 +48,11 @@ Labels:
 | Go validates schemas in-process with `cuelang.org/go`, embedded by `go:embed`, and never runs the `cue` binary | brief | the same (D20) |
 | After tools#399, Python gets no new review features | brief | the same relay |
 | The Go port is built in the monorepo tbhb-dev/tbhbdev, module `github.com/tbhb-dev/tbhbdev` in `go.mod` only, tools keeps the Python and the unported commands, and tools#418 waits for the move | brief | tbhb's decision of 2026-11-25 on the monorepo (D22) |
-| The CLI folder inside the monorepo is `factory/tbhbdev`, and `factory/` holds no grouping folders | brief | tbhb's decision of 2026-11-25 on the CLI folder (D27) |
+| The CLI folder inside the monorepo is `factory/cli` | brief | The operator's 2026-11-26 correction (D27, [monorepo D23](../monorepo/decisions.md#d23-the-command-line-tool-lives-at-factorycli)) |
 | The Python fallthrough is the `tbhbdev-py` entry point in the front's own folder | brief | tbhb's decision of 2026-11-25 on the fallthrough (D25) |
 | The GitHub client stack is go-github v93 behind `internal/ghapi`, a GraphQL helper, and a standard-library JWT, with no `githubv4` or `ghinstallation` | brief | tbhb's decision of 2026-11-25 on a research report into Go GitHub clients (D24) |
 | Six of the eight go-github majors from v86 to v93 broke calls this code uses, and `ghinstallation` pins go-github v88 | brief, unverified | the same research report, not read by this pass |
-| Front, dispatch, and plugin plumbing pull requests wait for tbhb's go on Open, nobody approves them before that, and the gate covers those paths under `factory/tbhbdev` in the monorepo but not the monorepo's general scaffolding | brief | tbhb's decisions of 2026-11-25 on the scaffolding gate (D19) |
+| Front, dispatch, and plugin plumbing pull requests wait for tbhb's go on Open, nobody approves them before that, and the gate covers those paths under `factory/cli` in the monorepo but not the monorepo's general scaffolding | brief | tbhb's decisions of 2026-11-25 on the scaffolding gate (D19) |
 
 ## The tools repository
 
@@ -103,22 +103,18 @@ The brief says tools main has no protocol or schema version in `alpha/agent`. Th
 
 ## The review tooling
 
-The merged and open lists in [appendix H](H-waves.md#wave-1-the-review-tooling) come from the tools inventory of 2026-11-25, which read `git log origin/main` and the `src/tbhbdev` tree of tools, and two coordination decision lines it names. This pass relays it and checked the rows below against the local tools mirror at `bf420ff`, which predates several of the listed pull requests.
+[Appendix H](H-waves.md#wave-1-the-review-tooling) uses a fresh fetch of [tools main at `c02551d`](https://github.com/tbhb-dev/tools/commit/c02551d5089ecbc08404f565b73cec4724a60dea), GitHub pull request records, and the milestone scope carried in the design.
 
 | Claim | Label | Source |
 | --- | --- | --- |
-| The merged review pull requests and their files | brief | the tools inventory of 2026-11-25 |
-| tools#399 merged on 2026-11-25 as `719b589`: the run host posts a run's draft as a `COMMENT` review and refuses a draft whose `commit_id` differs from the run request's commit | existing | tools main at `32c4042`, `run_host.py` and `agent/review_post.py` |
-| tools main has `review_post.py`, from tools#278, but `run_host.py` on main does not call it | existing | `git grep review_post` at `1be1910` finds only `credentials.py`, `review_post.py`, and `review.py` |
-| tools#212 and tools#215 closed unmerged, so they are no evidence for the review token or commit fetch | brief | the same review |
-| The tools review prompt asks for the verdict words GO and NO-GO, and `review_doc.py` accepts only those | existing | `review_prompt_data/common.txt` lines 10 and 11 and `review_doc.py` line 14 at `1be1910` |
-| Verdicts are GO or HOLD, posted as comment reviews on the exact head, and approval is the independent approver's | existing | wiki ADR 0004 and ADR 0009 |
-| The unbuilt pieces: the M4 proof, the M5 merge-gate design, the paired launch and summary, and the review debt | brief, unverified | the inventory, from the milestone plan, not checked against a tracker |
-| tools#358 and tools#365 are unmerged | brief, unverified | the inventory, from the git log only |
-| `review` 309, `review_doc` 427, `review_policy` 242, `review_prompt` 121, `agent/review_post.py` 177, `content_vet` 186, `gh_app` 815, and `cue_runtime` 156 lines | existing | `wc -l` at `bf420ff` |
-| `alpha review` has the subcommands `draft`, `check`, `policy`, `post`, `dismiss`, and `reply` | existing | `src/tbhbdev/alpha/review.py` lines 275 to 285 at `bf420ff` |
-| `review_policy.py` validates with `jsonschema` 2020-12, and the review draft schema is JSON Schema in `review_data/` | existing | `review_policy.py` line 12 and `git ls-tree` at `bf420ff` |
-| A review run's verdict comes back as text, and the run host posts it with a run-scoped token | existing | `src/tbhbdev/alpha/agent/credentials.py` lines 38 to 40 and `review_post.py` line 1 at `bf420ff` |
+| The run host initially posted comment reviews on the judged commit. It now posts approvals or change requests, checks the current head before approving, and validates the same body as manual posting | existing | tools#399, #430, #462, and `src/tbhbdev/alpha/agent/review_post.py` |
+| The current prompt asks for GO or BLOCK. The host also accepts legacy NO-GO | existing | `review_prompt_data/common.txt` and `agent/review_post.py` |
+| The design calls for GO or HOLD as comment reviews on the judged head and leaves approval to the independent approver | design | wiki ADR 0004 and ADR 0009 |
+| The review-gate evaluator merged. The proposed verifier command and both paired-launch attempts closed without merging | existing | [tools#441](https://github.com/tbhb-dev/tools/pull/441), [tools#458](https://github.com/tbhb-dev/tools/pull/458), [tools#358](https://github.com/tbhb-dev/tools/pull/358), and [tools#365](https://github.com/tbhb-dev/tools/pull/365) |
+| `review` 359, `review_doc` 333, `review_policy` 242, `review_prompt` 121, `agent/review_post.py` 257, `content_vet` 186, and `gh_app` 815 lines | existing | `wc -l` at `c02551d` |
+| `alpha review` has draft, check, policy, post, dismiss, reply, and three thread commands | existing | `src/tbhbdev/alpha/review.py` at `c02551d` |
+| `review_policy.py` validates with `jsonschema` 2020-12, and the legacy draft schema is JSON Schema in `review_data/` | existing | `review_policy.py` and `git ls-tree` at `c02551d` |
+| The run host uses a repository-scoped posting token, and manual posting uses GitHub CLI credentials | existing | `src/tbhbdev/alpha/agent/credentials.py` and `review.py` at `c02551d` |
 
 ## The Go stack
 
@@ -130,10 +126,10 @@ The merged and open lists in [appendix H](H-waves.md#wave-1-the-review-tooling) 
 | awrel builds its root command with cobra 1.10.2 from a function that takes its streams and environment lookup | existing | awrel `go.mod` and `cmd/awrel/main.go` at `d677e5d` |
 | awrel's go-arch-lint config sets `depOnAnyVendor: false` and lists cobra under `vendors` and `canUse` | existing | awrel `.go-arch-lint.yml` at `d677e5d` |
 | awrel bans modules with gomodguard_v2 and packages with depguard | existing | awrel `.golangci.yml` at `d677e5d` |
-| Go's `embed` skips symbolic links | unverified | Go's `embed` documentation |
-| `cuelang.org/go/encoding/jsonschema` reads JSON Schema documents for in-process validation | unverified | the `cuelang.org/go` documentation, checked by the schema slice |
-| cobra answers a hidden `__complete` command | unverified | cobra's documentation |
-| viper's usual entry points act on a package-level default instance, and koanf has none | unverified | each library's documentation |
+| By default, Go skips symbolic links while walking an embedded directory and rejects a pattern that directly matches a symbolic link | existing | [Go 1.27.4 embed resolver](https://github.com/golang/go/blob/go1.27.4/src/cmd/go/internal/load/pkg.go) |
+| `cuelang.org/go/encoding/jsonschema.Extract` converts a JSON Schema to a CUE syntax tree that `cue.Context.BuildFile` loads for in-process validation | existing | [CUE v0.18.0 Extract](https://pkg.go.dev/cuelang.org/go@v0.18.0/encoding/jsonschema#Extract) |
+| Cobra registers `__complete` as a hidden command for shell completion | existing | [Cobra v1.10.2 completions.go](https://github.com/spf13/cobra/blob/v1.10.2/completions.go) |
+| Viper initializes a package-level default instance and routes package-level functions such as `Get` to it. Koanf's `New` returns a separate instance for each load | existing | [Viper v1.21.0 source](https://github.com/spf13/viper/blob/v1.21.0/viper.go) and [Koanf v2.4.1 source](https://github.com/knadh/koanf/blob/v2.4.1/koanf.go) |
 | `cuecontext.New` reads `CUE_DEBUG` and `CUE_EXPERIMENT` | brief, unverified | this design's review. The schema slice's `cue_env_reads_test` checks it against the pinned version |
 | go-github v93 and its main branch both have `WithTransport`, `WithAuthToken`, `WithUserAgent`, and `WithTimeout` | brief, unverified | the research report behind D24 |
 | gazelle takes its prefix from `go.mod` when no directive sets one | unverified | gazelle's documentation, checked by the scaffolding |

@@ -24,7 +24,7 @@ The front decides, and a separate bundle binary acts. The front does one file re
 
 1. **Lease.** The front takes a shared lease on its own bundle before it reads any file in it ([runs in progress](#runs-in-progress)).
 2. **Read.** The front reads the manifest and the cache file. A missing or unreadable cache is a stale one.
-3. **Decide.** `selfupdate.Decide` in `factory/tbhbdev/internal/selfupdate` is pure and returns `Run`, `Refresh`, or `Update(commit)`.
+3. **Decide.** `selfupdate.Decide` in `factory/cli/internal/selfupdate` is pure and returns `Run`, `Refresh`, or `Update(commit)`.
 4. **Run.** On `Run`, dispatch goes on as [appendix E](E-plugin-contract.md#dispatch) describes.
 5. **Hand off.** On `Refresh` or `Update`, the front execs `<bundle>/bin/tbhbdev-self-update` with the original argv. That binary is the input/output (I/O) adapter: it does the network call, the download, the checks, the rename, and the re-exec. If the exec of the helper fails, the front writes one warning to the log and dispatches the current build, as on `Run`.
 6. **Re-exec.** The adapter always ends by exec of a front, the new one after an in-band swap or the current one otherwise, with `TBHBDEV_SELF_UPDATED=1` set. The front drops that variable before dispatch, so the next call checks again. After a swap, the new front also closes the update lock it inherited, named by `TBHBDEV_UPDATE_LOCK_FD`, once it holds its lease and has read its manifest, and drops that variable too.

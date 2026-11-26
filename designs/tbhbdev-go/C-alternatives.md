@@ -94,7 +94,7 @@ Build the front's command tree with cobra, as gh does. The front must pass unkno
 
 ## Viper for config
 
-Load config with viper, which many cobra programs pair it with. Its usual entry points act on a package-level default instance (unverified), which the no-globals rule bans. koanf loads into a local that the shell owns (D18).
+Load config with viper, which many cobra programs pair it with. Its package-level functions use a default instance, which the no-globals rule bans. Koanf loads into a local that the shell owns (D18). [Viper v1.21.0 source](https://github.com/spf13/viper/blob/v1.21.0/viper.go)
 
 ## Running the pinned `cue` binary from Go
 

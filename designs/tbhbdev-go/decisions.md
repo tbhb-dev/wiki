@@ -18,14 +18,6 @@ Back to [the design](README.md).
 
 ## Open
 
-### D1. Do bundles publish as GitHub Releases of tbhb-dev/tbhbdev?
-
-- **Recommendation:** yes.
-- **Why:** D23 decides the trust check, a keyless attestation and SHA-256 hashes with no held key, so the one open part is where the bundles and pointers live. Self-update (D15) and the protocol bridges (D14) fetch them unattended on every machine, so the channel sets either who can read every bundle or which read credential every machine holds, which is tbhb's call. Release assets of tbhb-dev/tbhbdev follow that repository's visibility, which this design does not set, and the release job already runs where the attestation is made.
-- **If yes:** the release job publishes every main commit's bundle, the `main.json` pointer, and the per-version bridge pointers as GitHub Release assets of tbhb-dev/tbhbdev.
-- **If no:** tbhb names another channel, and the installer, sync, and self-update read the pointers from there. D23's checks stay the same, since they pin the attestation and not the channel.
-- **Reversible:** yes. The pointer URL is one value in the installer's policy.
-
 ### D2. Does `tbhbdev host` retire without a port, and does `tbhbdev analytics` leave the bundle as its own Python tool, so the Python fallthrough can end?
 
 - **Recommendation:** yes.
@@ -44,12 +36,19 @@ Back to [the design](README.md).
 
 ## Decided
 
-### D27. The CLI folder is `factory/tbhbdev`
+### D1. Bundles publish as GitHub Releases of tbhb-dev/tbhbdev
 
-- **Decided:** 2026-11-25, by tbhb, settling the folder that D22 left open.
-- **Rule:** the CLI sits in `factory/tbhbdev` in tbhb-dev/tbhbdev, inside the module `github.com/tbhb-dev/tbhbdev`, so its packages are `github.com/tbhb-dev/tbhbdev/factory/tbhbdev/...`. `factory/` is flat and has no grouping folders, so there is no `factory/cli`. Every Go path, Bazel label, and lint glob in this design sits under it.
+- **Decided:** 2026-11-26, by coord, as a two-way door.
+- **Rule:** The release job publishes the Go bundles as GitHub Releases of tbhb-dev/tbhbdev, one release per main merge, with the `main.json` pointer and per-version bridge pointers as release assets.
+- **Undo:** Make a new decision, then delete the releases.
+- **Record:** The 2026-11-26 decision follows the existing practice of hosts installing the tools from a per-merge release.
+
+### D27. The CLI folder is `factory/cli`
+
+- **Decided:** 2026-11-25, by tbhb, with the folder corrected by the operator on 2026-11-26.
+- **Rule:** the CLI sits in `factory/cli` in tbhb-dev/tbhbdev, inside the module `github.com/tbhb-dev/tbhbdev`, so its packages are `github.com/tbhb-dev/tbhbdev/factory/cli/...`. Every Go path, Bazel label, and lint glob in this design sits under it.
 - **Undo:** a new decision by tbhb. A move edits the lint globs and the Bazel labels in one change.
-- **Record:** tbhb's decision of 2026-11-25 on the CLI folder.
+- **Record:** The operator's 2026-11-26 correction supersedes the folder named in the 2026-11-25 decision. [Monorepo D23](../monorepo/decisions.md#d23-the-command-line-tool-lives-at-factorycli)
 
 ### D26. The `agent` plugin owns its word and passes unported subcommands to `tbhbdev-py`
 
@@ -69,13 +68,13 @@ Back to [the design](README.md).
 ### D24. The GitHub client stack is go-github behind `internal/ghapi`
 
 - **Decided:** 2026-11-25, by tbhb, on a research report into Go GitHub clients.
-- **Rule:** REST goes through `github.com/google/go-github`, pinned at one major, v93.0.0 today, and only packages under `factory/tbhbdev/internal/ghapi` import it. It builds the one client with an injected transport, token, User-Agent, and timeout, through only the constructor options that exist in both v93 and go-github's main branch: `WithTransport`, `WithAuthToken`, `WithUserAgent`, and `WithTimeout`. A small GraphQL helper on the same client covers what REST lacks: marking a pull request ready, the merge queue state query and enqueue, and Projects v2 by node ID. It does not use `githubv4`. App installation tokens come from a standard-library JWT and go-github's installation calls, not `ghinstallation`, which pins go-github v88. The token code keeps today's lookup of the repository installation and then the organization one, its cache, its cooldown, and its secret-free errors. go-github majors move on tbhb-dev's schedule, since six of the eight majors from v86 to v93 broke calls this code uses, all renames or by-value changes that the compiler finds. go-arch-lint and depguard allow go-github only in `internal/ghapi` ([appendix K](K-go-stack.md#github-with-go-github)).
+- **Rule:** REST goes through `github.com/google/go-github`, pinned at one major, v93.0.0 today, and only packages under `factory/cli/internal/ghapi` import it. It builds the one client with an injected transport, token, User-Agent, and timeout, through only the constructor options that exist in both v93 and go-github's main branch: `WithTransport`, `WithAuthToken`, `WithUserAgent`, and `WithTimeout`. A small GraphQL helper on the same client covers what REST lacks: marking a pull request ready, the merge queue state query and enqueue, and Projects v2 by node ID. It does not use `githubv4`. App installation tokens come from a standard-library JWT and go-github's installation calls, not `ghinstallation`, which pins go-github v88. The token code keeps today's lookup of the repository installation and then the organization one, its cache, its cooldown, and its secret-free errors. go-github majors move on tbhb-dev's schedule, since six of the eight majors from v86 to v93 broke calls this code uses, all renames or by-value changes that the compiler finds. go-arch-lint and depguard allow go-github only in `internal/ghapi` ([appendix K](K-go-stack.md#github-with-go-github)).
 - **Undo:** a new decision by tbhb. A swap touches only `internal/ghapi`.
 - **Record:** tbhb's decisions of 2026-11-25 on the GitHub client stack.
 
 ### D23. Bundles are checked by keyless attestation and SHA-256, pinned to workflow, ref, and commit
 
-- **Decided:** 2026-11-25, by tbhb-agent in this design, which tbhb approves, as this design's baseline. D1 asks only where bundles publish.
+- **Decided:** 2026-11-25, by tbhb-agent in this design, which tbhb approves, as this design's baseline. D1 records where bundles publish.
 - **Rule:** the tbhb-dev/tbhbdev release job attests each archive with `actions/attest-build-provenance`, a keyless GitHub artifact attestation. Before any swap, the installer, sync, and self-update check the archive's SHA-256 hash against the pointer and every file hash against the manifest. They then verify the attestation with the signer workflow pinned to the tbhbdev release workflow, the source ref pinned to `refs/heads/main`, and the source commit pinned to the pointer's commit, which must equal the manifest's commit. A bundle older than the installed one by release number is never published. Any failed check warns and keeps the current build (D15). tbhb-dev holds no signing key, so there is no key to keep, rotate, or reach from an unattended run.
 - **Undo:** a new design decision. Adding a held key beside the attestation needs one, and dropping a pin widens what a host trusts.
 - **Record:** this design's pull request.
@@ -83,13 +82,13 @@ Back to [the design](README.md).
 ### D22. The Go code lives in the monorepo tbhb-dev/tbhbdev
 
 - **Decided:** 2026-11-25, by tbhb, superseding D8.
-- **Rule:** the Go port is built in tbhb-dev/tbhbdev as one module, `github.com/tbhb-dev/tbhbdev`. The module path appears only in `go.mod`, so an organization rename touches one place. The CLI sits in the folder `factory/tbhbdev` (D27). tools stays the home of the Python `tbhbdev-py` and every unported command. One monorepo commit builds the bundle: the Go binaries from that commit, and the wheel from the tools commit it pins, with both commits in the manifest. The first Go slice, tools#418, waits for the move and does not merge into tools.
+- **Rule:** the Go port is built in tbhb-dev/tbhbdev as one module, `github.com/tbhb-dev/tbhbdev`. The module path appears only in `go.mod`, so an organization rename touches one place. The CLI sits in the folder `factory/cli` (D27). The Python CLI and its unported commands move into the same folder on import (D27). One monorepo commit builds the bundle: the Go binaries from that commit, and the wheel from the tools commit it pins, with both commits in the manifest. The first Go slice, tools#418, waits for the move and does not merge into tools.
 - **Undo:** a new decision by tbhb.
 - **Record:** tbhb's decision of 2026-11-25 on the monorepo.
 
 ### D21. The review commands take the top-level name `review`
 
-- **Decided:** 2026-11-25, by tbhb-agent in this design, which tbhb approves, under D17 and refining D10.
+- **Decided:** 2026-11-26, confirming the top-level placement settled on 2026-11-13 when the alpha prefix was retired and the alpha group, including review, moved to the top level.
 - **Rule:** `alpha review draft`, `check`, `policy`, `post`, `dismiss`, and `reply` port as `tbhbdev review` in their own plugin, `tbhbdev-review`, and not as `pr review` in `tbhbdev-pr`. Wave 1 ships the review commands alone. A `tbhbdev-pr` that answered only `review` would send every other `pr` word to a Go usage error until wave 3.
 - **Undo:** rename before callers move. After they move, a rename is a second migration.
 - **Record:** this design's pull request.
@@ -104,8 +103,8 @@ Back to [the design](README.md).
 ### D19. Front, dispatch, and plugin plumbing pull requests go to tbhb before merge
 
 - **Decided:** 2026-11-25, by tbhb, narrowed the same day from every scaffolding pull request to this gate.
-- **Rule:** a pull request in tbhb-dev/tbhbdev that changes `factory/tbhbdev/cmd/tbhbdev`, `factory/tbhbdev/internal/dispatch/**`, or `factory/tbhbdev/internal/plugin/**`, the front, dispatch, and plugin plumbing, goes to tbhb before it merges. Review and CI come first, and coordination then puts the pull request on Open. It does not merge, and nobody approves it or runs `tbhb-approve` on it, until tbhb says go. That covers every session and subagent, commissioned runs included, and a reviewer's verdict on one is a GO or HOLD comment only.
-- **Not gated:** the monorepo's general scaffolding, which the monorepo session owns, and every other pull request under `factory/tbhbdev`, such as the stamp, the checks, the schema package, and the GitHub client, unless it also changes one of the gated paths. Of the six scaffolding pull requests in [appendix H](H-waves.md#go-scaffolding), the first and the third are gated.
+- **Rule:** a pull request in tbhb-dev/tbhbdev that changes `factory/cli/cmd/tbhbdev`, `factory/cli/internal/dispatch/**`, or `factory/cli/internal/plugin/**`, the front, dispatch, and plugin plumbing, goes to tbhb before it merges. Review and CI come first, and coordination then puts the pull request on Open. It does not merge, and nobody approves it or runs `tbhb-approve` on it, until tbhb says go. That covers every session and subagent, commissioned runs included, and a reviewer's verdict on one is a GO or HOLD comment only.
+- **Not gated:** the monorepo's general scaffolding, which the monorepo session owns, and every other pull request under `factory/cli`, such as the stamp, the checks, the schema package, and the GitHub client, unless it also changes one of the gated paths. Of the six scaffolding pull requests in [appendix H](H-waves.md#go-scaffolding), the first and the third are gated.
 - **Undo:** a new decision by tbhb.
 - **Record:** tbhb's decisions of 2026-11-25, relayed with D17, D18, and D20, and tbhb's later decisions that day on the gate and on its scope in the monorepo.
 

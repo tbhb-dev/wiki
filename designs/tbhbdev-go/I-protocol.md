@@ -40,7 +40,7 @@ The protocol version is the schema's `version`, and nothing else names a protoco
 
 ### Both sides validate
 
-The Python package ships the file as package data and validates with `jsonschema`, already a tools dependency (existing). The Go code in tbhb-dev/tbhbdev embeds a copy in `factory/tbhbdev/internal/agent/protocol` with `go:embed` and validates in-process through `cuelang.org/go`, never a `cue` child process (D20). A monorepo test reads the same file from the tools commit that the monorepo pins and fails if the two copies differ by a byte. The schema and its CI job stay in tools while a Python server exists, and move to the monorepo in phase 4.
+The Python package ships the file as package data and validates with `jsonschema`, already a tools dependency (existing). The Go code in tbhb-dev/tbhbdev embeds a copy in `factory/cli/internal/agent/protocol` with `go:embed` and validates in-process through `cuelang.org/go`, never a `cue` child process (D20). A monorepo test reads the same file from the tools commit that the monorepo pins and fails if the two copies differ by a byte. The schema and its CI job stay in tools while a Python server exists, and move to the monorepo in phase 4.
 
 - **Writers are strict.** The driver validates each request, and the host each metadata file, before writing it, against the schema with `additionalProperties: false`. A code change that adds a field fails its own tests until the schema names the field.
 - **Readers are lenient.** A reader removes properties the schema does not name, logs their names as a warning, and then validates. That is what lets an additive change reach an older reader without a refusal.

@@ -16,7 +16,7 @@ parent: README.md
 
 Back to [the design](README.md).
 
-Everything here is new unless it names an existing file. tbhb chose the libraries on 2026-11-25 (D18, D20, and D24), and [appendix D](D-evidence.md#the-go-stack) cites the existing behavior. Every Go path here sits under `factory/tbhbdev` in tbhb-dev/tbhbdev (D27).
+Everything here is new unless it names an existing file. tbhb chose the libraries on 2026-11-25 (D18, D20, and D24), and [appendix D](D-evidence.md#the-go-stack) cites the existing behavior. Every Go path here sits under `factory/cli` in tbhb-dev/tbhbdev (D27).
 
 ## The libraries
 
@@ -49,7 +49,7 @@ gh's pain with cobra came from its wiring: one shared Factory passed to 216 comm
 - **One place for errors.** `run.Main` sets `SilenceUsage` and `SilenceErrors`, turns flag errors into a usage error, and maps every returned error to an exit code through `plugin.ExitCode`.
 
 ```go
-// factory/tbhbdev/internal/review/io/app/post.go, a sketch
+// factory/cli/internal/review/io/app/post.go, a sketch
 type postDeps struct {
 	config func() (config.Config, error) // loads at most once, on first call
 	poster reviewPoster                  // one method over the GitHub adapter
@@ -80,7 +80,7 @@ A test builds the command with fakes in its struct and calls `SetArgs`, so no te
 
 - `run.Main(name, newRoot)` parses the contract environment, answers a lone `--version` before cobra sees it, builds the root, and calls `ExecuteContext` with the argv tail.
 - The root's `Use` comes from `TBHBDEV_PROG`, so usage lines read `tbhbdev review post`.
-- Cobra's hidden `__complete` command answers the contract's reserved completion argument (unverified against cobra 1.10).
+- Cobra's hidden `__complete` command answers the contract's reserved completion argument. [Cobra v1.10.2 source](https://github.com/spf13/cobra/blob/v1.10.2/completions.go)
 - A flag error or an unknown subcommand exits 2, as the contract requires ([appendix E](E-plugin-contract.md#exit-codes)).
 
 ## Config with koanf
@@ -92,7 +92,7 @@ The Python `userconfig` reads one file, `$XDG_CONFIG_HOME/tbhbdev/config.toml`, 
 - **Lazy per command.** `io/app` hands each command a loader that runs at most once per process, and only when the command calls it. `tbhbdev review --help` therefore works with a broken config file ([appendix B](B-gh-pitfalls.md#36-lazy-in-name-only)).
 - **No environment layer.** The Python loader reads no environment overrides, so the Go loader adds none.
 
-Viper stays out of the module, because its usual entry points act on a package-level default instance (unverified, from its documentation). koanf has no default instance, so each load is a value the shell owns (unverified, the same).
+Viper stays out of the module because package-level functions such as `Get` use a default instance. Koanf's `New` gives the shell its own instance for each load. [Viper v1.21.0 source](https://github.com/spf13/viper/blob/v1.21.0/viper.go) and [Koanf v2.4.1 source](https://github.com/knadh/koanf/blob/v2.4.1/koanf.go)
 
 ## Schemas with CUE in Go
 
@@ -100,7 +100,7 @@ Go has a native package for Configure Unify Execute (CUE), `cuelang.org/go`, so 
 
 - **Embedded.** Each schema sits in its pure package and enters the binary through `go:embed`. No schema is read from disk at run time.
 - **Validated in-process.** A pure function compiles the embedded bytes with `cuecontext`, unifies the document with the definition it names, and returns findings. It takes bytes and returns data, so it carries `unit_go_test` table tests.
-- **JSON Schema through the same library.** The D16 protocol schema stays the JSON Schema file it names, and the review draft and policy schemas stay JSON Schema too. Go reads them through `cuelang.org/go/encoding/jsonschema` in the same pure package, and Python keeps `jsonschema`.
+- **JSON Schema through the same library.** The D16 protocol schema stays the JSON Schema file it names, and the review draft and policy schemas stay JSON Schema too. In the same pure package, Go calls `jsonschema.Extract` from `cuelang.org/go/encoding/jsonschema` and builds the resulting CUE syntax tree with `cue.Context.BuildFile`. Python keeps `jsonschema`. [CUE v0.18.0 Extract](https://pkg.go.dev/cuelang.org/go@v0.18.0/encoding/jsonschema#Extract)
 
 | Schema | Python today | Go |
 | --- | --- | --- |
@@ -113,7 +113,7 @@ Go has a native package for Configure Unify Execute (CUE), `cuelang.org/go`, so 
 
 The Python side's `src/tbhbdev/schemas/*.cue` files are symbolic links to `core.cue`, `issue.cue`, and `review.cue` under the tools root `schemas/` directory, where `taxonomy.cue` also sits (existing, at tools `bf420ff`).
 
-The Go code lives in another repository (D22), so no link can join the two. tools keeps the files as the source while its Python reads them. The schema slice copies them into `internal/schemas/cue/` as plain files, since Go's `embed` skips symbolic links (unverified, from its documentation). A monorepo test reads the same files from the pinned tools commit and fails on any byte difference, so a schema change lands in tools first and reaches Go through the pin bump. When the Python content libraries go, the monorepo copies become the source.
+The Go code lives in another repository (D22), so no link can join the two. tools keeps the files as the source while its Python reads them. The schema slice copies them into `internal/schemas/cue/` as plain files, since by default `go:embed` skips symbolic links when walking directories and rejects patterns that match links directly ([Go 1.27.4 embed resolver](https://github.com/golang/go/blob/go1.27.4/src/cmd/go/internal/load/pkg.go)). A monorepo test reads the same files from the pinned tools commit and fails on any byte difference, so a schema change lands in tools first and reaches Go through the pin bump. When the Python content libraries go, the monorepo copies become the source.
 
 ### The CUE boundary
 
@@ -125,7 +125,7 @@ The Go code lives in another repository (D22), so no link can join the two. tool
   - **Reachable from validation.** Calls reachable in the call graph from the schema packages' exported functions and from every `init()` in the linked CUE packages. The reviewed list holds the reads of `CUE_DEBUG` and `CUE_EXPERIMENT`, and the test fails on any other, or on any of these reached from an `init()`, since clearing in `run.Main` comes after package start.
   - **Linked task code.** Calls in `cuelang.org/go/pkg/tool/...`, which run only when CUE's task runner runs a `tool` task. The reviewed list holds the `pkg/tool/os` reads, and the test fails if one becomes reachable from validation or the set changes.
   A CUE upgrade that adds a read to either set fails until a reviewer updates that list.
-- **The task boundary held.** depguard bans `cuelang.org/go/tools/flow` and `cuelang.org/go/cmd/...`, the task runner and the `cue` command, everywhere, and the test above fails if `go list -deps` ever links the runner. An `io_go_test` compiles a planted schema that imports `tool/os` and declares an environment task, with a sentinel variable set, and checks that validation returns without the sentinel in any value. The exact runner package names are unverified against the pinned version, and the schema slice confirms them.
+- **The task boundary held.** depguard bans `cuelang.org/go/tools/flow` and `cuelang.org/go/cmd/...`, the task runner and the `cue` command, everywhere, and the test above fails if `go list -deps` ever links the runner. An `io_go_test` compiles a planted schema that imports `tool/os` and declares an environment task, with a sentinel variable set, and checks that validation returns without the sentinel in any value. CUE v0.18.0 ships the [flow package](https://pkg.go.dev/cuelang.org/go@v0.18.0/tools/flow) and the [command packages](https://github.com/cue-lang/cue/tree/v0.18.0/cmd/cue).
 
 An `io_go_test` runs a plugin binary with `CUE_DEBUG` and `CUE_EXPERIMENT` set to values that would change or break evaluation, and checks that every schema fixture validates exactly as it does with the variables unset.
 
@@ -143,11 +143,11 @@ tbhb chose the client stack on 2026-11-25, on a research report into Go GitHub c
 
 | Rule | Tool | Forbids |
 | --- | --- | --- |
-| `stack-vendors` | go-arch-lint `vendors` and `canUse`, with `depOnAnyVendor: false` as awrel sets it | cobra and pflag outside `factory/tbhbdev/**/io/app` and `factory/tbhbdev/internal/plugin/io/run`, koanf outside `factory/tbhbdev/internal/config/io/load`, `cuelang.org/go` outside the two schema packages, and go-github outside `factory/tbhbdev/internal/ghapi/**` |
-| `ghapi-only-go-github` | depguard | `github.com/google/go-github/**` in any file outside `factory/tbhbdev/internal/ghapi/**`, a second line beside `stack-vendors` with its own planted fixture |
-| `front-stdlib-only` | depguard, strict list mode | In the files of the front's six packages, `factory/tbhbdev/cmd/tbhbdev`, `factory/tbhbdev/internal/dispatch/io/front`, `factory/tbhbdev/internal/dispatch`, `factory/tbhbdev/internal/selfupdate`, `factory/tbhbdev/internal/plugin`, and `factory/tbhbdev/internal/buildinfo`, each matched as one directory and not its subdirectories, any import but `$gostd` and the last five of those packages. So the front's main may import its wiring, the wiring the four pure packages, and nothing third-party enters. `internal/plugin/io/run` and `internal/selfupdate/io/**` sit outside the list, since the front never links them |
+| `stack-vendors` | go-arch-lint `vendors` and `canUse`, with `depOnAnyVendor: false` as awrel sets it | cobra and pflag outside `factory/cli/**/io/app` and `factory/cli/internal/plugin/io/run`, koanf outside `factory/cli/internal/config/io/load`, `cuelang.org/go` outside the two schema packages, and go-github outside `factory/cli/internal/ghapi/**` |
+| `ghapi-only-go-github` | depguard | `github.com/google/go-github/**` in any file outside `factory/cli/internal/ghapi/**`, a second line beside `stack-vendors` with its own planted fixture |
+| `front-stdlib-only` | depguard, strict list mode | In the files of the front's six packages, `factory/cli/cmd/tbhbdev`, `factory/cli/internal/dispatch/io/front`, `factory/cli/internal/dispatch`, `factory/cli/internal/selfupdate`, `factory/cli/internal/plugin`, and `factory/cli/internal/buildinfo`, each matched as one directory and not its subdirectories, any import but `$gostd` and the last five of those packages. So the front's main may import its wiring, the wiring the four pure packages, and nothing third-party enters. `internal/plugin/io/run` and `internal/selfupdate/io/**` sit outside the list, since the front never links them |
 | `pure-no-exec` | depguard | `os/exec` and `syscall` in pure files and their tests, which the pure allowlist in [appendix F](F-build-and-checks.md#components) already leaves out, named here so a planted fixture proves it |
-| `exec-one-package` | depguard | `os/exec` in every file outside `factory/tbhbdev/internal/procexec/io/command`, so every child process starts in one package |
+| `exec-one-package` | depguard | `os/exec` in every file outside `factory/cli/internal/procexec/io/command`, so every child process starts in one package |
 | `no-cue-load` | depguard | `cuelang.org/go/cue/load` and `cuelang.org/go/mod/...` everywhere, since they read files and can fetch modules, and `cuelang.org/go/tools/flow` and `cuelang.org/go/cmd/...`, since they run `tool` tasks |
 | `no-viper` | gomodguard_v2 | The `github.com/spf13/viper` module, as awrel bans modules there |
 | `no-other-github-clients` | gomodguard_v2 | The `github.com/shurcooL/githubv4` and `github.com/bradleyfalzon/ghinstallation` modules, and any go-github major but the pinned one (D24) |

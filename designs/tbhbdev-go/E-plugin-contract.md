@@ -16,11 +16,11 @@ parent: README.md
 
 Back to [the design](README.md).
 
-Everything here is new unless it names an existing file. [Appendix D](D-evidence.md) cites the existing behavior. Every Go path here sits under `factory/tbhbdev` in tbhb-dev/tbhbdev (D27).
+Everything here is new unless it names an existing file. [Appendix D](D-evidence.md) cites the existing behavior. Every Go path here sits under `factory/cli` in tbhb-dev/tbhbdev (D27).
 
 ## Dispatch
 
-The front is `factory/tbhbdev/cmd/tbhbdev`. Its `main` is one line that calls `front.Main` in `factory/tbhbdev/internal/dispatch/io/front` and exits with the result, as gh's `cmd/gh/main.go` does.
+The front is `factory/cli/cmd/tbhbdev`. Its `main` is one line that calls `front.Main` in `factory/cli/internal/dispatch/io/front` and exits with the result, as gh's `cmd/gh/main.go` does.
 
 1. **Find the bundle.** `os.Executable`, then `filepath.EvalSymlinks`, gives the front's real path. Its directory's parent is the bundle root.
 2. **Lease the bundle.** Before it reads any file in the bundle, the front opens `<bundle>/.in-use` and takes a shared lock on it, without close-on-exec. If the bundle was pruned in between, it resolves the link once more and retries once ([appendix J](J-self-update.md#runs-in-progress)).
@@ -83,7 +83,7 @@ A plugin never exits 125, 126, or 127, and a test over each plugin's exit-code t
 
 ### The version stamp
 
-`factory/tbhbdev/internal/buildinfo` holds `Version`, `Commit`, `CommitTime`, and `Date`, set by Bazel `x_defs` from the `STABLE_BUILD_SCM_*` workspace status keys, as awrel's `internal/buildmeta` does (existing). Every binary links it, and nothing else in the module holds a version string.
+`factory/cli/internal/buildinfo` holds `Version`, `Commit`, `CommitTime`, and `Date`, set by Bazel `x_defs` from the `STABLE_BUILD_SCM_*` workspace status keys, as awrel's `internal/buildmeta` does (existing). Every binary links it, and nothing else in the module holds a version string.
 
 The Python wheel in the bundle comes from the tools commit that the monorepo pins, so it keeps its own tools version. `tbhbdev version` prints the bundle version and monorepo commit, then the tools commit of `tbhbdev-py`, from the manifest. A release test runs every Go binary in the bundle with `--version` and fails unless each prints the bundle version, and runs `bin/tbhbdev-py --version` and fails unless it names the pinned tools commit.
 
@@ -135,7 +135,7 @@ Platforms: darwin-arm64, linux-amd64, and linux-arm64 (unverified against the ho
 
 ## The library surface
 
-Each package below sits under `factory/tbhbdev`, and is pure unless its path has `io/`. Names follow D11, and none is `core` or `shell`.
+Each package below sits under `factory/cli`, and is pure unless its path has `io/`. Names follow D11, and none is `core` or `shell`.
 
 | Package | Holds | Used by |
 | --- | --- | --- |

@@ -20,7 +20,7 @@ Go has no `alpha` (D5). Each command takes its final name when it ports, and `tb
 
 ## The name map
 
-One file in the monorepo, `factory/tbhbdev/names.toml`, holds this map with the first bundle version that carries each final name (new). Each bundle ships it, so the installer, the Python forwarders through `TBHBDEV_BUNDLE`, the caller check, and the `agent` plugin's passthrough list read the same file, and this table mirrors it.
+One file in the monorepo, `factory/cli/names.toml`, holds this map with the first bundle version that carries each final name (new). Each bundle ships it, so the installer, the Python forwarders through `TBHBDEV_BUNDLE`, the caller check, and the `agent` plugin's passthrough list read the same file, and this table mirrors it.
 
 | Today | Final name | Plugin binary | Wave |
 | --- | --- | --- | --- |
