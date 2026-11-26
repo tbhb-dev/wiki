@@ -22,7 +22,7 @@ The operator asked directly how agent runs work on a large repository. This appe
 
 The brief describes today's runs as worktrees cut from a host clone. The launcher's code does something else: it keeps a bare mirror per host and copies a full clone from it for every run, so that runs share no objects (proven, [appendix A](A-evidence.md#agent-runs-today)). D3 authorizes the public runs to share the bare mirror's writable object store. Companion runs keep copy clones.
 
-The monorepo starts at about 5,100 files and 23 MB. At that size a full copy per run costs under a second and little disk. The proposal still matters now for two reasons. Cleanup is broken today, and a narrow view keeps an agent's searches and edits inside its task.
+The original size measurement covered 19 repositories with about 5,100 files and 23 MB. A full copy of that sample per run costs under a second and little disk. The proposal still matters now for two reasons. The launcher leaves run clones behind today. A narrow view keeps an agent's searches and edits within its task.
 
 ## The mirror
 
@@ -105,7 +105,7 @@ How much a warm slot saves is unverified, and plan step 2 measures it. A slot's 
 
 | Item | Bound | Today |
 | --- | --- | --- |
-| The mirror | All commits and trees, plus the blobs any run touched | about 30 MB of Git data for all in-scope repositories |
+| The mirror | All commits and trees, plus the blobs any run touched | about 30 MB of Git data for the 19 repositories in the original size measurement |
 | The index worktree | One full checkout | about 23 MB |
 | Run worktrees | Slots times cone size, at most 16 slots | 297 leftover directories for one repository |
 | Output bases | One per slot, at most 16 | 598 on one host |
@@ -135,4 +135,4 @@ Worktrees write their objects and their branch refs into the mirror. A run can t
 
 These are guards against mistakes, not isolation. A process that writes the mirror's files directly passes every hook, and a run's commits that it has not pushed then have no second copy.
 
-The record that says a clone's main worktree stays clean assumes a clone with a main worktree. A bare mirror has none, which satisfies the rule's intent and not its wording, so D8 asks to amend it.
+D8 places agent run worktrees from the launcher's bare mirror under the launcher's state directory. The existing worktree rule still applies to people's clones.

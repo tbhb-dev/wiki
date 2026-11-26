@@ -58,7 +58,7 @@ The launcher's current behavior works at 23 MB. The copies aren't the problem to
 
 ### One root module with no nested modules
 
-Folding the rules into the root module makes every label a plain `//factory/rules/...` path and removes the nested workspaces. Standalone repositories then have to load the whole monorepo as one module to reach a rule, and they inherit every root dependency. The four open source tools stay standalone by decision, so the rules must stay loadable alone.
+Merging the rules into the root module would replace their labels with plain `//lib/rules/...` paths and remove the nested workspaces. A standalone repository would then have to load the entire monorepo and its dependencies. D15 keeps the rules loadable on their own for those consumers.
 
 ### Publishing the rules to a registry
 

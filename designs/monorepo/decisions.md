@@ -18,31 +18,30 @@ Back to [the design](README.md).
 
 ## Open
 
-### D7. Does work on the in-house merge queue stop now?
-
-- **Recommendation:** yes, and its design is marked superseded once plan step 12 lands.
-- **Why:** that queue exists for private repositories that GitHub's queue refuses. This move puts their code in a public repository and gives the companion an up-to-date check instead of a queue. The operator's decisions D1, D2, D3, and D17 in that design then cover nothing.
-- **If yes:** ops and agent-config merge without a queue until their imports, as they do today. Nobody creates the queue's App or its Temporal workflows.
-- **If no:** the queue ships for ops and agent-config and serves them for the weeks until plan step 12.
-- **Reversible:** yes. The design stays in the repository and can resume.
-
-### D8. May the worktree decision record change to fit a bare mirror?
-
-- **Recommendation:** yes.
-- **Why:** the worktree record says a clone's main worktree stays clean and runs get worktrees under it, and a bare mirror has no main worktree. The record is the operator's standing rule. The review tier record needs no change, because D31 applies it as written.
-- **If yes:** one tier 2 pull request amends the record, and worktrees live under the launcher's state directory.
-- **If no:** the launcher keeps a full clone beside the mirror only to satisfy the record's wording.
-- **Reversible:** yes, by a later amendment.
-
-### D9. May an import pull request skip the size limit, with line-by-line review only of the files the import wrote or changed?
-
-- **Recommendation:** yes, when the import check passes.
-- **Why:** an import adds a whole repository, far past 1,500 lines and past the 300 files that GitHub's diff view shows, and the size check has no override. The copied files passed review where they were written. A required check proves each one is byte-identical to its source at the named commit, so nothing rides along.
-- **If yes:** the size check exempts a pull request that holds one import commit with a green import check. The reviewer reads the path map, the dropped list, and every rewritten or generated file, from a local checkout.
-- **If no:** no import splits, because D10 makes each one a single copy commit. An import over the limit waits until its source is cut down in the old repository to fit one commit, or until the operator names another path. Tools alone has about 105,000 lines of Python, so it can't import under this answer.
-- **Reversible:** yes. Remove the exemption after the last import.
+None.
 
 ## Decided
+
+### D7. Stop work on the in-house queue
+
+- **Decided:** 2026-11-26, by the operator on 2026-11-25.
+- **Rule:** stop work on the in-house merge queue. Once the private-origin imports in plan step 12 merge, mark the [design for that queue](../merge-queue/README.md) superseded. Until then, the source repositories keep merging as they do today.
+- **Undo:** reopen the design if a repository needs that queue again.
+- **Record:** the operator's decision of 2026-11-25.
+
+### D8. The launcher keeps its mirror's run worktrees under its state directory
+
+- **Decided:** 2026-11-26, by the orchestrator.
+- **Rule:** the launcher creates run worktrees from its bare mirror and keeps them in its state directory. The existing worktree rule still applies to people's clones. Amend [decision record 0025](../../adrs/0025-clone-main-worktrees-stay-clean-and-on-main.md) by a tier 2 pull request when the launcher changes.
+- **Undo:** amend the record and change where the launcher creates its worktrees.
+- **Record:** the decision by the orchestrator on 2026-11-26.
+
+### D9. Imports use the existing override for pull request size
+
+- **Decided:** 2026-11-26, by the orchestrator.
+- **Rule:** send an import that exceeds either limit to a sizing review agent under the existing rule for pull request size. The agent can override either limit for the exact head it reviewed. It uses the passing byte-identical import check for that head as evidence, with the companion's byte comparison for private-origin imports. A new head needs a new verdict. The import reviewer works from a local checkout of that head and reads the path map and every dropped, rewritten, or generated file ([appendix G](G-import-and-cutover.md#importing-one-repository)).
+- **Undo:** change the import review procedure while retaining the existing size rule.
+- **Record:** the decision by the orchestrator on 2026-11-26.
 
 ### D1. Four factory-only imports join, and gomodscan stays standalone
 
@@ -72,12 +71,12 @@ Back to [the design](README.md).
 - **Undo:** Change the gate for future imports. A public push cannot be undone.
 - **Record:** the operator's answers of 2026-11-26.
 
-### D6. The private-name list is a repository Actions secret
+### D6. The base branch workflow holds access to the private-name secret
 
 - **Decided:** 2026-11-26, by the orchestrator.
-- **Rule:** Store the list once under the organization admin grant. The CI scan runs on pull requests with access to the secret and on every merge queue candidate. Its logs show only the file and line of each finding. Fork pull requests receive no secret and are scanned at the queue candidate.
-- **Undo:** Remove the repository secret and the job. Host scanning still runs.
-- **Record:** the operator's answers of 2026-11-26.
+- **Rule:** store the list in a GitHub Actions environment secret under the organization administrator grant. Restrict access to the base branch workflow. It scans eligible pull requests and every merge queue candidate, including candidates with fork changes. Its logs give the file and line of each finding and omit the match ([appendix D](D-public-private.md#keeping-private-content-out)).
+- **Undo:** remove the environment secret and the job. Host scanning still runs.
+- **Record:** the decision by the orchestrator on 2026-11-26.
 
 ### D24. The organization rename is the last migration step
 
@@ -110,7 +109,7 @@ Back to [the design](README.md).
 ### D35. Products depend on lib only, and factory code stays within the factory
 
 - **Decided:** 2026-11-26, by the operator.
-- **Rule:** D14 reads "Products depend on `lib/` only and are built with the rules." Products reach published modules and vendored code through `lib/`. The factory publishes nothing for use outside `factory/`. Code used by both the factory and products goes in `lib/`. Bazel visibility and the layering queries in [appendix C](C-layout-and-ownership.md#dependency-rules-in-bazel) enforce both boundaries, including that no `factory/` target is visible to `products/` or `lib/`.
+- **Rule:** products depend on `lib/` for published modules and vendored code (D14). Product build files load the build rules from `lib/rules` (D15). The factory publishes nothing for use outside `factory/`. Code used by both the factory and products, or by standalone repositories, goes in `lib/`. Bazel visibility and the layering queries in [appendix C](C-layout-and-ownership.md#dependency-rules-in-bazel) enforce both boundaries, including that no `factory/` target is visible to `products/` or `lib/`.
 - **Undo:** Amend D14 and change the visibility rules and layering test together.
 - **Record:** the operator's answers of 2026-11-26.
 
@@ -236,14 +235,14 @@ Back to [the design](README.md).
 ### D15. The rules stay nested Bazel modules
 
 - **Decided:** 2026-11-25, by the design's author.
-- **Rule:** the 13 rules modules keep their own `MODULE.bazel` files under `factory/rules`, and the root loads them through `local_path_override`. Labels such as `@tbhb_rules//lint:defs.bzl` don't change. A standalone repository can load them through `git_override` with a `strip_prefix` at its own cutover. A test fails when a nested module declares a version that differs from the root's.
+- **Rule:** D35 places the build rules in `lib/rules` because products and standalone repositories load them. The 13 rules modules keep their own `MODULE.bazel` files under `lib/rules`, and the root loads them through `local_path_override`. Labels such as `@tbhb_rules//lint:defs.bzl` don't change. A standalone repository can load them through `git_override` with a `strip_prefix` at its own cutover. A test fails when a nested module declares a version that differs from the root's.
 - **Undo:** fold them into the root module, which rewrites every load statement and cuts off standalone consumers.
 - **Record:** this design's pull request.
 
 ### D14. Five top-level folders, a flat `factory/`, and dependency rules
 
 - **Decided:** 2026-11-25, by the operator. The flat `factory/` is the operator's later ruling of the same day, which replaced the first sketch's extra level of folders. D35 amends the dependency rules on 2026-11-26.
-- **Rule:** top-level folders are `factory/`, `products/`, `lib/`, `docs/`, and `third_party/`. `factory/` is one boundary with no grouping folders: each project is one folder directly under it, and one source repository becomes one folder. Each project's `README.md` and `OWNERS` file describe the project, and neither sorts it into a category. The top-level `docs/` holds the wiki, research, and spikes, and each project's own records live in the project (D33). Products depend on `lib/` only and are built with the rules. The factory never depends on a product and publishes nothing for use outside `factory/`. Code used by both the factory and products goes in `lib/`. Bazel visibility keeps all `factory/` targets unavailable to `products/` and `lib/`, and layering queries check these boundaries. The companion mirrors the public paths.
+- **Rule:** top-level folders are `factory/`, `products/`, `lib/`, `docs/`, and `third_party/`. `factory/` is one boundary with no grouping folders: each project is one folder directly under it, and one source repository becomes one folder. Each project's `README.md` and `OWNERS` file describe the project, and neither sorts it into a category. The top-level `docs/` holds the wiki, research, and spikes, and each project's own records live in the project (D33). Products get their dependencies from `lib/`. Their build files load the rules from `lib/rules`. The factory never depends on a product and publishes nothing for use outside `factory/`. Code used by both the factory and products, or by standalone repositories, goes in `lib/`. Bazel visibility keeps all `factory/` targets unavailable to `products/` and `lib/`, and layering queries check these boundaries. The companion mirrors the public paths.
 - **Undo:** move folders by pull request. The rules live in build files and one test.
 - **Record:** the operator's brief of 2026-11-25, and the second and third fix briefs for this design's pull request.
 
@@ -263,8 +262,8 @@ Back to [the design](README.md).
 
 ### D11. The factory repositories are in scope, and the four open source tools aren't
 
-- **Decided:** 2026-11-25, by the operator. That the graph repository stays out is the operator's later ruling of the same day, which took it out of D1.
-- **Rule:** tools, agent-config, agent-memories, ops, wiki, research, spikes, event-gateway, rules, dotfiles, evals, dashboard, design, agent-capacity, runner-smoke, pm, sm, renovate-config, telemetry, and work move. afakt, avirt, afenc, and ascm stay standalone and are consumed, if at all, as Bazel modules at pinned versions. The graph repository is out of scope and doesn't move. The layout leaves room for products and names none.
+- **Decided:** 2026-11-25, by the operator. That the graph repository stays out is the operator's later ruling of the same day, which took it out of D1. D1 adds four imports on 2026-11-26.
+- **Rule:** move `tools`, `agent-config`, `agent-memories`, `ops`, `wiki`, `research`, `spikes`, `event-gateway`, `rules`, `dotfiles`, `evals`, `dashboard`, `design`, `agent-capacity`, `runner-smoke`, `pm`, `sm`, `renovate-config`, `telemetry`, `work`, `github-metrics`, `bazel-r2-cache`, `go.tbhb.dev`, and the Ansible collections. Keep `afakt`, `avirt`, `afenc`, and `ascm` standalone. Consumers pin them as Bazel modules. The graph repository is out of scope and doesn't move. The layout leaves room for products and names none.
 - **Undo:** import or extract a repository later.
 - **Record:** the operator's brief of 2026-11-25, and the fifth fix brief for this design's pull request.
 
@@ -279,6 +278,4 @@ Back to [the design](README.md).
 
 | Scope | Open items |
 | --- | --- |
-| Decisions answered on 2026-11-26 | None |
-
-D7, D8, and D9 were outside that round and remain in [Open](#open).
+| Monorepo design decisions | None |

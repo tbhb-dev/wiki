@@ -6,7 +6,7 @@ tags: [monorepo, bazel, git, ci, agents, design]
 status: draft
 owner: Design author
 updated: "2026-11-26"
-decisions_open: 3
+decisions_open: 0
 ---
 
 <!-- SPDX-License-Identifier: Apache-2.0 -->
@@ -18,15 +18,15 @@ decisions_open: 3
 
 | Status | Owner | Updated | Needs from the operator |
 | --- | --- | --- | --- |
-| Draft | Design author | 2026-11-26 | D7, D8, and D9 in the [open decisions](decisions.md#open) |
+| Draft | Design author | 2026-11-26 | Nothing. See [decisions.md](decisions.md#decided) |
 
 ## Summary
 
-The factory lives in about 20 repositories that pin each other. In the 28 days to 2026-11-25, 1,710 changes landed in them, and 426 were dependency updates. Up to 216 of those only moved a pin from one tbhb-dev repository to another.
+This design covers 24 repositories. In the 28 days to 2026-11-25, 1,908 changes landed across the 22 measured repositories, including 492 dependency updates. Up to 268 of those updated an internal tbhb-dev pin without other changes.
 
-This design puts the factory in one public Bazel repository, with a thin private companion for private values. Agents work in sparse Git worktrees cut from one mirror per host. One workflow tests only the targets a change affects, and GitHub's merge queue lands it.
+One public Bazel repository houses the factory, with a thin private companion for private values. Agents work in sparse Git worktrees cut from one mirror per host. One workflow tests the affected targets. GitHub queues changes before merging them.
 
-Nothing is built until the operator reads this and says go. The operator then answers 14 questions, signs off each publication of private-origin code, and reads one repository instead of 20.
+No design questions remain open. Before publishing each private-origin import, two independent agent runs must clear it. The operator has no sign-off duty.
 
 ## Proposal
 
@@ -42,20 +42,20 @@ When this is built, these parts exist:
 - **An import tool.** `tbhbdev alpha monorepo import` brings each repository in as one copy commit that puts its files where the layout wants them and names the source commit (new). No history comes along, and the archived original keeps it.
 - **Issues in two repositories.** The main private Project holds issues from both repositories, and the public roadmap holds the monorepo's public subset. Every issue carries one area label from the same monorepo-derived set. [Appendix I](I-issues-and-projects.md) has the labels and the pass over existing issues.
 
-This design overlaps the [in-house merge queue design](../merge-queue/README.md). After the move, every factory change lands through GitHub's queue or the companion's up-to-date check, so that queue has no repository left to serve.
+Work stopped on the [design for an in-house merge queue](../merge-queue/README.md). Mark it superseded once the private-origin imports merge. Factory changes then land through GitHub's queue or the companion's up-to-date check (D7).
 
 ## How it works
 
 ### The tree and its rules
 
-Folders go by project and never by language. `factory/` is one flat boundary: each project, such as `factory/tbhbdev` or `factory/rules`, is one folder directly under it. `products/<name>/` is empty today and names no product.
+Folders group files by project. Each factory project has its own folder directly under `factory/`. The design reserves `products/<name>/` for future products.
 
 Bazel visibility and layering queries enforce these rules.
 
-1. A product depends only on `lib/`. Its build files load the build rules as `@tbhb_rules` labels, and it reaches any other published module through a `lib/` project.
+1. A product’s dependencies come from `lib/`. Its build files load the build rules in `lib/rules` as `@tbhb_rules` labels, and it reaches any other published module through a `lib/` project.
 2. Nothing under `factory/` or `lib/` depends on a product.
 3. `lib/` depends only on `lib/` and third-party code.
-4. The factory publishes nothing for use outside `factory/`. Code shared by the factory and products goes in `lib/`.
+4. The factory publishes nothing for use outside `factory/`. Code used by both the factory and products, or by standalone repositories, goes in `lib/`.
 
 Each project's targets default to visibility inside that project. A gazelle directive at the top of each tree sets the default, and a query test fails when any path crosses a layer.
 
@@ -82,7 +82,7 @@ The public build passes with no companion present. A stub module in `third_party
 
 The public repository builds and tests. Any deploy that needs inventory or host values runs from the companion's workflows on private runners, at a pinned monorepo commit. Secrets stay in 1Password, as today.
 
-Pushing a branch to a public repository publishes it. Host hooks scan every commit for secrets and private names before the push, and CI repeats both scans. The name scan uses a repository Actions secret. Fork pull requests get the scan at the queue candidate.
+Pushing a branch to a public repository publishes it. Host hooks scan every commit for secrets and private names before the push, and CI repeats both scans. The protected environment restricts access to the name scan secret to the base branch workflow. The workflow scans fork changes at the queue candidate.
 
 ### An agent run
 
@@ -115,7 +115,7 @@ Each import sorts the old repository's issues, freezes it, and lands one pull re
 | Risk or unknown | Effect if it goes wrong | What handles it | Evidence |
 | --- | --- | --- | --- |
 | Private content reaches the public repository | A host name, private name, or secret is public for good | Copy imports with no history, a scan on a host that holds the private-name list, two independent agent reviews of each private-origin import before push, and host hooks before every push | new |
-| One queue carries about 61 landings a day | A serial queue at today's 1,400 seconds per pass holds under 62 passes a day, so the queue backs up | Affected-target CI shortens passes, the queue tests five candidates at once, and plan step 11 measures before the next import | proven count, unverified fix |
+| One queue needs to handle about 68 landings a day | At today’s 1,400 seconds per pass, a serial queue can finish 61 passes a day | Affected-target CI shortens passes, the queue tests five candidates at once, and plan step 11 measures before the next import | proven count, unverified fix |
 | The rules change often, and each change affects every target | 306 rules changes in 28 days each trigger a full run | Remote cache, sharding by project, and a nested workspace so rules-only tests stay small | proven count, unverified cost |
 | Nested rules modules don't test cleanly from the root | The rules' own tests need a second Bazel invocation | Plan step 2 spikes it, and the fallback runs Bazel inside the nested workspace | unverified |
 | Sparse worktrees confuse gazelle or Bazel | A run writes wrong build files or can't build | Plan step 2 spikes it, and a `--full` flag checks out everything | unverified |
@@ -142,17 +142,17 @@ Each import sorts the old repository's issues, freezes it, and lands one pull re
 | 9 | Tools imported, then the launcher's mirror, worktree, cone, and cleanup changes | Two runs on one host share one mirror, and a finished run leaves no worktree after the reaper runs | `tbhb-agent` |
 | 10 | The merge queue rule on `main`, and affected-target CI as the required path | A queued pull request merges through a `merge_group` run that tests fewer targets than `//...` | `tbhb-agent` |
 | 11 | Public repositories imported in the order in appendix G, including github-metrics, bazel-r2-cache, go.tbhb.dev, and the Ansible collections, with issues sorted and moved and queue wait and CI time measured after each | Each old repository has no open issue or pull request and is archived, and appendix A holds the measurements | `tbhb-agent`, with separate sorting and confirmation runs (D34) |
-| 12 | Private-origin repositories split, scanned, reviewed before push, and imported in one copy commit each with no history | The companion holds each complete report, passing scans and comparison, and two clear verdicts for the exact import commit and report before the push | `tbhb-agent`, with two independent tier 2 review runs |
+| 12 | Private-origin repositories split, scanned, reviewed before push, and imported in one copy commit each with no history. After these imports merge, mark the design for that queue superseded (D7) | The companion stores each complete report, passing scans and comparison, and two clear verdicts for the exact import commit and report before the push | `tbhb-agent`, with two independent tier 2 review runs |
 | 13 | The after numbers, 28 days after the last import | Appendix A holds both columns of the before and after table | `tbhb-agent` |
 | 14 | The organization rename as the last migration step, after a passing rehearsal | Every check in appendix G's rename section passes, and a search of both repositories for the old login returns nothing | `tbhb-agent`, under the organization admin grant |
 
-Scaffolding and import steps have no operator gate. The two independent reviews in step 12 clear each private-origin copy commit before publication. Steps 1 to 3 change nothing that's hard to undo, and they pay off even if the move stops there.
+Step 12 requires two independent agent reviews to clear each private-origin copy commit before publication. Scaffolding and imports proceed without operator sign-off. Steps 1 to 3 change nothing that's hard to undo, and they pay off even if the move stops there.
 
 The owner column names the identity that carries a step out, as the operator ruled for this design. `tbhb-agent` commissions each step's build in an agent run, and the step's state is its pull requests and the tracker row made from this plan.
 
 ## Appendices
 
-- [Decisions](decisions.md): The three remaining questions and the decided record, including the answers of 2026-11-26.
+- [Decisions](decisions.md) records the answers and rules, including the decisions of 2026-11-26.
 - [A. Evidence](A-evidence.md): what the repository reads, counts, and docs show, labeled proven, existing, new, or unverified.
 - [B. Alternatives considered](B-alternatives.md): Scalar, virtual filesystems, copy clones, a single root module, and the other options not taken.
 - [C. Layout and ownership](C-layout-and-ownership.md): the tree, where each repository goes, the `OWNERS` files, the dependency rules, who carries out each duty, the review tiers, and how Apps and rulesets map.

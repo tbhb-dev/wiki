@@ -45,21 +45,23 @@ Each row counts first-parent commits on `origin/main` from 2026-10-28 to 2026-11
 | runner-smoke | 11 | 5 | 1 |
 | event-gateway | 8 | 0 | 0 |
 | pm | 8 | 1 | 0 |
-| **In scope, 19 repositories** | **1,710** | **426** | **216** |
+| `bazel-r2-cache` | 76 | 33 | 28 |
+| github-metrics | 67 | 6 | 3 |
+| go.tbhb.dev | 55 | 27 | 21 |
+| Ansible collections | Unmeasured | Unmeasured | Unmeasured |
+| work | Unmeasured | Unmeasured | Unmeasured |
+| **In scope, 24 repositories (22 measured)** | **1,908** | **492** | **268** |
 
-That's about 428 landings a week and 61 a day. Dependency updates are 25% of them, about 107 a week. The first-party pin column is an upper bound of about 54 a week, because the grouped `pins` update also carries third-party digests.
+The measured repositories averaged 477 merges a week and 68 a day. Dependency updates account for about 26%, or 123 a week. The first-party pin count gives an upper bound of 67 a week because the grouped `pins` update includes third-party digests.
 
-The work repository wasn't in the host's clones, so it has no row (unverified). The repositories were about three weeks old on 2026-11-25, so the window covers nearly their whole lives.
+D1 brought the three newly counted repositories and the Ansible collections into scope. Counts for the work repository and the Ansible collections are unavailable. On 2026-11-25 the repositories were about three weeks old, within the 28-day window.
 
 | Other repository | Landed | Dependency | First-party pin |
 | --- | --- | --- | --- |
 | awrel | 112 | 42 | 36 |
-| bazel-r2-cache | 76 | 33 | 28 |
-| github-metrics | 67 | 6 | 3 |
 | ascm | 62 | 33 | 30 |
 | afakt | 60 | 30 | 22 |
 | avirt | 57 | 35 | 28 |
-| go.tbhb.dev | 55 | 27 | 21 |
 | gomodscan | 54 | 39 | 26 |
 | afenc | 52 | 29 | 24 |
 
@@ -69,7 +71,7 @@ In 14 of the in-scope repositories, 200 landed dependency updates named a third-
 
 | Claim | Label | Source |
 | --- | --- | --- |
-| The 19 cloned in-scope repositories hold about 5,100 tracked files and 23 MB, with about 30 MB of Git data. The brief gives about 94 MB packed for 23 repositories | proven, and the brief says | `git ls-files` and `git count-objects` per clone |
+| The 19 clones in the original size measurement hold about 5,100 tracked files and 23 MB, with about 30 MB of Git data. The brief gives about 94 MB packed for 23 repositories | proven, and the brief says | `git ls-files` and `git count-objects` per clone |
 | Nearly every repository carries the same 16 or so root configuration files, such as `.bazelrc`, `MODULE.bazel`, `.gitleaks.toml`, `.vale.ini`, and `renovate.json5` | proven | root listings of 16 repositories |
 | 16 in-scope repositories hold 61 workflow files, and ops, agent-config, and agent-memories hold 11 more | proven | `git ls-tree` on `.github/workflows` |
 | Consumers pin the rules by full commit hash and sat on seven different rules commits | proven | each repository's `MODULE.bazel` and workflow pins |
@@ -83,7 +85,7 @@ In 14 of the in-scope repositories, 200 landed dependency updates named a third-
 
 | Claim | Label | Source |
 | --- | --- | --- |
-| The size check fails a pull request that adds more than 400 code lines or 1,500 raw lines. No label raises it, and a repository's first pull request and Renovate are exempt | existing | the rules repository's actions README |
+| The size check fails a pull request that adds more than 400 code lines or 1,500 raw lines. A sizing review agent can override either limit for the exact head it reviewed. The rule already exempts a repository's first pull request and Renovate | existing | the rules repository's actions README |
 | The review tiers are in the wiki's first decision record: tier 0 is CI only, tier 1 is one fresh run, and tier 2 is two | existing | `adrs/0001` |
 | The rules repository's `AGENTS.md` has a "Tier 2 review paths" table of 50 rows, each a glob with class 2 or class 3 and a reason | existing | rules at `origin/main`, commit f0fdf1d, read on 2026-11-25 |
 | This repository's main ruleset requires the `conclusion` check pinned to GitHub Actions and dismisses stale reviews on a push. It requires no approving review and no last-push approval, unlike the rules repository's ruleset in the row below | existing | `.github/rulesets/main.json` |
@@ -139,7 +141,7 @@ These come from GitHub Docs, "Repository limits". The brief gave most of them, a
 | 3,000 entries in a directory | recommended | The widest directory read is 148 entries, in tools (proven, four clones) |
 | Depth of 50 | recommended | The deepest path read is 10 levels, and the layout adds at most 3 |
 | 5,000 branches | recommended | One branch for each open pull request. Merged heads are deleted, and the launcher prunes the rest ([appendix E](E-agent-runs.md#cleanup)) |
-| 6 pushes a minute | recommended | About 61 landings a day. If each takes four pushes, that's one push every six minutes on average, and the push count itself is unverified |
+| 6 pushes a minute | recommended | About 68 landings a day. At four pushes per landing, the average would be one push every five minutes. The push count remains unverified |
 | 15 Git reads a second, counting fetches and clones | recommended | Far under it on average, and a burst is unverified ([Git reads](#git-reads)) |
 | About 1 merge a minute | recommended | The queue merges in groups, at most one group for each finished pass ([appendix F](F-ci.md#the-merge-queue)) |
 | 1,000 open pull requests on a base branch | recommended | Renovate is capped at 10 ([appendix H](H-dependencies-and-renovate.md#renovate)). The open count today wasn't read (unverified) |

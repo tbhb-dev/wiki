@@ -25,7 +25,7 @@ BUILD.bazel         root targets, including the layering test
 .github/            workflows and rulesets
 factory/
   tbhbdev/          the command-line tool, with its OWNERS file and its docs/
-  rules/            renovate-config/      runner-smoke/
+  renovate-config/  runner-smoke/
   agent-config/     agent-memories/       agent-capacity/
   event-gateway/    telemetry/            dashboard/
   pm/               sm/                   work/
@@ -33,18 +33,19 @@ factory/
   github-metrics/   bazel-r2-cache/       go-vanity/
   ansible-collections/
 products/           <name>/, empty today
-lib/                design/, and shared code as it appears
+lib/                design/  rules/, and shared code as it appears
 docs/               wiki/  research/  spikes/, and no project's own records
 third_party/        vendored code, patches, and the private stub module
 ```
 
-`factory/` is one boundary and has no levels inside it (D14). Every factory project is one folder directly under `factory/`, and the path says nothing about what kind of project it is. The boundary is what the build enforces: a product depends on `lib/` only, the factory never depends on a product, and factory targets stay within `factory/`. Code shared by a product and the factory goes in `lib/`.
+`factory/` is one boundary and has no levels inside it (D14). Each factory project has one folder directly under `factory/`. Bazel limits products to dependencies in `lib/` and confines factory targets to `factory/`. Factory projects must stay independent of products. Code used by both the factory and products, or by standalone repositories, goes in `lib/`. Reusable GitHub workflows stay in `.github/workflows/` as repository infrastructure outside factory projects.
 
 A project is a folder under `factory/`, `products/`, `lib/`, or `docs/` with an `OWNERS` file (D36). Every factory project sits directly under `factory/`. Each project folder has a `README.md`, an `OWNERS` file, and its own `docs/` folder. [OWNERS files](#owners-files) and [the top-level docs folder](#what-the-top-level-docs-folder-holds) describe the last two.
 
-Two placements differ from the starting sketch in the brief:
+The starting sketch had different locations for these projects and the stub.
 
 - **`lib/design`, not `docs/design`.** The design repository is a workspace of published packages, not prose, and products need to depend on it (D19).
+- **The build rules in `lib/rules`.** Products and standalone repositories load the nested rules modules (D15 and D35).
 - **The stub module in `third_party/`.** [Appendix D](D-public-private.md) explains it.
 
 Go, Python, and TypeScript projects sit side by side under `factory/`, and all of them read the shared dependency roots in [appendix H](H-dependencies-and-renovate.md).
@@ -90,7 +91,7 @@ Every repository arrives as one copy commit with no history (D10). One source re
 | Repository | Path | Left out of the public copy |
 | --- | --- | --- |
 | renovate-config | `factory/renovate-config` | root configuration |
-| rules | `factory/rules` | root configuration |
+| rules | `lib/rules` | root configuration. Keep the nested module files in `lib/rules` and move reusable workflows to `.github/workflows/` |
 | runner-smoke | `factory/runner-smoke` | root configuration |
 | tools | `factory/tbhbdev` (D23) | root configuration |
 | agent-config | `factory/agent-config` | the operator-account folder |
@@ -118,7 +119,7 @@ Every repository arrives as one copy commit with no history (D10). One source re
 | `lib/<name>` | `lib/`, `third_party/`, and published modules | `factory/`, `products/` |
 | `docs/` | `lib/`, the rules | `products/`, `factory/` |
 
-A published module is one that resolves through a shared dependency root at a version: a Bazel module, or a package from a language's registry. The factory and `lib/` may name published modules, and products reach them or vendored code through `lib/` (D35). Product build files load the build rules as `@tbhb_rules` labels. The factory publishes nothing for use outside `factory/`. Code shared by the factory and products goes in `lib/`.
+A published module is one that resolves through a shared dependency root at a version: a Bazel module, or a package from a language's registry. The factory and `lib/` may declare dependencies on published modules. Products use published modules and vendored code through `lib/` (D35). Product build files load the nested build rules in `lib/rules` as `@tbhb_rules` labels. The factory publishes nothing for use outside `factory/`. Code used by both the factory and products, or by standalone repositories, goes in `lib/`.
 
 Two mechanisms enforce the table.
 
@@ -209,18 +210,18 @@ The record lane changes which checks CI runs, and it changes no tier (D33). A re
 
 The rules repository's `AGENTS.md` has a "Tier 2 review paths" table: one row for each glob, with a class and a reason (existing). Class 2 protects the agent account boundary, and class 3 protects review, approval, and merge requirements. The monorepo's root `AGENTS.md` carries the monorepo's equivalent, in the same form (new).
 
-The import of rules rewrites that table's rows to their new paths. A row for a file inside rules gains the `factory/rules/` prefix, and a row for a root file names the monorepo's own root file. These rows show the pattern:
+The import of rules rewrites that table's rows to their new paths. Prefix each path inside the imported rules project with `lib/rules/`. Root files use their paths relative to the monorepo root. These rows show the pattern:
 
 | Row in rules today | Glob in the monorepo | Class |
 | --- | --- | --- |
 | `.claude/settings.json`, `.codex/rules/pull-request.rules` | The same paths at the monorepo root | 2 |
-| `lint/private/commit_identity/**`, `lint/private/claude_settings/**` | `factory/rules/lint/private/commit_identity/**`, `factory/rules/lint/private/claude_settings/**` | 2 |
+| `lint/private/commit_identity/**`, `lint/private/claude_settings/**` | `lib/rules/lint/private/commit_identity/**`, `lib/rules/lint/private/claude_settings/**` | 2 |
 | `.github/workflows/renovate.yaml`, `.github/renovate.json5` | The root Renovate workflow and the root `renovate.json5` | 2 |
-| `repo/baseline/files/**` rows | `factory/rules/repo/baseline/files/**`, for the same files | 2 or 3, as today |
+| `repo/baseline/files/**` rows | `lib/rules/repo/baseline/files/**`, for the same files | 2 or 3, as today |
 | `AGENTS.md`, `CLAUDE.md`, for text that sets the review tier | The same files at the monorepo root | 3 |
 | `.github/rulesets/**`, `.github/workflows/ci.yml` | The same paths at the monorepo root. `ci.yml` holds the record lane's path check, so this row covers it | 3 |
-| none, because the rule is new | The record-check rule under `factory/rules`, at the path its pull request gives it | 3 |
-| `lint/repo_checks.*`, `lint/private/required_status_checks/**`, `lint/private/review_policy/**`, `lint/private/pr_size*` | The same paths under `factory/rules/` | 3 |
+| none, because the rule is new | The record-check rule under `lib/rules`, at the path its pull request gives it | 3 |
+| `lint/repo_checks.*`, `lint/private/required_status_checks/**`, `lint/private/review_policy/**`, `lint/private/pr_size*` | The same paths under `lib/rules/` | 3 |
 | `MODULE.bazel`, for the block that pins the review policy's source | Expected to need no row, because that source is in the tree at `factory/tbhbdev` and has its own rows | none |
 
 Each later import adds rows for its own class 2 and class 3 paths, such as the review and merge code under `factory/tbhbdev` and the harness configuration under `factory/agent-config`. The map lists paths only. The decision record's content triggers, such as a credential, a deployment, or a destructive deletion, set tier 2 wherever they appear, with or without a row.

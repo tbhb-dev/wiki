@@ -98,7 +98,11 @@ A branch pushed to a public repository is public at once, even before any review
 | Import scan and review | The import tool and two fresh agent review runs, before the first public push (D4) | Private content in a private-origin repository | new |
 | Review | The reviewer of each pull request | What a pattern can't catch | existing |
 
-The private-name list lives in the companion and in one repository Actions secret set under the organization admin grant. The CI job prints a file and line for each finding and omits the match. Fork pull requests receive no secret and are scanned at the queue candidate. A host without the companion can't run the name scan. The hook installer therefore refuses to enable pushes to the monorepo from such a host when the host also holds a private checkout.
+The companion stores the private-name list. Under the organization administrator grant, the repository stores a copy in a GitHub Actions environment secret and restricts that environment to the base branch workflow. An agent branch that edits the scan job has no access to the secret.
+
+The trusted scan reads candidate files as data and never runs their code. It prints a file and line for each finding and omits the match. It scans fork changes at the queue candidate.
+
+The name scan on a host needs the companion. The hook installer blocks pushes to the monorepo from hosts that have a private checkout but lack the companion.
 
 Hooks come from `tbhbdev alpha install` only, as today (existing rule). The push hook is new, and it scans every commit that the push would publish.
 

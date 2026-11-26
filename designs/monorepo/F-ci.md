@@ -27,10 +27,12 @@ Back to [the design](README.md).
 | `test` | One matrix entry per shard: `bazelisk test --config=ci --target_pattern_file=<shard>` | `plan` |
 | `coverage` | For each affected project, runs coverage over all of the project's test targets and checks the combined figure | `plan` |
 | `repo` | Gazelle diff, `bazel mod tidy`, gitleaks over the pull request's commits, commit identity, pull request size, the pull request body check, workflow lint, and the layering test | none |
-| `names` | The private-name scan with the repository Actions secret, on pull requests with secret access and on queue candidates (D6) | none |
+| `names` | The private-name scan from the base branch workflow, using its protected environment secret on eligible pull requests and queue candidates (D6) | none |
 | `import` | On an import pull request, checks the copy against its source and its path map ([appendix G](G-import-and-cutover.md#importing-one-repository)) | none |
-| `rules` | Runs the nested rules workspace's own tests when a file under `factory/rules` changed, if plan step 2 shows the root can't run them | `plan` |
+| `rules` | Runs the nested rules workspace's own tests when a file under `lib/rules` changed, if plan step 2 shows the root can't run them | `plan` |
 | `conclusion` | Fails unless every job above passed or was skipped on purpose | all |
+
+The `names` job uses the scan defined on the base branch and reports its result for the candidate commit. The scan uses scripts and actions from the base branch and reads the candidate tree as data ([appendix D](D-public-private.md#keeping-private-content-out)).
 
 The main ruleset requires one check, `conclusion`, pinned to GitHub Actions as in every repository's ruleset today (existing). It also requires an independent approval of the exact head: one approving review that isn't the author's or the last pusher's, dismissed by any new commit. The reviews App posts that approval only after the fresh review runs that `tbhb-agent` starts for the change's tier, and the tier 0 workflow posts it at tier 0 ([appendix C](C-layout-and-ownership.md#separation-of-duties), new). A green `conclusion` alone therefore can't merge a change.
 
@@ -42,10 +44,10 @@ A project's needs, requirements, and knowledge articles live in its own `docs/` 
 
 - **A path check decides.** The `plan` job lists the changed paths with Git. The pull request is a record pull request when every changed path is a Markdown file under `<top>/<project>/docs/needs/`, `<top>/<project>/docs/requirements/`, or `<top>/<project>/docs/kb/`, where `<top>` is `factory`, `products`, `lib`, or `docs`.
 - **Any other file sends it through the full lane.** One changed path outside those folders, or one file in them that isn't Markdown, and the pull request runs everything in the table above.
-- **A check's definition is never a record.** Each project declares its record check in its top-level `BUILD.bazel`, such as `//factory/tbhbdev:record_check`, and the rule behind it lives under `factory/rules`. Neither sits in a record folder, and neither does `ci.yml`, which holds the path check. A change to any of them therefore takes the full lane, and the tier 2 path map covers the rule and the workflow.
+- **A check's definition is never a record.** Each project declares its record check in its top-level `BUILD.bazel`, such as `//factory/tbhbdev:record_check`, and the rule behind it lives under `lib/rules`. Neither sits in a record folder, and neither does `ci.yml`, which holds the path check. A change to any of them takes the full lane, and the tier 2 path map covers the rule and the workflow.
 - **The lane runs one target for each project touched.** The `records` job runs `bazelisk test` on the record-check target of each project in the diff. The target checks that project's records: their front matter against the schema, their links, and their prose.
 - **It skips the full build and test.** `test`, `coverage`, and `rules` are skipped on purpose, and so are the parts of `repo` that build: the gazelle diff, `bazel mod tidy`, and the layering test.
-- **The scans stay.** gitleaks, the `names` scan where D6 supplies the secret, commit identity, pull request size, and the body check still run, because they guard what a public pull request publishes and none of them builds anything. The names job reports only a file and line for each finding. A fork gets no secret, so its changes go through the names scan as a queue candidate.
+- **The scans stay.** gitleaks, the `names` scan where D6 supplies the secret, commit identity, pull request size, and the body check still run, because they guard what a public pull request publishes and none of them builds anything. The base branch workflow keeps the secret and reports the file and line of each finding and omits the match. It scans fork changes at the queue candidate.
 
 `conclusion` reports the record lane like any other run, so it stays the one required check and the rulesets don't change. A record pull request still needs the independent approval its tier sets.
 
@@ -129,7 +131,7 @@ The main ruleset gains the merge queue rule in plan step 10, once affected-targe
 
 Two settings do different jobs. Build concurrency is CI capacity: it sets how many candidates are tested at once. The merge limits act only after checks pass: they set how many passed entries land in one merge.
 
-The queue has to carry about 61 landings a day, and more at peaks (proven count). A serial queue at tools' 1,400 seconds a pass can't, because a day holds 61 such passes with no slack. Shorter affected-target passes and five candidates in flight supply the CI capacity. Plan step 11 measures queue wait after each import and stops the imports if the wait grows.
+The queue needs to handle about 68 landings a day and more at peaks (proven count). At tools’ 1,400 seconds a pass, a serial queue can finish 61 passes a day. Shorter affected-target passes and five candidates in flight supply the CI capacity. Plan step 11 measures queue wait after each import and stops the imports if the wait grows.
 
 GitHub recommends about one merge a minute and six pushes a minute for a repository ([appendix A](A-evidence.md#githubs-repository-limits)). Grouped merges keep `main` at one merge for each finished pass, far under the first. For the second, agents push once for each review round, not once for each commit, and `tbhbdev` backs off and retries a refused push.
 

@@ -60,7 +60,7 @@ Between waves, plan step 11 measures queue wait and CI time. A wave doesn't star
 4. **Map.** A path map lists every file at that commit as copied to a new path, dropped, or rewritten. Dropped files are the root configuration that the shared roots replace. Rewritten files are those that called, pinned, or imported an old repository.
 5. **Import.** `tbhbdev alpha monorepo import <repository>@<commit>` builds one signed commit and opens a pull request. The commit holds the files at their new paths, the project's dependencies folded into the shared roots, its rows in the tier 2 path map, and the build files gazelle writes. Its message names the source repository and the full commit hash, and it has no parent in the old repository.
 6. **Prove.** A required `import` job fetches a public source at the named commit, which needs no credential. It checks that each copied file is byte-identical to its source, that the map accounts for every source file, and that no executable reference to an old repository remains. It can't read a private source, so [appendix D](D-public-private.md#what-public-ci-proves-for-a-private-origin-import) says what it checks then, and the project's targets build and test like any affected targets.
-7. **Review.** GitHub's diff view shows at most 300 files (per docs), so the reviewer works from a local checkout of the exact head. The `import` job's summary lists the dropped, rewritten, and generated files, and the reviewer reads each of those (D9).
+7. **Review.** GitHub’s diff view shows at most 300 files (per docs). The reviewer uses a local checkout of the exact head to read the path map and every dropped, rewritten, or generated file. If the import exceeds either size limit, a sizing review agent uses the passing byte-identical import check for that head as evidence for an override under the existing size rule (D9). For a private-origin import, the companion's comparison supplies that evidence.
 8. **Archive.** Once the repository has no open issue and no open pull request, its README gets one line that points to the new path, and it becomes an archive. `tbhbdev alpha monorepo archive` refuses while either count is above 0.
 
 For a private-origin repository, step 5 builds the signed copy commit in a private workspace. The split, scans, and two independent reviews in [appendix D](D-public-private.md#importing-a-private-origin-repository) clear that exact commit before the import tool pushes it and opens the public pull request.
@@ -75,7 +75,7 @@ For a private-origin repository, step 5 builds the signed copy commit in a priva
 | Issues | Through the relevance pass, then into the monorepo or the companion with one area label each ([appendix I](I-issues-and-projects.md)) |
 | Releases and tags | Old ones stay on the archived repository, where they remain downloadable. New ones are tagged `<project>/vX.Y.Z` |
 | Go import paths | The import rewrites each one to the root module's path, and the map lists the files it touched. The vanity import service keeps serving only the standalone modules |
-| Bazel module consumers outside the monorepo | A standalone repository keeps its rules pins until its own cutover, which it schedules itself. It then points each override at the monorepo with `strip_prefix = "factory/rules/<module>"` |
+| Bazel module consumers outside the monorepo | A standalone repository keeps its rules pins until its own cutover, which it schedules itself. It then points each override at the monorepo with `strip_prefix = "lib/rules/<module>"` |
 | Renovate | One root `renovate.json5` and one root workflow, from wave 1 ([appendix H](H-dependencies-and-renovate.md#renovate)) |
 | Tier 0 approval | One root workflow, written inline, with the path lists in [appendix C](C-layout-and-ownership.md#the-tier-0-workflow) |
 | Reusable workflows | The monorepo calls none. The ones standalone repositories need are published from the root `.github/workflows` ([appendix F](F-ci.md#what-stays-for-standalone-repositories)) |
@@ -87,11 +87,11 @@ For a private-origin repository, step 5 builds the signed copy commit in a priva
 
 | Measure | Before | After | Label |
 | --- | --- | --- | --- |
-| Pull requests that only move a first-party pin | Up to 54 a week across the 19 repositories | 0 inside the monorepo, plus the companion's one pin | proven count, new target |
+| Pull requests dedicated to first-party pin updates | Up to 67 a week across the 22 measured repositories | 0 inside the monorepo, plus the companion's one pin | proven count, new target |
 | Third-party update pull requests | About 50 a week in 14 repositories, 36 of them distinct | One per lock file a day, plus one per major version | proven count, new target |
 | Dependency updates as a share of landings | 25% | Under 10% | proven count, new target |
 | Rules versions in use at once | 7 | 1 inside the monorepo | proven count |
-| Copies of the root configuration files | About 16 files in each of 19 repositories | 16 | proven count |
+| Copies of the root configuration files | About 16 files in each of the 19 repositories in the original measurement | 16 | proven count |
 | Workflow files | At least 72 | About 10 | proven count, new target |
 | Renovate runs | About 144 a week for each repository, near 2,700 in all | About 144, plus the companion's | existing schedule |
 | Pull requests for a rules change that needs a consumer fix | One in rules, then one for each consumer after its pin moves | 1 | existing process |
