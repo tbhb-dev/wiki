@@ -17,7 +17,7 @@ jobs:
     if: github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.pull_requests[0] != null
     permissions:
       actions: read  # Read workflow runs for the checked commit.
-    uses: tbhb-dev/rules/.github/workflows/tier0-approval.yml@5c4ed1158bfd6b00184e1ddd8fac78c6e161eb2d  # main
+    uses: tbhb-dev/rules/.github/workflows/tier0-approval.yml@aa2f970279ca268aea6e6fc7fc3851a5b3d2fc5e  # main
     with:
       mode: enforce
       check_workflows: |
